@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { useDeleteIdea, useIdeas, useSaveIdea } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta, GiftThumb, ImagePicker } from '../../components/gift'
+import { GiftMeta, GiftThumb, ImagePicker, useLinkFill } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
 import { PageHeader } from '../../components/Layout'
 import {
@@ -278,6 +278,11 @@ function IdeaFormModal({
   const [url, setUrl] = useState(idea?.url ?? '')
   const [notes, setNotes] = useState(idea?.notes ?? '')
   const [image, setImage] = useState<ImageChoice>(undefined)
+  // Nome, prezzo e note dal link del negozio, solo nei campi ancora liberi.
+  const fill = useLinkFill(
+    { title, price, notes },
+    { title: setTitle, price: setPrice, notes: setNotes },
+  )
   const [status, setStatus] = useState<IdeaStatus>(idea?.status ?? 'idea')
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
   const priceInvalid = price.trim() !== '' && parsePrice(price) === null
@@ -323,7 +328,7 @@ function IdeaFormModal({
             ))}
           </datalist>
         </Field>
-        <Field label={gettext('Cosa')} error={fields.title}>
+        <Field label={gettext('Cosa')} error={fields.title} hint={fill.hint('title')}>
           <input
             className="field-input"
             value={title}
@@ -346,6 +351,7 @@ function IdeaFormModal({
           <Field
             label={gettext('Prezzo (facoltativo)')}
             error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
+            hint={fill.hint('price')}
           >
             <div className="flex items-center gap-2">
               <span className="text-body-large text-on-surface-variant">€</span>
@@ -369,8 +375,14 @@ function IdeaFormModal({
             placeholder="https://"
           />
         </Field>
-        <ImagePicker current={idea?.image ?? null} choice={image} onChoice={setImage} link={url} />
-        <Field label={gettext('Note')}>
+        <ImagePicker
+          current={idea?.image ?? null}
+          choice={image}
+          onChoice={setImage}
+          link={url}
+          fill={fill}
+        />
+        <Field label={gettext('Note')} hint={fill.hint('notes')}>
           <textarea
             className="field-input min-h-[64px] resize-y"
             value={notes}

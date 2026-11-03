@@ -72,6 +72,15 @@ JavaScript) la pagina si apre col browser headless del servizio `scraper`
 di rete; i siti che bloccano anche il browser o chiedono un captcha (Zalando)
 restano da caricare a mano. Sulla lista condivisa la foto si tocca per vederla grande.
 
+**Dal link al form** ([ADR 0006](docs/decisions/0006-dati-del-regalo-dal-link.md)).
+Incollato il link, il form si compila da solo nei campi ancora liberi: nome,
+prezzo, note e foto (sotto i campi compilati: "Dal link del negozio"). Quello
+che si è scritto a mano non si tocca; se il link cambia, cambia anche quello
+che aveva messo il link. Il server legge i dati che i negozi dichiarano
+(`og:*`, JSON-LD, microdata) e, con `GEMINI_API_KEY`, fa leggere a Gemini il
+testo della pagina per un nome corto, il prezzo e una nota con la variante:
+funziona con qualsiasi negozio, non solo con quelli che dichiarano i dati.
+
 **Da regalare** (`/da-regalare`). Idee per gli altri: per chi (testo libero,
 con suggerimenti dai nomi già usati), cosa, occasione, prezzo, link, note e
 stato `idea → comprato → regalato` (un tocco sulla pill passa al successivo).
@@ -121,7 +130,8 @@ backend/
 └── apps/
     ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
     ├── users/           User custom + auth JWT + mail dell'account
-    └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa, images.py
+    └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa,
+                         images.py (foto, rete), links.py (pagina del link), ai.py (Gemini)
 scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape {url}, guard.py
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
@@ -141,6 +151,7 @@ docs/decisions/          ADR
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
+| `POST /api/links/read` `{url, image}` | nome, prezzo, note e foto dal link per il form |
 | `GET /api/shared/{token}` | lista condivisa, pubblica |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta |
 
@@ -233,7 +244,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-73 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+102 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -243,6 +254,10 @@ collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
 non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta
 vera), pulizia delle orfane; ripiego sullo scraper quando il sito blocca o la
 pagina è in JavaScript, stop davanti al captcha, foto dello scraper verso la LAN
-rifiutate, errore diretto se lo scraper è giù. Lo scraper ha i suoi test delle
+rifiutate, errore diretto se lo scraper è giù. Dal link al form: dati dichiarati
+(JSON-LD, meta, `#productTitle`), prezzi in tutti i formati (e niente prezzi in
+altre valute), titoli ripuliti, browser quando manca il prezzo o il testo,
+Gemini finto che scrive nome e note, prezzo dichiarato che vince, Gemini in
+errore che non blocca. Lo scraper ha i suoi test delle
 regole di rete (`scraper/tests`); il browser vero si prova a mano con un link
 Amazon e uno IKEA.

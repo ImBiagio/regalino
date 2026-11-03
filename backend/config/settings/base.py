@@ -241,6 +241,11 @@ IMAGE_FETCH_TIMEOUT = float(env("IMAGE_FETCH_TIMEOUT", "10"))
 # del link non basta. Vuoto = spento (test, sviluppo senza il container).
 SCRAPER_URL = env("SCRAPER_URL", "")
 SCRAPER_TIMEOUT = float(env("SCRAPER_TIMEOUT", "40"))
+# Nome, prezzo e note dal testo della pagina (ADR 0006). Senza chiave si usano
+# solo i dati che la pagina dichiara.
+GEMINI_API_KEY = env("GEMINI_API_KEY", "")
+GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_TIMEOUT = float(env("GEMINI_TIMEOUT", "20"))
 # Dopo quanto una foto mai collegata a un regalo si cancella.
 IMAGE_ORPHAN_HOURS = int(env("IMAGE_ORPHAN_HOURS", "24"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES

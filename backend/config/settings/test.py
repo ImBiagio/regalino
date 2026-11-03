@@ -5,6 +5,7 @@ DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = True
 # Niente browser nei test: lo scraper si finge nei test che lo riguardano.
 SCRAPER_URL = ""
+GEMINI_API_KEY = ""
 REQUIRE_EMAIL_VERIFICATION = False
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

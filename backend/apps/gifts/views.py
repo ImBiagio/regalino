@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status, viewsets
@@ -16,7 +17,8 @@ from rest_framework.views import APIView
 
 from apps.core.methods import hash_secret, random_token
 
-from .images import ImageError, image_from_url, process_image
+from .images import ImageError, process_image
+from .links import details_of, image_from_url, image_of, read_page
 from .models import GiftIdea, GiftImage, Wish, WishList, new_share_token
 from .serializers import (
     GiftClaimSerializer,
@@ -25,6 +27,8 @@ from .serializers import (
     GiftReleaseSerializer,
     ImageFromUrlSerializer,
     ImageUploadSerializer,
+    LinkDetailsSerializer,
+    LinkReadSerializer,
     SharedWishListSerializer,
     SharedWishSerializer,
     WishListSerializer,
@@ -122,10 +126,15 @@ class GiftIdeaViewSet(viewsets.ModelViewSet):
 # ------------------------------------------------------------------ foto --
 
 
-def _save_image(request, content, source_url: str = "") -> Response:
-    image = GiftImage(owner=request.user, source_url=source_url)
+def _store_image(request, content, source_url: str = "") -> GiftImage:
+    image = GiftImage(owner=request.user, source_url=source_url[:1000])
     image.file.save(content.name, content, save=False)
     image.save()
+    return image
+
+
+def _save_image(request, content, source_url: str = "") -> Response:
+    image = _store_image(request, content, source_url)
     return Response(GiftImageSerializer(image).data, status=status.HTTP_201_CREATED)
 
 
@@ -163,7 +172,46 @@ class ImageFromUrlView(APIView):
             content, source = image_from_url(serializer.validated_data["url"])
         except ImageError as exc:
             raise ValidationError({"url": [str(exc)]}) from None
-        return _save_image(request, content, source[:1000])
+        return _save_image(request, content, source)
+
+
+class LinkReadView(APIView):
+    """Tutto quello che si legge dal link di un regalo, per compilare il form.
+
+    Nome, prezzo e note (ADR 0006) e, se ``image`` e' vero, la foto gia'
+    caricata come quelle di ``images/from-url``. Una foto che non si trova
+    non e' un errore se il resto c'e': torna in ``image_error``.
+    """
+
+    throttle_scope = "images"
+
+    @extend_schema(request=LinkReadSerializer, responses={200: LinkDetailsSerializer})
+    def post(self, request):
+        serializer = LinkReadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            page = read_page(serializer.validated_data["url"], details=True)
+        except ImageError as exc:
+            raise ValidationError({"url": [str(exc)]}) from None
+        details = details_of(page, (get_language() or "it")[:2])
+        image = image_error = None
+        if serializer.validated_data["image"]:
+            try:
+                image = _store_image(request, *image_of(page))
+            except ImageError as exc:
+                image_error = str(exc)
+        if image is None and not details.title and details.price is None:
+            raise ValidationError(
+                {"url": [image_error or _("In quella pagina non trovo il prodotto.")]}
+            )
+        data = {
+            "title": details.title,
+            "price": details.price,
+            "notes": details.notes,
+            "image": image,
+            "image_error": image_error,
+        }
+        return Response(LinkDetailsSerializer(data).data)
 
 
 # ------------------------------------------------------- lista condivisa --

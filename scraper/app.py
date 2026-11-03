@@ -3,7 +3,7 @@
 Molti negozi costruiscono la pagina con JavaScript o rispondono male a una
 semplice richiesta HTTP: qui la pagina si apre in Chromium headless, come la
 vedrebbe una persona, e se ne leggono foto e dati del prodotto (titolo,
-descrizione, prezzo). Il backend lo chiama solo quando la lettura diretta del
+descrizione, prezzo) e il testo, che il backend puo' far riassumere (ADR 0006). Il backend lo chiama solo quando la lettura diretta del
 link non basta, e scarica lui la foto scelta.
 
 Il browser si presenta per quello che e' (niente user agent finti, niente
@@ -96,18 +96,39 @@ EXTRACT_JS = r"""
     .slice(0, 3)
     .forEach(({ img }) => add(img.currentSrc || img.src))
 
+  // Il prezzo: dati dichiarati, poi quello visibile dei negozi tipo Amazon.
   const offers = product && [].concat(product.offers || [])[0]
+  const offerPrice = offers && (offers.price || offers.lowPrice || (offers.priceSpecification || {}).price)
+  const shown = (selector) => {
+    const el = document.querySelector(selector)
+    const value = el && (el.getAttribute('content') || el.textContent)
+    return value ? value.trim() : null
+  }
+  const price =
+    meta('product:price:amount', 'og:price:amount') ||
+    (offerPrice != null && offerPrice !== '' ? String(offerPrice) : null) ||
+    shown('[itemprop="price"]') ||
+    shown('#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, ' +
+          '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price')
+  const heading = shown('#productTitle') || shown('h1')
+
+  // Il testo della pagina, per chi lo riassume (ADR 0006): la parte del
+  // prodotto se si riconosce, altrimenti tutta, senza spazi doppi.
+  const area = document.querySelector('#ppd, #dp-container, main, [role="main"], article') || document.body
+  const text = ((area && area.innerText) || '').replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').slice(0, 12000)
+
   const blocked = Boolean(document.querySelector(
     'form[action*="captcha" i], #captchacharacters, iframe[src*="captcha" i], ' +
     '.g-recaptcha, .h-captcha, iframe[src*="challenges.cloudflare.com"]'
   ))
   return {
     blocked,
-    title: meta('og:title') || (product && product.name) || document.title || null,
+    title: meta('og:title') || (product && product.name) || heading || document.title || null,
     description: meta('og:description', 'description') || (product && product.description) || null,
-    price: meta('product:price:amount', 'og:price:amount') || (offers && String(offers.price || '')) || null,
+    price,
     currency: meta('product:price:currency', 'og:price:currency') || (offers && offers.priceCurrency) || null,
     images: [...new Set(images)].slice(0, 8),
+    text,
   }
 }
 """
@@ -126,6 +147,7 @@ class ScrapeResult(BaseModel):
     price: str | None
     currency: str | None
     images: list[str]
+    text: str = ""
 
 
 state: dict[str, Browser] = {}

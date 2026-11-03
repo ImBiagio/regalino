@@ -12,7 +12,14 @@ import {
   useWishes,
 } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { AddTile, GiftBadge, GiftCard, ImagePicker, ListHero } from '../../components/gift'
+import {
+  AddTile,
+  GiftBadge,
+  GiftCard,
+  ImagePicker,
+  ListHero,
+  useLinkFill,
+} from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
 import {
   EmptyState,
@@ -305,6 +312,11 @@ function WishFormModal({
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
   const [notes, setNotes] = useState(wish?.notes ?? '')
   const [image, setImage] = useState<ImageChoice>(undefined)
+  // Nome, prezzo e note dal link del negozio, solo nei campi ancora liberi.
+  const fill = useLinkFill(
+    { title, price, notes },
+    { title: setTitle, price: setPrice, notes: setNotes },
+  )
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
   const priceInvalid = price.trim() !== '' && parsePrice(price) === null
 
@@ -335,7 +347,7 @@ function WishFormModal({
         {!fields.title && !fields.url && !fields.price && !fields.image_id && (
           <ErrorBanner error={save.error ?? remove.error} />
         )}
-        <Field label={gettext('Cosa ti piacerebbe')} error={fields.title}>
+        <Field label={gettext('Cosa ti piacerebbe')} error={fields.title} hint={fill.hint('title')}>
           <input
             className="field-input"
             value={title}
@@ -359,6 +371,7 @@ function WishFormModal({
         <Field
           label={gettext('Prezzo indicativo (facoltativo)')}
           error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
+          hint={fill.hint('price')}
         >
           <div className="flex items-center gap-2">
             <span className="text-body-large text-on-surface-variant">€</span>
@@ -371,8 +384,14 @@ function WishFormModal({
             />
           </div>
         </Field>
-        <ImagePicker current={wish?.image ?? null} choice={image} onChoice={setImage} link={url} />
-        <Field label={gettext('Note (taglia, colore, dove trovarlo)')}>
+        <ImagePicker
+          current={wish?.image ?? null}
+          choice={image}
+          onChoice={setImage}
+          link={url}
+          fill={fill}
+        />
+        <Field label={gettext('Note (taglia, colore, dove trovarlo)')} hint={fill.hint('notes')}>
           <textarea
             className="field-input min-h-[72px] resize-y"
             value={notes}

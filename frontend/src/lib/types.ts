@@ -78,6 +78,16 @@ export interface GiftImage {
   source_url: string
 }
 
+/** Quello che si legge dal link di un regalo (ADR 0006): proposte per il form. */
+export interface LinkDetails {
+  title: string
+  price: Money | null
+  notes: string
+  image: GiftImage | null
+  /** Perche' la foto non c'e', se il resto si e' letto. */
+  image_error: string | null
+}
+
 export interface SharedWish {
   id: UUID
   title: string
