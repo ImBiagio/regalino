@@ -14,7 +14,7 @@ export function AccountPage() {
   if (!user) return null
 
   return (
-    <div className="max-w-2xl p-5 md:p-8">
+    <div className="mx-auto max-w-2xl p-5 md:p-8">
       <div className="grid gap-5">
         <header className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-[28px] font-medium leading-9 md:text-headline-small">
