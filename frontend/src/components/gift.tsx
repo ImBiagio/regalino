@@ -3,7 +3,7 @@
 
 import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useImageFromUrl, useUploadImage } from '../api/hooks'
 import { ApiError, mediaUrl } from '../lib/api'
@@ -432,10 +432,30 @@ export function ImageViewer({
 /** Cosa il form manda come `image_id`: assente se la foto non e' cambiata. */
 export type ImageChoice = { id: UUID | null; url: string | null } | undefined
 
+/** Un link che vale la pena far leggere al server: http(s) con un dominio vero. */
+function readableLink(raw: string): string | null {
+  const text = raw.trim()
+  try {
+    const url = new URL(text)
+    const web = url.protocol === 'http:' || url.protocol === 'https:'
+    return web && url.hostname.includes('.') ? text : null
+  } catch {
+    return null
+  }
+}
+
+/** Quanto aspettare dopo l'ultimo tasto prima di leggere il link da soli. */
+const AUTO_DELAY_MS = 700
+
 /**
  * Foto del regalo nel form: carica dal dispositivo o prendila dal link del
  * negozio. La foto si carica subito (cosi' c'e' l'anteprima) e si collega al
  * regalo solo quando si salva; quelle abbandonate le pulisce il server.
+ *
+ * Di default, quando nel form si scrive o incolla un link e una foto non c'e',
+ * la prende da sola dal link. Non lo fa col link gia' salvato (aprire un regalo
+ * per correggerlo non deve partire a leggere siti) ne' dopo che si e' scelta o
+ * tolta una foto a mano; se il link cambia, cambia anche la foto presa da sola.
  */
 export function ImagePicker({
   current,
@@ -455,6 +475,13 @@ export function ImagePicker({
   const input = useRef<HTMLInputElement>(null)
   const [askUrl, setAskUrl] = useState(false)
   const [otherUrl, setOtherUrl] = useState('')
+  // Il link da cui viene la foto presa da sola (null: nessuna, o scelta a mano).
+  const [autoFrom, setAutoFrom] = useState<string | null>(null)
+  const initialLink = useRef(link.trim())
+  const tried = useRef<string | null>(null)
+  // Ogni scelta incrementa il biglietto: una risposta arrivata dopo una scelta
+  // piu' recente (es. una lettura lenta del link e intanto una foto caricata) si scarta.
+  const latest = useRef(0)
   const shown = choice === undefined ? current : choice.url
   const busy = upload.isPending || fromUrl.isPending
   const error = upload.error ?? fromUrl.error
@@ -465,15 +492,37 @@ export function ImagePicker({
         ? String(error)
         : null
 
-  const takeFrom = async (url: string) => {
+  const takeFrom = async (url: string, auto = false) => {
     upload.reset()
+    const ticket = ++latest.current
     const image = await fromUrl.mutateAsync(url).catch(() => null)
+    if (ticket !== latest.current) return
     if (image) {
       onChoice({ id: image.id, url: image.url })
+      setAutoFrom(auto ? url : null)
       setAskUrl(false)
       setOtherUrl('')
+    } else if (auto && autoFrom !== null) {
+      // La foto presa da sola era del link di prima: col link nuovo non vale piu'.
+      setAutoFrom(null)
+      onChoice(undefined)
     }
   }
+  const takeFromRef = useRef(takeFrom)
+  takeFromRef.current = takeFrom
+
+  const target = readableLink(link)
+  const canAuto = choice === undefined ? !current : autoFrom !== null
+  const autoTarget =
+    canAuto && target && target !== initialLink.current && target !== autoFrom ? target : null
+  useEffect(() => {
+    if (!autoTarget || autoTarget === tried.current) return
+    const timer = window.setTimeout(() => {
+      tried.current = autoTarget
+      void takeFromRef.current(autoTarget, true)
+    }, AUTO_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [autoTarget])
 
   return (
     <div className="grid gap-3 rounded-row bg-surface-container-low p-3">
@@ -491,6 +540,16 @@ export function ImagePicker({
         )}
         <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
           <p className="text-body-medium font-medium">{gettext('Foto')}</p>
+          {fromUrl.isPending && (
+            <p className="text-body-small text-on-surface-variant">
+              {gettext('Prendo la foto dal link…')}
+            </p>
+          )}
+          {autoFrom && !busy && (
+            <p className="text-body-small text-on-surface-variant">
+              {gettext('Presa dal link del negozio.')}
+            </p>
+          )}
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
@@ -515,7 +574,11 @@ export function ImagePicker({
                 type="button"
                 className="btn-text btn-sm"
                 disabled={busy}
-                onClick={() => onChoice({ id: null, url: null })}
+                onClick={() => {
+                  latest.current += 1
+                  setAutoFrom(null)
+                  onChoice({ id: null, url: null })
+                }}
               >
                 {gettext('Togli')}
               </button>
@@ -572,8 +635,12 @@ export function ImagePicker({
           event.target.value = ''
           if (!file) return
           fromUrl.reset()
+          const ticket = ++latest.current
           const image = await upload.mutateAsync(file).catch(() => null)
-          if (image) onChoice({ id: image.id, url: image.url })
+          if (image && ticket === latest.current) {
+            setAutoFrom(null)
+            onChoice({ id: image.id, url: image.url })
+          }
         }}
       />
     </div>

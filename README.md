@@ -60,7 +60,7 @@ l'hash); un utente loggato può toglierla anche da un altro dispositivo.
 
 **Foto** ([ADR 0003](docs/decisions/0003-foto-dei-regali.md)). Ogni regalo e
 ogni idea possono avere una foto: si carica dal telefono o dal computer, oppure
-"Dal link" la prende dalla pagina del negozio (`og:image` e simili) o da un
+"Dal link" la prende dalla pagina del negozio (e di default la prende da sola appena si scrive o incolla il link del regalo, se una foto non c'è) (`og:image` e simili) o da un
 link diretto a un'immagine. Il server la riduce a 1280 px, la salva in WebP e
 toglie i metadati (niente GPS nelle foto fatte in casa). Leggendo i link il
 server non raggiunge mai indirizzi non pubblici (LAN, localhost, Docker): ogni
