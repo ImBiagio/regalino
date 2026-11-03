@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
+import { GiftWrap } from '../../components/gift'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import { ErrorBanner, Field, Icon, PasswordInput, Skeleton } from '../../components/ui'
 import { ApiError, api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gettext } from '../../lib/i18n'
 
-/** Pagina piena: pannello primary con il marchio, card chiara con il form. */
+/**
+ * Pagina piena: una card su superficie neutra con in testa il pacco (carta e
+ * nastro) e il marchio. Il rosso resta un accento, non tutto lo sfondo.
+ */
 function Shell({
   title,
   children,
@@ -19,21 +23,27 @@ function Shell({
   footer?: ReactNode
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md rounded-panel bg-primary p-6 text-on-primary sm:p-8">
-        <div className="mb-6 flex items-center gap-3">
-          <img src="/logo-mark-light.svg" alt="" width={48} height={48} className="h-12 w-12" />
-          <div>
-            <p className="text-[34px] font-semibold leading-none">Regalino</p>
-            <p className="mt-1 text-body-medium text-primary-container">
+    <div className="flex min-h-screen items-center justify-center bg-surface-container-low p-4 sm:p-6">
+      <div className="w-full max-w-md">
+        <div className="card-elevated overflow-hidden bg-surface">
+          <div className="relative h-24">
+            <GiftWrap seed="regalino" ribbon={12} x={78} y={58} className="h-full w-full" />
+            <img
+              src="/logo-mark.svg"
+              alt=""
+              width={64}
+              height={64}
+              className="absolute -bottom-8 left-6 h-16 w-16 rounded-[18px] shadow-fab-mobile sm:left-8"
+            />
+          </div>
+          <div className="px-6 pb-6 pt-11 sm:px-8 sm:pb-8">
+            <p className="text-title-large">Regalino</p>
+            <p className="text-body-medium text-on-surface-variant">
               {gettext('I regali giusti, senza doppioni.')}
             </p>
+            <h1 className="mb-4 mt-6 text-title-medium">{title}</h1>
+            {children}
           </div>
-        </div>
-
-        <div className="rounded-card bg-surface p-5 text-on-surface sm:p-6">
-          <h1 className="mb-4 text-title-medium">{title}</h1>
-          {children}
         </div>
 
         {footer && <div className="mt-4 text-center text-body-medium">{footer}</div>}
@@ -94,9 +104,12 @@ export function LoginPage() {
     <Shell
       title={gettext('Accedi')}
       footer={
-        <span className="text-primary-container">
+        <span className="text-on-surface-variant">
           {gettext('Non hai un account?')}{' '}
-          <Link className="font-medium text-on-primary underline" to="/registrati">
+          <Link
+            className="font-medium text-primary underline-offset-2 hover:underline"
+            to="/registrati"
+          >
             {gettext('Registrati')}
           </Link>
         </span>
@@ -169,9 +182,12 @@ export function RegisterPage() {
     <Shell
       title={gettext('Crea un account')}
       footer={
-        <span className="text-primary-container">
+        <span className="text-on-surface-variant">
           {gettext('Hai già un account?')}{' '}
-          <Link className="font-medium text-on-primary underline" to="/accedi">
+          <Link
+            className="font-medium text-primary underline-offset-2 hover:underline"
+            to="/accedi"
+          >
             {gettext('Accedi')}
           </Link>
         </span>
@@ -272,7 +288,7 @@ export function ForgotPasswordPage() {
     <Shell
       title={gettext('Password dimenticata')}
       footer={
-        <Link className="font-medium text-on-primary underline" to="/accedi">
+        <Link className="font-medium text-primary underline-offset-2 hover:underline" to="/accedi">
           {gettext('Torna al login')}
         </Link>
       }

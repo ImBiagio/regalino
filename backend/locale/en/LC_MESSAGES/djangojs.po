@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 11:57+0100\n"
+"POT-Creation-Date: 2026-11-03 12:29+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -36,23 +36,30 @@ msgstr "Account"
 msgid "Sezioni"
 msgstr "Sections"
 
-#, javascript-format
-msgid "%s · oggi"
-msgstr "%s · today"
+msgid "Oggi"
+msgstr "Today"
+
+msgid "Domani"
+msgstr "Tomorrow"
+
+msgid "Passata"
+msgstr "Past"
 
 #, javascript-format
-msgid "%s · domani"
-msgstr "%s · tomorrow"
+msgid "Tra %s giorno"
+msgid_plural "Tra %s giorni"
+msgstr[0] "In %s day"
+msgstr[1] "In %s days"
 
-#, javascript-format
-msgid "%s · passato"
-msgstr "%s · past"
+msgid "Manca"
+msgid_plural "Mancano"
+msgstr[0] "In"
+msgstr[1] "In"
 
-#, javascript-format
-msgid "%s · tra %s giorno"
-msgid_plural "%s · tra %s giorni"
-msgstr[0] "%s · in %s day"
-msgstr[1] "%s · in %s days"
+msgid "giorno"
+msgid_plural "giorni"
+msgstr[0] "day"
+msgstr[1] "days"
 
 msgid "Vedi la foto"
 msgstr "View photo"
@@ -66,7 +73,6 @@ msgstr "Upload"
 msgid "Cerco…"
 msgstr "Searching…"
 
-#| msgid "Copia link"
 msgid "Dal link"
 msgstr "Copy link"
 
@@ -358,17 +364,36 @@ msgstr "Share"
 msgid "Modifica lista"
 msgstr "Edit list"
 
+msgid "Modifica"
+msgstr "Edit"
+
 msgid "Aggiungi regalo"
 msgstr "Add gift"
 
-msgid "Vedi cosa è già stato regalato e da chi."
-msgstr "You can see what has already been given and by whom."
+msgid "Mostrami cosa è stato regalato"
+msgstr "Show me what has been given"
 
 msgid "Sorpresa: non vedi cosa è già stato regalato. Chi ha il link sì."
 msgstr "Surprise: you can't see what has already been given. People with the link can."
 
-msgid "Cambia"
-msgstr "Change"
+msgid "Vedi cosa è già stato regalato e da chi."
+msgstr "You can see what has already been given and by whom."
+
+msgid "Rinunci alla sorpresa?"
+msgstr "Give up the surprise?"
+
+msgid "Vedrai quali regali sono già stati presi e da chi. Puoi rispegnerlo quando vuoi."
+msgstr "You'll see which gifts have been taken and by whom. You can turn it off again anytime."
+
+msgid "Mostra"
+msgstr "Show"
+
+#, javascript-format
+msgid "%s di %s già presi"
+msgstr "%s of %s already taken"
+
+msgid "Regali già presi"
+msgstr "Gifts already taken"
 
 msgid "La lista è vuota"
 msgstr "The list is empty"
@@ -376,12 +401,15 @@ msgstr "The list is empty"
 msgid "Aggiungi i regali che ti piacerebbero: con il link al negozio e il prezzo è più facile per chi li compra."
 msgstr "Add the gifts you'd like: with the shop link and the price it's easier for whoever buys them."
 
+msgid "I regali"
+msgstr "The gifts"
+
+msgid "Totale indicativo"
+msgstr "Approximate total"
+
 #, javascript-format
 msgid "Regalato da %s"
 msgstr "Given by %s"
-
-msgid "Togli la spunta"
-msgstr "Untick"
 
 msgid "Togliere la spunta?"
 msgstr "Untick this gift?"
@@ -389,15 +417,8 @@ msgstr "Untick this gift?"
 msgid "Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio."
 msgstr "The gift becomes available again for people with the link. Useful if someone ticked it by mistake."
 
-msgid "Elimina regalo"
-msgstr "Delete gift"
-
-msgid "Eliminare il regalo?"
-msgstr "Delete this gift?"
-
-#, javascript-format
-msgid "«%s» sparisce anche dal link condiviso."
-msgstr "“%s” also disappears from the shared link."
+msgid "Togli la spunta"
+msgstr "Untick"
 
 msgid "Modifica regalo"
 msgstr "Edit gift"
@@ -416,6 +437,13 @@ msgstr "Approximate price (optional)"
 
 msgid "Note (taglia, colore, dove trovarlo)"
 msgstr "Notes (size, colour, where to find it)"
+
+msgid "Eliminare il regalo?"
+msgstr "Delete this gift?"
+
+#, javascript-format
+msgid "«%s» sparisce anche dal link condiviso."
+msgstr "“%s” also disappears from the shared link."
 
 msgid "Condividi la lista"
 msgstr "Share the list"
@@ -481,10 +509,10 @@ msgid "Nuova lista"
 msgstr "New list"
 
 #, javascript-format
-msgid "%s regalato"
-msgid_plural "%s regalati"
-msgstr[0] "%s given"
-msgstr[1] "%s given"
+msgid "%s preso"
+msgid_plural "%s presi"
+msgstr[0] "%s taken"
+msgstr[1] "%s taken"
 
 msgid "Sorpresa"
 msgstr "Surprise"
@@ -503,9 +531,6 @@ msgstr "A few words for whoever opens it (optional)"
 
 msgid "Taglia M, niente cioccolato, grazie!"
 msgstr "Size M, no chocolate, thanks!"
-
-msgid "Mostrami cosa è stato regalato"
-msgstr "Show me what has been given"
 
 msgid "Spento, non vedi le spunte di chi ha il link: la sorpresa resta. Acceso, vedi cosa è preso e da chi."
 msgstr "Off, you don't see the ticks of people with the link: the surprise stays. On, you see what's taken and by whom."
@@ -529,17 +554,31 @@ msgstr "%s's list"
 msgid "È la tua lista: così la vede chi ha il link. Tu non puoi spuntare i regali, e se la sorpresa è attiva non vedi le spunte degli altri."
 msgstr "This is your list: this is how people with the link see it. You can't tick gifts, and if surprise mode is on you don't see other people's ticks."
 
-msgid "Scegli un regalo e tocca «Lo regalo io»: gli altri lo vedranno preso e non faranno doppioni."
-msgstr "Pick a gift and tap “I'll give it”: others will see it's taken and won't buy it twice."
+#, javascript-format
+msgid "Ancora %s regalo da prendere"
+msgid_plural "Ancora %s regali da prendere"
+msgstr[0] "%s gift still to take"
+msgstr[1] "%s gifts still to take"
 
 msgid "Tutti i regali sono già presi. Grazie!"
 msgstr "All gifts are already taken. Thank you!"
+
+msgid "Scegli un regalo e tocca «Lo regalo io»: gli altri lo vedranno preso e non faranno doppioni."
+msgstr "Pick a gift and tap “I'll give it”: others will see it's taken and won't buy it twice."
 
 msgid "Ancora nessun regalo"
 msgstr "No gifts yet"
 
 msgid "La lista è vuota: ripassa più tardi."
 msgstr "The list is empty: check back later."
+
+#, javascript-format
+msgid "Da prendere · %s"
+msgstr "Still available · %s"
+
+#, javascript-format
+msgid "Tutti · %s"
+msgstr "All · %s"
 
 msgid "Lo regali tu"
 msgstr "You're giving it"
@@ -548,14 +587,11 @@ msgstr "You're giving it"
 msgid "Lo regala %s"
 msgstr "%s is giving it"
 
-msgid "Già preso da qualcuno"
-msgstr "Already taken by someone"
+msgid "Già preso"
+msgstr "Taken"
 
 msgid "Lo regalo io"
 msgstr "I'll give it"
-
-msgid "Lo prendo"
-msgstr "I'll take it"
 
 msgid "Lo regali tu?"
 msgstr "Are you giving it?"

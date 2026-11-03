@@ -4,34 +4,53 @@
 
 @layer base {
   :root {
-    /* Palette tonale M3, seed #b3264f (lampone). Nomi = ruoli, non tinte. */
-    --primary: #b1254e;
+    /* Palette tonale M3 dal seed #a8433f (rosso ciliegia spento). Il rosso e'
+       solo l'accento: le superfici sono neutre calde, come carta da pacchi
+       chiara, e il secondary e' quasi grigio, cosi' chip e selezioni non
+       diventano un'altra macchia rosa. Nomi = ruoli, non tinte. */
+    --primary: #9b403d;
     --on-primary: #ffffff;
-    --primary-container: #ffd9de;
-    --on-primary-container: #400014;
-    --secondary: #75565b;
-    --secondary-container: #ffd9de;
-    --on-secondary-container: #2c1519;
-    --tertiary: #795831;
-    --tertiary-container: #ffddba;
-    --on-tertiary-container: #2b1700;
+    --primary-container: #ffdad6;
+    --on-primary-container: #410004;
+    --secondary: #755753;
+    --secondary-container: #f1e0dc;
+    --on-secondary-container: #2c1512;
+    /* Tertiary oro: il nastro del pacco, per gli accenti non d'azione. */
+    --tertiary: #725b2b;
+    --tertiary-container: #fbe0a6;
+    --on-tertiary-container: #261900;
+    /* Fuori dallo schema M3 base: il verde di "preso / regalato". */
+    --success: #31693f;
+    --success-container: #c3eec8;
+    --on-success-container: #00210b;
     --warning: #7d5700;
     --warning-container: #ffdeaa;
     --on-warning-container: #271900;
     --error: #ba1a1a;
     --error-container: #ffdad6;
     --on-error-container: #410002;
-    --surface: #fff8f7;
-    --surface-container-low: #fef1f1;
-    --surface-container: #f8ebeb;
-    --surface-container-high: #f2e5e6;
-    --surface-container-highest: #ece0e0;
-    --on-surface: #201a1b;
-    --on-surface-variant: #524345;
-    --outline: #847375;
-    --outline-variant: #d6c2c3;
-    --scrim: rgba(56, 46, 47, 0.32);
+    --surface: #fdf9f7;
+    --surface-container-low: #f8f2f0;
+    --surface-container: #f3ecea;
+    --surface-container-high: #ede6e4;
+    --surface-container-highest: #e7e0de;
+    --on-surface: #1f1b1a;
+    --on-surface-variant: #534341;
+    --outline: #857371;
+    --outline-variant: #d8c2bf;
+    --scrim: rgba(31, 27, 26, 0.36);
     --ease-m3: cubic-bezier(0.2, 0, 0, 1);
+
+    /* Le carte da regalo dei segnaposto (foto mancante, testata delle liste):
+       carta tenue + nastro, quattro abbinamenti scelti in base all'id. */
+    --wrap-1-paper: #fbe1dd;
+    --wrap-1-ribbon: #c4716a;
+    --wrap-2-paper: #f4e6c9;
+    --wrap-2-ribbon: #b4524d;
+    --wrap-3-paper: #e2eadb;
+    --wrap-3-ribbon: #bd6760;
+    --wrap-4-paper: #eee4e1;
+    --wrap-4-ribbon: #b99852;
 
     /* Il design non definisce una variante scura: la palette e' solo chiara. */
     color-scheme: light;
@@ -148,6 +167,11 @@
   .btn-tonal {
     @apply btn bg-secondary-container text-on-secondary-container;
   }
+  /* Tonale sul primary: per l'azione ripetuta su ogni card ("Lo regalo io"),
+     dove una fila di bottoni pieni rossi gridava troppo. */
+  .btn-primary-tonal {
+    @apply btn bg-primary-container text-on-primary-container;
+  }
   .btn-outlined {
     @apply btn border border-outline-variant text-on-surface;
   }
@@ -206,6 +230,73 @@
   }
   .row-m3 {
     @apply state flex items-center gap-4 rounded-row bg-surface-container-low px-5 py-3.5;
+  }
+  /* Card elevata M3 (livello 1): i regali e le liste, su superficie neutra. */
+  .card-elevated {
+    @apply rounded-card bg-surface-container-low;
+    box-shadow:
+      0 1px 2px rgba(31, 27, 26, 0.12),
+      0 1px 3px 1px rgba(31, 27, 26, 0.06);
+  }
+
+  /* --- Carta da regalo: un pacco con il nastro a croce, al posto della foto.
+     Si sceglie l'abbinamento con wrap-1..4; --ribbon regola lo spessore. --- */
+  .wrap {
+    --ribbon: 14px;
+    --x: 50%;
+    --y: 50%;
+    --paper: var(--wrap-1-paper);
+    --band: var(--wrap-1-ribbon);
+    background:
+      linear-gradient(
+        90deg,
+        transparent calc(var(--x) - var(--ribbon) / 2),
+        var(--band) calc(var(--x) - var(--ribbon) / 2),
+        var(--band) calc(var(--x) + var(--ribbon) / 2),
+        transparent calc(var(--x) + var(--ribbon) / 2)
+      ),
+      linear-gradient(
+        180deg,
+        transparent calc(var(--y) - var(--ribbon) / 2),
+        var(--band) calc(var(--y) - var(--ribbon) / 2),
+        var(--band) calc(var(--y) + var(--ribbon) / 2),
+        transparent calc(var(--y) + var(--ribbon) / 2)
+      ),
+      var(--paper);
+  }
+  .wrap-1 {
+    --paper: var(--wrap-1-paper);
+    --band: var(--wrap-1-ribbon);
+  }
+  .wrap-2 {
+    --paper: var(--wrap-2-paper);
+    --band: var(--wrap-2-ribbon);
+  }
+  .wrap-3 {
+    --paper: var(--wrap-3-paper);
+    --band: var(--wrap-3-ribbon);
+  }
+  .wrap-4 {
+    --paper: var(--wrap-4-paper);
+    --band: var(--wrap-4-ribbon);
+  }
+  /* Il fiocco sull'incrocio dei nastri: e' lui che fa leggere "pacco" e non "croce". */
+  .wrap-bow {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: calc(var(--ribbon) * 5.5);
+    transform: translate(-50%, -78%);
+    fill: var(--band);
+    filter: brightness(0.92);
+  }
+
+  /* --- Linear progress M3: traccia 4px, indicatore primary --- */
+  .progress {
+    @apply h-1 w-full overflow-hidden rounded-pill bg-secondary-container;
+  }
+  .progress > span {
+    @apply block h-full rounded-pill bg-primary transition-[width] duration-500 ease-m3;
   }
 
   /* --- Prezzi: sempre mono a larghezza fissa --- */

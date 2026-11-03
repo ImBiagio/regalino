@@ -2,6 +2,7 @@
 // prezzo, link al negozio, data dell'evento, foto.
 
 import clsx from 'clsx'
+import type { CSSProperties, ReactNode } from 'react'
 import { useRef, useState } from 'react'
 
 import { useImageFromUrl, useUploadImage } from '../api/hooks'
@@ -10,16 +11,6 @@ import { daysUntil, formatDate, formatPrice, hostOf } from '../lib/format'
 import { gettext, interpolate, ngettext } from '../lib/i18n'
 import type { Money, UUID } from '../lib/types'
 import { Field, Icon, Modal } from './ui'
-
-/** "12 dicembre 2026 · tra 39 giorni": la data dice quanto manca. */
-export function eventLabel(isoDate: string): string {
-  const days = daysUntil(isoDate)
-  const date = formatDate(isoDate)
-  if (days === 0) return interpolate(gettext('%s · oggi'), [date])
-  if (days === 1) return interpolate(gettext('%s · domani'), [date])
-  if (days < 0) return interpolate(gettext('%s · passato'), [date])
-  return interpolate(ngettext('%s · tra %s giorno', '%s · tra %s giorni', days), [date, days])
-}
 
 /** Prezzo e link del regalo, sotto il titolo di una riga. */
 export function GiftMeta({ price, url }: { price: Money | null; url: string }) {
@@ -50,34 +41,340 @@ export function GiftMeta({ price, url }: { price: Money | null; url: string }) {
 /* ------------------------------------------------------------------- foto -- */
 
 /**
- * Miniatura del regalo: la foto se c'e', altrimenti l'icona. Con `onOpen` la
+ * Abbinamenti carta/nastro di `.wrap`, scritti per intero perche' Tailwind
+ * tenga solo le classi che trova letterali nei sorgenti.
+ */
+const WRAPS = ['wrap-1', 'wrap-2', 'wrap-3', 'wrap-4'] as const
+
+/** Lo stesso id da' sempre lo stesso pacco: la lista non cambia colori a ogni giro. */
+export function wrapClass(seed: string): string {
+  let hash = 0
+  for (const char of seed) hash = (hash * 31 + char.charCodeAt(0)) | 0
+  return WRAPS[Math.abs(hash) % WRAPS.length]
+}
+
+/** Il pacco disegnato al posto della foto che manca: carta, nastro a croce e fiocco. */
+export function GiftWrap({
+  seed,
+  ribbon = 14,
+  x = 50,
+  y = 50,
+  bow = true,
+  className,
+}: {
+  seed: string
+  /** Spessore del nastro in px. */
+  ribbon?: number
+  /** Dove si incrociano i nastri, in % della larghezza e dell'altezza. */
+  x?: number
+  y?: number
+  bow?: boolean
+  className?: string
+}) {
+  const style = { '--ribbon': `${ribbon}px`, '--x': `${x}%`, '--y': `${y}%` } as CSSProperties
+  return (
+    <span
+      aria-hidden
+      className={clsx('wrap relative block', wrapClass(seed), className)}
+      style={style}
+    >
+      {bow && (
+        <svg className="wrap-bow" viewBox="13.5 7.5 21 7">
+          <path d="M24 14c-2.5-4.5-8.5-6.5-9.8-3.3C13.2 13.2 17 14 24 14zm0 0c2.5-4.5 8.5-6.5 9.8-3.3C34.8 13.2 31 14 24 14z" />
+        </svg>
+      )}
+    </span>
+  )
+}
+
+/** "Tra 39 giorni", "Domani", "Oggi": quanto manca, per chip e testate. */
+export function countdownLabel(isoDate: string): string {
+  const days = daysUntil(isoDate)
+  if (days === 0) return gettext('Oggi')
+  if (days === 1) return gettext('Domani')
+  if (days < 0) return gettext('Passata')
+  return interpolate(ngettext('Tra %s giorno', 'Tra %s giorni', days), [days])
+}
+
+/** Il cartellino con i giorni che mancano, appeso alla testata (da tablet in su). */
+function CountdownTag({ isoDate }: { isoDate: string }) {
+  const days = daysUntil(isoDate)
+  return (
+    <div className="hidden min-w-[104px] shrink-0 flex-col items-center self-end rounded-card bg-surface px-5 py-3 text-on-surface shadow-fab sm:flex">
+      {days > 1 ? (
+        <>
+          <span className="text-label-small text-on-surface-variant">
+            {ngettext('Manca', 'Mancano', days)}
+          </span>
+          <span className="amount text-[40px] font-semibold leading-[48px]">{days}</span>
+          <span className="text-label-small text-on-surface-variant">
+            {ngettext('giorno', 'giorni', days)}
+          </span>
+        </>
+      ) : (
+        <>
+          <Icon
+            name={days < 0 ? 'event_available' : 'celebration'}
+            size={32}
+            className="text-primary"
+          />
+          <span className="mt-1 text-body-large font-semibold">{countdownLabel(isoDate)}</span>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Testata di una lista, uguale per chi la scrive e per chi la apre: un pacco
+ * con il nastro, il nome grande e il cartellino dei giorni che mancano.
+ */
+export function ListHero({
+  eyebrow,
+  title,
+  eventDate,
+  description,
+  children,
+}: {
+  eyebrow?: string
+  title: string
+  eventDate: string | null
+  description?: string
+  /** Azioni sotto il testo (condividi, modifica). */
+  children?: ReactNode
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-panel bg-primary-container text-on-primary-container">
+      {/* Il nastro verticale del pacco: decorazione, sotto al cartellino. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0 right-8 w-5 sm:right-[60px] sm:w-7"
+        style={{ background: 'var(--primary)', opacity: 0.14 }}
+      />
+      <div className="relative flex items-end gap-5 p-6 pr-14 sm:p-8">
+        <div className="min-w-0 flex-1">
+          {eyebrow && (
+            <p className="flex items-center gap-2 text-body-medium font-medium">
+              <Icon name="featured_seasonal_and_gifts" size={20} />
+              {eyebrow}
+            </p>
+          )}
+          <h1 className="mt-2 break-words text-[32px] font-semibold leading-10 sm:text-headline-medium">
+            {title}
+          </h1>
+          {eventDate && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-2 text-body-large">
+              <Icon name="event" size={20} />
+              {formatDate(eventDate)}
+              {/* Sul telefono il cartellino non ci sta: quanto manca va accanto alla data. */}
+              <span className="ml-1 rounded-pill bg-surface px-3 py-0.5 text-body-medium font-medium text-on-surface sm:hidden">
+                {countdownLabel(eventDate)}
+              </span>
+            </p>
+          )}
+          {description && (
+            <p className="mt-4 max-w-2xl whitespace-pre-line text-body-large">{description}</p>
+          )}
+          {children && <div className="mt-5 flex flex-wrap gap-2">{children}</div>}
+        </div>
+        {eventDate && <CountdownTag isoDate={eventDate} />}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Card di un regalo, come nelle liste nozze: foto (o pacco) in alto, titolo,
+ * prezzo e negozio, e in fondo l'azione di chi guarda.
+ */
+export function GiftCard({
+  seed,
+  image,
+  title,
+  price,
+  url,
+  notes,
+  badge,
+  taken,
+  onClick,
+  onImage,
+  footer,
+}: {
+  /** L'id del regalo: sceglie la carta del pacco se manca la foto. */
+  seed: string
+  image: string | null
+  title: string
+  price: Money | null
+  url: string
+  notes?: string
+  /** Etichetta sopra la foto (es. "Preso"). */
+  badge?: ReactNode
+  /** Gia' preso: foto spenta e titolo attenuato. */
+  taken?: boolean
+  /** Tocco sulla card (il proprietario la modifica). */
+  onClick?: () => void
+  /** Tocco sulla foto (chi ha il link la vede grande). */
+  onImage?: () => void
+  footer?: ReactNode
+}) {
+  const media = (
+    <span className="relative block aspect-[4/3] w-full overflow-hidden bg-surface-container">
+      {image ? (
+        <img
+          src={mediaUrl(image)}
+          alt=""
+          loading="lazy"
+          className={clsx('h-full w-full object-cover', taken && 'opacity-50 grayscale')}
+        />
+      ) : (
+        <GiftWrap
+          seed={seed}
+          ribbon={16}
+          className={clsx('h-full w-full', taken && 'opacity-50')}
+        />
+      )}
+      {badge && <span className="absolute left-2 top-2 max-w-[calc(100%-16px)]">{badge}</span>}
+    </span>
+  )
+  return (
+    <article
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter') onClick()
+            }
+          : undefined
+      }
+      className={clsx(
+        'card-elevated flex flex-col overflow-hidden',
+        onClick && 'state cursor-pointer',
+      )}
+    >
+      {onImage && image ? (
+        <button
+          type="button"
+          className="state block"
+          aria-label={gettext('Vedi la foto')}
+          onClick={(event) => {
+            event.stopPropagation()
+            onImage()
+          }}
+        >
+          {media}
+        </button>
+      ) : (
+        media
+      )}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <p
+          className={clsx(
+            'line-clamp-2 break-words text-body-large font-medium',
+            taken && 'text-on-surface-variant',
+          )}
+        >
+          {title}
+        </p>
+        <GiftMeta price={price} url={url} />
+        {notes && (
+          <p className="mt-1 line-clamp-3 whitespace-pre-line text-body-small text-on-surface-variant">
+            {notes}
+          </p>
+        )}
+        {footer && <div className="mt-auto pt-3">{footer}</div>}
+      </div>
+    </article>
+  )
+}
+
+/** Etichetta tonda sopra la foto: verde per "preso", neutra per il resto. */
+export function GiftBadge({
+  icon,
+  tone = 'success',
+  children,
+}: {
+  icon: string
+  tone?: 'success' | 'neutral'
+  children: ReactNode
+}) {
+  return (
+    <span
+      className={clsx(
+        'inline-flex max-w-full items-center gap-1 rounded-pill py-1 pl-2 pr-3 text-label-small shadow-fab',
+        tone === 'success'
+          ? 'bg-success-container text-on-success-container'
+          : 'bg-surface text-on-surface',
+      )}
+    >
+      <Icon name={icon} size={16} filled />
+      <span className="truncate">{children}</span>
+    </span>
+  )
+}
+
+/** Il riquadro tratteggiato in fondo alla griglia: aggiunge un altro regalo o lista. */
+export function AddTile({
+  label,
+  onClick,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={clsx(
+        'state flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-outline-variant p-4 text-body-medium font-medium text-on-surface-variant',
+        className,
+      )}
+    >
+      <span className="flex h-12 w-12 items-center justify-center rounded-pill bg-primary-container text-on-primary-container">
+        <Icon name="add" size={26} />
+      </span>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Miniatura del regalo: la foto se c'e', altrimenti il pacco. Con `onOpen` la
  * foto si tocca per vederla grande.
  */
 export function GiftThumb({
   image,
-  icon = 'redeem',
+  seed,
   done,
   size = 56,
   onOpen,
 }: {
   image: string | null
-  icon?: string
-  /** Regalato: spunta sopra la foto, o icona piena al posto del pacco. */
+  /** L'id del regalo, per la carta del pacco quando manca la foto. */
+  seed: string
+  /** Regalato: spunta sopra la foto o sopra il pacco. */
   done?: boolean
   size?: number
   onOpen?: () => void
 }) {
   const box = { width: size, height: size }
+  const check = done && (
+    <span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-pill bg-success text-white">
+      <Icon name="check" size={16} />
+    </span>
+  )
   if (!image) {
     return (
-      <span
-        className={clsx(
-          'flex shrink-0 items-center justify-center rounded-nested',
-          done ? 'bg-primary text-on-primary' : 'bg-primary-container text-on-primary-container',
-        )}
-        style={box}
-      >
-        <Icon name={done ? 'check' : icon} size={Math.round(size * 0.45)} />
+      <span className="relative block shrink-0 overflow-hidden rounded-nested" style={box}>
+        <GiftWrap
+          seed={seed}
+          ribbon={Math.max(5, Math.round(size / 9))}
+          className={clsx('h-full w-full', done && 'opacity-60')}
+        />
+        {check}
       </span>
     )
   }
@@ -92,11 +389,7 @@ export function GiftThumb({
         loading="lazy"
         className={clsx('h-full w-full object-cover', done && 'opacity-60')}
       />
-      {done && (
-        <span className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-pill bg-primary text-on-primary">
-          <Icon name="check" size={16} />
-        </span>
-      )}
+      {check}
     </span>
   )
   if (!onOpen) return picture

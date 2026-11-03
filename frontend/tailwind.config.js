@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// Palette tonale Material 3 generata dal seed #b3264f. I valori veri stanno come
+// Palette tonale Material 3 generata dal seed #a8433f. I valori veri stanno come
 // custom properties in src/index.css: qui si mappano solo sui nomi di ruolo M3,
 // così nel markup si scrive `bg-surface-container` e non un hex.
 export default {
@@ -23,6 +23,9 @@ export default {
         error: 'var(--error)',
         'error-container': 'var(--error-container)',
         'on-error-container': 'var(--on-error-container)',
+        success: 'var(--success)',
+        'success-container': 'var(--success-container)',
+        'on-success-container': 'var(--on-success-container)',
         surface: 'var(--surface)',
         'surface-container-low': 'var(--surface-container-low)',
         'surface-container': 'var(--surface-container)',
