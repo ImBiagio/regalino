@@ -164,13 +164,13 @@ docker compose run --rm --no-deps backend python manage.py compilemessages -l en
 
 ## Deploy (produzione)
 
-Pronto ma **non ancora fatto**. Stesso schema di soldino e cinemino:
-**https://regal.inoo.it** sul homeserver, push sul branch `prod` → la GitHub
+**https://regal.inoo.it** (dal 2026-11-03), sul homeserver accanto a soldino e
+cinemino. Stesso schema: push sul branch `prod` → la GitHub
 Action (`.github/workflows/prod.yml`) fa ruff, pytest, tsc ed eslint e pubblica
 `regalino-backend:prod` e `regalino-web:prod` su ghcr.io → Watchtower (quello di
 cinemino) ricrea i container. Le migrazioni girano all'avvio del backend.
 
-Primo avvio sul server:
+Primo avvio sul server (già fatto):
 
 1. DNS: record A `regal` → `104.167.28.163` (come `cinem` e `sold`);
 2. `~/regalino/compose.prod.yaml` (da `deploy/`) e `~/regalino/.env` (modello
