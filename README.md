@@ -38,19 +38,21 @@ dopo nuove migrazioni ricostruisci l'immagine: `docker compose build backend`.
 ## Cosa fa
 
 **Le mie liste** (`/`, `/liste/:id`). Una lista ha nome, data facoltativa
-(mostra quanto manca) e due righe per chi la apre. I regali hanno titolo, link
-al negozio, prezzo indicativo e note.
+(mostra quanto manca; le liste sono in ordine di data, la prossima in cima) e
+due righe per chi la apre. I regali hanno titolo, link al negozio, prezzo
+indicativo e note: si vedono come card in griglia, un tocco apre il form (dove
+c'è anche "Elimina"), e in testa c'è il totale indicativo.
 
 **Condivisione** (`/l/<token>`). Il link è un token casuale (`WishList.share_token`):
-chi lo ha vede la lista **senza account**, e tocca "Lo regalo io" lasciando il
-nome se vuole. Il regalo risulta preso per tutti. Rigenerare il link spegne
+chi lo ha vede la lista **senza account** (quanti regali restano, filtri "Da
+prendere" / "Tutti"), e tocca "Lo regalo io" lasciando il nome se vuole. Il regalo risulta preso per tutti. Rigenerare il link spegne
 quello vecchio; eliminare la lista lo spegne del tutto.
 
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua
 area né aprendo il proprio link (e lì non può spuntare). Se preferisce saperlo
-accende "Mostrami cosa è stato regalato" e da lì può anche togliere una spunta
-sbagliata.
+accende "Mostrami cosa è stato regalato" (l'interruttore sotto la testata della
+lista, con conferma) e da lì può anche togliere una spunta sbagliata.
 
 **Togliere la spunta.** Solo chi ha spuntato: lo spunto restituisce una
 `claim_key` che il browser tiene in `localStorage` (sul server ne resta solo
@@ -91,10 +93,15 @@ Presi così come sono ([ADR 0001](docs/decisions/0001-stack-da-soldino.md)):
   layout (`backend/templates/emails/`). In produzione SMTP di **Brevo, lo stesso
   account di cinemino e soldino** (mittente `messagg@inoo.it`).
 - **Soft delete + audit**: `BaseModel` (UUID, `deleted_at`) e `django-simple-history`.
-- **Material 3**: palette tonale dal seed `#b3264f` (lampone) in
-  `frontend/src/index.css`, ruoli M3 mappati in Tailwind, Roboto Flex, Roboto
-  Mono per i prezzi, Material Symbols Rounded. Rail su desktop, bottom bar e FAB
-  sotto i 768px, dialog di conferma M3 (`useConfirm()`), niente `window.confirm`.
+- **Material 3**: ruoli M3 mappati in Tailwind, Roboto Flex, Roboto Mono per i
+  prezzi, Material Symbols Rounded. Rail su desktop, bottom bar e FAB sotto i
+  768px, dialog di conferma M3 (`useConfirm()`), niente `window.confirm`.
+
+Proprio di regalino ([ADR 0004](docs/decisions/0004-design-da-lista-regali.md)):
+palette dal seed `#a8433f` (rosso ciliegia spento, solo sugli accenti) con
+superfici neutre calde, oro per il nastro e un ruolo `success` per "preso";
+i regali sono card in griglia con la foto o, se manca, un pacco disegnato
+(`.wrap` / `GiftWrap`); la testata della lista ha il conto alla rovescia.
 - **i18n**: italiano sorgente, inglese in `backend/locale/en/LC_MESSAGES/`.
 
 Lasciati fuori perché qui non servono: tracker/membri, soldi e ripartizioni,
@@ -206,8 +213,10 @@ Restore delle foto, con lo stack fermo o almeno senza upload in corso:
 docker run --rm -v regalino_media:/m -v ~/regalino/backups/media/last:/b:ro alpine sh -c "tar xzf /b/media-latest.tar.gz -C /m && chown -R 10001:10001 /m"
 ```
 
-> Come per cinemino e soldino, i backup stanno sullo stesso disco del server:
-> non c'è ancora una copia fuori.
+**Copia fuori dal server** (dal 2026-11-03): lo stack condiviso `~/offsite`
+(sorgenti in `soldino/deploy/offsite/`) manda ogni notte alle 01:30 UTC le
+cartelle `backups` di cinemino, soldino e regalino su Google Drive, cifrate con
+rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 

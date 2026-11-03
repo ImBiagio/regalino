@@ -96,6 +96,23 @@ export function IconButton({
 
 /* -------------------------------------------------------------- avatar -- */
 
+/**
+ * Toni degli avatar senza colore: container M3 con il suo testo, scelti dal
+ * nome, cosi' ogni persona ha sempre lo stesso colore. Classi letterali per Tailwind.
+ */
+const AVATAR_TONES = [
+  'bg-primary-container text-on-primary-container',
+  'bg-tertiary-container text-on-tertiary-container',
+  'bg-success-container text-on-success-container',
+  'bg-secondary-container text-on-secondary-container',
+] as const
+
+function avatarTone(name: string): string {
+  let hash = 0
+  for (const char of name.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) | 0
+  return AVATAR_TONES[Math.abs(hash) % AVATAR_TONES.length]
+}
+
 export function Avatar({
   name,
   size = 32,
@@ -109,12 +126,15 @@ export function Avatar({
 }) {
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-pill font-medium text-white"
+      className={clsx(
+        'inline-flex shrink-0 items-center justify-center rounded-pill font-medium',
+        color ? 'text-white' : avatarTone(name),
+      )}
       style={{
         width: size,
         height: size,
-        background: color ?? 'var(--primary)',
-        fontSize: Math.max(10, Math.round(size * 0.34)),
+        background: color,
+        fontSize: Math.max(10, Math.round(size * 0.36)),
         boxShadow: ring ? '0 0 0 2px var(--surface)' : undefined,
       }}
       title={name}
@@ -272,7 +292,9 @@ export function Segmented<T extends string>({
           aria-pressed={value === option.value}
           className={clsx(
             'state rounded-pill px-4 py-2 text-body-medium font-medium transition',
-            value === option.value ? 'bg-primary text-on-primary' : 'text-on-surface-variant',
+            value === option.value
+              ? 'bg-surface text-on-surface shadow-fab'
+              : 'text-on-surface-variant',
           )}
         >
           {option.label}
@@ -406,12 +428,31 @@ export function EmptyState({
 }) {
   return (
     <div className="card-m3 flex flex-col items-center gap-2 px-6 py-10 text-center">
-      <Icon name={icon} size={40} className="text-outline" />
+      <span className="mb-2 flex h-[72px] w-[72px] items-center justify-center rounded-pill bg-primary-container text-on-primary-container">
+        <Icon name={icon} size={36} />
+      </span>
       <p className="text-title-medium">{title}</p>
       {description && (
         <p className="max-w-md text-body-medium text-on-surface-variant">{description}</p>
       )}
       {action && <div className="mt-2">{action}</div>}
+    </div>
+  )
+}
+
+/** Linear progress M3 determinato: quanti regali sono gia' presi. */
+export function Progress({ value, max, label }: { value: number; max: number; label: string }) {
+  const percent = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
+  return (
+    <div
+      className="progress"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
+    >
+      <span style={{ width: `${percent}%` }} />
     </div>
   )
 }

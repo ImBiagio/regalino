@@ -85,7 +85,7 @@ export function IdeasPage() {
         title={gettext('Da regalare')}
         subtitle={gettext('Le idee per gli altri, e per chi. Le vedi solo tu.')}
       />
-      <div className="grid gap-4 px-5 md:px-8">
+      <div className="grid gap-4 px-5 md:px-8 lg:max-w-4xl">
         <ErrorBanner error={error} />
         {ideas && ideas.length > 0 && (
           <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
@@ -165,11 +165,11 @@ function RecipientGroup({
   const total = ideas.reduce((sum, idea) => sum + Number(idea.price ?? 0), 0)
 
   return (
-    <section className="rounded-card bg-surface-container-low p-2">
-      <div className="flex items-center gap-3 px-3 pb-2 pt-3">
-        <Avatar name={recipient} size={36} />
+    <section className="card-elevated p-2">
+      <div className="flex items-center gap-3 px-3 pb-3 pt-3">
+        <Avatar name={recipient} size={44} />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-body-large font-medium">{recipient}</h2>
+          <h2 className="truncate text-title-medium">{recipient}</h2>
           <p className="text-body-small text-on-surface-variant">
             {interpolate(ngettext('%s idea', '%s idee', ideas.length), [ideas.length])}
             {total > 0 && (
@@ -184,6 +184,9 @@ function RecipientGroup({
           icon="add"
           label={interpolate(gettext('Nuova idea per %s'), [recipient])}
           onClick={onAdd}
+          size="md"
+          inheritColor
+          className="bg-primary-container text-on-primary-container"
         />
       </div>
       <ErrorBanner error={save.error ?? remove.error} />
@@ -199,7 +202,7 @@ function RecipientGroup({
             }}
             className="state flex cursor-pointer items-start gap-3 rounded-row bg-surface px-4 py-3"
           >
-            {idea.image && <GiftThumb image={idea.image} size={48} />}
+            <GiftThumb image={idea.image} seed={idea.id} done={idea.status === 'given'} size={56} />
             <div className="min-w-0 flex-1">
               <p
                 className={clsx(
@@ -213,25 +216,27 @@ function RecipientGroup({
                 <p className="text-body-small text-on-surface-variant">{idea.occasion}</p>
               )}
               <GiftMeta price={idea.price} url={idea.url} />
+              <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+                <button
+                  type="button"
+                  className={clsx(
+                    'state inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-body-small font-medium',
+                    idea.status === 'idea' && 'bg-secondary-container text-on-secondary-container',
+                    idea.status === 'bought' && 'bg-tertiary-container text-on-tertiary-container',
+                    idea.status === 'given' && 'bg-success-container text-on-success-container',
+                  )}
+                  aria-label={interpolate(gettext('Stato: %s. Tocca per passare a %s'), [
+                    STATUS_LABEL[idea.status],
+                    STATUS_LABEL[NEXT_STATUS[idea.status]],
+                  ])}
+                  onClick={() => save.mutate({ id: idea.id, status: NEXT_STATUS[idea.status] })}
+                >
+                  <Icon name={STATUS_ICON[idea.status]} size={16} />
+                  {STATUS_LABEL[idea.status]}
+                </button>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                className={clsx(
-                  'state inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-body-small font-medium',
-                  idea.status === 'idea' && 'bg-tertiary-container text-on-tertiary-container',
-                  idea.status === 'bought' && 'bg-warning-container text-on-warning-container',
-                  idea.status === 'given' && 'bg-secondary-container text-on-secondary-container',
-                )}
-                aria-label={interpolate(gettext('Stato: %s. Tocca per passare a %s'), [
-                  STATUS_LABEL[idea.status],
-                  STATUS_LABEL[NEXT_STATUS[idea.status]],
-                ])}
-                onClick={() => save.mutate({ id: idea.id, status: NEXT_STATUS[idea.status] })}
-              >
-                <Icon name={STATUS_ICON[idea.status]} size={16} />
-                {STATUS_LABEL[idea.status]}
-              </button>
+            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
               <IconButton
                 icon="delete"
                 label={gettext('Elimina idea')}

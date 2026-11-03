@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { NavLink, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import {
   useClearGift,
@@ -7,26 +7,26 @@ import {
   useDeleteWish,
   useList,
   useRegenerateLink,
+  useSaveList,
   useSaveWish,
   useWishes,
 } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta, GiftThumb, ImagePicker, eventLabel } from '../../components/gift'
+import { AddTile, GiftBadge, GiftCard, ImagePicker, ListHero } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
-import { PageHeader } from '../../components/Layout'
 import {
   EmptyState,
   ErrorBanner,
   Fab,
   Field,
   Icon,
-  IconButton,
   Modal,
-  RowsSkeleton,
+  Progress,
   Skeleton,
+  Switch,
 } from '../../components/ui'
 import { ApiError } from '../../lib/api'
-import { parsePrice, priceInput } from '../../lib/format'
+import { formatPrice, parsePrice, priceInput } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { UUID, Wish, WishList } from '../../lib/types'
 import { ListFormModal } from './ListsPage'
@@ -34,6 +34,9 @@ import { ListFormModal } from './ListsPage'
 export function shareUrl(list: Pick<WishList, 'share_token'>): string {
   return `${window.location.origin}/l/${list.share_token}`
 }
+
+/** Griglia delle card regalo: due colonne gia' sul telefono, come un catalogo. */
+export const GIFT_GRID = 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4'
 
 export function ListDetailPage() {
   const { listId } = useParams()
@@ -47,48 +50,47 @@ export function ListDetailPage() {
     return (
       <div className="grid gap-4 p-5 md:p-8">
         <ErrorBanner error={error} />
-        <Skeleton className="h-10 w-64" />
-        <RowsSkeleton rows={4} />
+        <Skeleton className="h-52 rounded-panel" />
+        <div className={GIFT_GRID}>
+          {[0, 1, 2, 3].map((index) => (
+            <Skeleton key={index} className="aspect-[3/4] rounded-card" />
+          ))}
+        </div>
       </div>
     )
   }
 
-  const subtitle = [
-    list.event_date ? eventLabel(list.event_date) : null,
-    interpolate(ngettext('%s regalo', '%s regali', list.item_count), [list.item_count]),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
   return (
     <>
-      <PageHeader
-        title={list.title}
-        subtitle={subtitle}
-        back={{ to: '/', label: gettext('Le mie liste') }}
-        actions={
-          <>
-            <button type="button" className="btn-filled" onClick={() => setSharing(true)}>
-              <Icon name="share" size={20} />
-              {gettext('Condividi')}
-            </button>
-            <IconButton
-              icon="edit"
-              label={gettext('Modifica lista')}
-              onClick={() => setEditing(true)}
-              size="md"
-            />
-          </>
-        }
-      />
-      <div className="grid gap-3 px-5 md:px-8">
-        {list.description && (
-          <p className="max-w-3xl whitespace-pre-line text-body-medium text-on-surface-variant">
-            {list.description}
-          </p>
-        )}
-        <SurpriseNote list={list} onChange={() => setEditing(true)} />
-        <WishRows
+      <div className="grid gap-4 px-5 pt-3 md:px-8 md:pt-6">
+        <NavLink to="/" className="btn-text btn-sm -ml-3 justify-self-start">
+          <Icon name="arrow_back" size={20} />
+          {gettext('Le mie liste')}
+        </NavLink>
+        <ListHero
+          eyebrow={interpolate(ngettext('%s regalo', '%s regali', list.item_count), [
+            list.item_count,
+          ])}
+          title={list.title}
+          eventDate={list.event_date}
+          description={list.description}
+        >
+          <button type="button" className="btn-filled" onClick={() => setSharing(true)}>
+            <Icon name="share" size={20} />
+            {gettext('Condividi')}
+          </button>
+          <button
+            type="button"
+            className="btn bg-surface px-4 text-on-surface sm:px-6"
+            aria-label={gettext('Modifica lista')}
+            onClick={() => setEditing(true)}
+          >
+            <Icon name="edit" size={20} />
+            <span className="hidden sm:inline">{gettext('Modifica')}</span>
+          </button>
+        </ListHero>
+        <SurpriseCard list={list} />
+        <WishGrid
           list={list}
           onEdit={(wish) => setWishForm(wish)}
           onAdd={() => setWishForm('new')}
@@ -115,28 +117,67 @@ export function ListDetailPage() {
   )
 }
 
-/** Ricorda che le spunte sono nascoste, o che si vedono. */
-function SurpriseNote({ list, onChange }: { list: WishList; onChange: () => void }) {
+/**
+ * La sorpresa si cambia da qui, senza aprire il form. Accenderla e' innocuo,
+ * spegnerla mostra le spunte: per quello si chiede conferma.
+ */
+function SurpriseCard({ list }: { list: WishList }) {
+  const save = useSaveList()
+  const confirm = useConfirm()
+  const surprise = !list.show_gifted
+
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-card bg-surface-container px-4 py-3 text-body-medium">
-      <Icon
-        name={list.show_gifted ? 'visibility' : 'visibility_off'}
-        size={20}
-        className="text-on-surface-variant"
-      />
-      <span className="min-w-0 flex-1">
-        {list.show_gifted
-          ? gettext('Vedi cosa è già stato regalato e da chi.')
-          : gettext('Sorpresa: non vedi cosa è già stato regalato. Chi ha il link sì.')}
-      </span>
-      <button type="button" className="btn-text btn-sm" onClick={onChange}>
-        {gettext('Cambia')}
-      </button>
+    <div className="grid gap-3 rounded-card bg-surface-container-low px-4 py-3">
+      <div className="flex items-center gap-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-tertiary-container text-on-tertiary-container">
+          <Icon name={surprise ? 'visibility_off' : 'visibility'} size={22} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-body-large">{gettext('Mostrami cosa è stato regalato')}</p>
+          <p className="text-body-small text-on-surface-variant">
+            {surprise
+              ? gettext('Sorpresa: non vedi cosa è già stato regalato. Chi ha il link sì.')
+              : gettext('Vedi cosa è già stato regalato e da chi.')}
+          </p>
+        </div>
+        <Switch
+          checked={list.show_gifted}
+          disabled={save.isPending}
+          label={gettext('Mostrami cosa è stato regalato')}
+          onChange={async (checked) => {
+            if (checked) {
+              const ok = await confirm({
+                title: gettext('Rinunci alla sorpresa?'),
+                message: gettext(
+                  'Vedrai quali regali sono già stati presi e da chi. Puoi rispegnerlo quando vuoi.',
+                ),
+                confirmLabel: gettext('Mostra'),
+                icon: 'visibility',
+              })
+              if (!ok) return
+            }
+            save.mutate({ id: list.id, show_gifted: checked })
+          }}
+        />
+      </div>
+      {list.gifted_count !== null && list.item_count > 0 && (
+        <div className="grid gap-1.5 pb-1">
+          <p className="text-body-small text-on-surface-variant">
+            {interpolate(gettext('%s di %s già presi'), [list.gifted_count, list.item_count])}
+          </p>
+          <Progress
+            value={list.gifted_count}
+            max={list.item_count}
+            label={gettext('Regali già presi')}
+          />
+        </div>
+      )}
+      <ErrorBanner error={save.error} />
     </div>
   )
 }
 
-function WishRows({
+function WishGrid({
   list,
   onEdit,
   onAdd,
@@ -146,11 +187,18 @@ function WishRows({
   onAdd: () => void
 }) {
   const { data: wishes, isLoading, error } = useWishes(list.id)
-  const remove = useDeleteWish(list.id)
   const clearGift = useClearGift(list.id)
   const confirm = useConfirm()
 
-  if (isLoading) return <RowsSkeleton rows={4} />
+  if (isLoading) {
+    return (
+      <div className={GIFT_GRID}>
+        {[0, 1, 2, 3].map((index) => (
+          <Skeleton key={index} className="aspect-[3/4] rounded-card" />
+        ))}
+      </div>
+    )
+  }
   if (!wishes?.length) {
     return (
       <>
@@ -172,75 +220,71 @@ function WishRows({
     )
   }
 
+  const total = wishes.reduce((sum, wish) => sum + Number(wish.price ?? 0), 0)
+
   return (
-    <div className="grid gap-1">
-      <ErrorBanner error={error ?? remove.error ?? clearGift.error} />
-      {wishes.map((wish) => (
-        <div
-          key={wish.id}
-          role="button"
-          tabIndex={0}
-          onClick={() => onEdit(wish)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') onEdit(wish)
-          }}
-          className="row-m3 cursor-pointer items-start"
-        >
-          <GiftThumb image={wish.image} done={Boolean(wish.gifted)} />
-          <div className="min-w-0 flex-1">
-            <p className="break-words text-body-large font-medium">{wish.title}</p>
-            <GiftMeta price={wish.price} url={wish.url} />
-            {wish.notes && (
-              <p className="mt-1 line-clamp-2 text-body-small text-on-surface-variant">
-                {wish.notes}
-              </p>
-            )}
-            {wish.gifted && (
-              <p className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-secondary-container px-3 py-1 text-body-small font-medium text-on-secondary-container">
-                <Icon name="check_circle" size={16} />
-                {wish.gifted_by_name
-                  ? interpolate(gettext('Regalato da %s'), [wish.gifted_by_name])
-                  : gettext('Regalato')}
-              </p>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center" onClick={(event) => event.stopPropagation()}>
-            {wish.gifted && (
-              <IconButton
-                icon="remove_done"
-                label={gettext('Togli la spunta')}
-                onClick={async () => {
-                  const ok = await confirm({
-                    title: gettext('Togliere la spunta?'),
-                    message: gettext(
-                      'Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio.',
-                    ),
-                    confirmLabel: gettext('Togli la spunta'),
-                    icon: 'remove_done',
-                  })
-                  if (ok) clearGift.mutate(wish.id)
-                }}
-              />
-            )}
-            <IconButton
-              icon="delete"
-              label={gettext('Elimina regalo')}
-              onClick={async () => {
-                const ok = await confirm({
-                  title: gettext('Eliminare il regalo?'),
-                  message: interpolate(gettext('«%s» sparisce anche dal link condiviso.'), [
-                    wish.title,
-                  ]),
-                  confirmLabel: gettext('Elimina'),
-                  destructive: true,
-                })
-                if (ok) remove.mutate(wish.id)
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
+    <section className="grid gap-3">
+      <div className="flex items-baseline justify-between gap-3 px-1">
+        <h2 className="text-title-medium">{gettext('I regali')}</h2>
+        {total > 0 && (
+          <p className="text-body-medium text-on-surface-variant">
+            {gettext('Totale indicativo')}{' '}
+            <span className="amount font-medium text-on-surface">
+              {formatPrice(total.toFixed(2))}
+            </span>
+          </p>
+        )}
+      </div>
+      <ErrorBanner error={error ?? clearGift.error} />
+      <div className={GIFT_GRID}>
+        {wishes.map((wish) => (
+          <GiftCard
+            key={wish.id}
+            seed={wish.id}
+            image={wish.image}
+            title={wish.title}
+            price={wish.price}
+            url={wish.url}
+            notes={wish.notes}
+            taken={Boolean(wish.gifted)}
+            onClick={() => onEdit(wish)}
+            badge={
+              wish.gifted && (
+                <GiftBadge icon="check_circle">
+                  {wish.gifted_by_name
+                    ? interpolate(gettext('Regalato da %s'), [wish.gifted_by_name])
+                    : gettext('Regalato')}
+                </GiftBadge>
+              )
+            }
+            footer={
+              wish.gifted && (
+                <button
+                  type="button"
+                  className="btn-text btn-sm -ml-2"
+                  onClick={async (event) => {
+                    event.stopPropagation()
+                    const ok = await confirm({
+                      title: gettext('Togliere la spunta?'),
+                      message: gettext(
+                        'Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio.',
+                      ),
+                      confirmLabel: gettext('Togli la spunta'),
+                      icon: 'remove_done',
+                    })
+                    if (ok) clearGift.mutate(wish.id)
+                  }}
+                >
+                  <Icon name="remove_done" size={18} />
+                  {gettext('Togli la spunta')}
+                </button>
+              )
+            }
+          />
+        ))}
+        <AddTile label={gettext('Aggiungi regalo')} onClick={onAdd} />
+      </div>
+    </section>
   )
 }
 
@@ -254,6 +298,8 @@ function WishFormModal({
   onClose: () => void
 }) {
   const save = useSaveWish(listId)
+  const remove = useDeleteWish(listId)
+  const confirm = useConfirm()
   const [title, setTitle] = useState(wish?.title ?? '')
   const [url, setUrl] = useState(wish?.url ?? '')
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
@@ -287,7 +333,7 @@ function WishFormModal({
         }}
       >
         {!fields.title && !fields.url && !fields.price && !fields.image_id && (
-          <ErrorBanner error={save.error} />
+          <ErrorBanner error={save.error ?? remove.error} />
         )}
         <Field label={gettext('Cosa ti piacerebbe')} error={fields.title}>
           <input
@@ -333,7 +379,35 @@ function WishFormModal({
             onChange={(event) => setNotes(event.target.value)}
           />
         </Field>
-        <div className="mt-2 flex flex-wrap justify-end gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {/* Eliminare sta nel form: la card resta pulita, un tocco apre e basta. */}
+          {wish && (
+            <button
+              type="button"
+              className="btn-text -ml-3 text-error"
+              disabled={remove.isPending}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: gettext('Eliminare il regalo?'),
+                  message: interpolate(gettext('«%s» sparisce anche dal link condiviso.'), [
+                    wish.title,
+                  ]),
+                  confirmLabel: gettext('Elimina'),
+                  destructive: true,
+                })
+                if (!ok) return
+                const done = await remove.mutateAsync(wish.id).then(
+                  () => true,
+                  () => false,
+                )
+                if (done) onClose()
+              }}
+            >
+              <Icon name="delete" size={20} />
+              {gettext('Elimina')}
+            </button>
+          )}
+          <span className="flex-1" />
           <button type="button" className="btn-text" onClick={onClose}>
             {gettext('Annulla')}
           </button>
