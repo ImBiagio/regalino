@@ -113,6 +113,45 @@ services:
       db:
         condition: service_healthy
 
+  media-backup:
+    # Le foto dei regali (volume "media") non stanno in Postgres: archivio
+    # tar.gz ogni notte alle 23:30 UTC (00:30 o 01:30 in Italia) e a ogni
+    # avvio, in ~/regalino/backups/media: 7 giornalieri, 4 settimanali (la
+    # domenica) e l'ultimo. Un ciclo con sleep e non cron: busybox crond vuole
+    # root, qui si gira come biagio. Restore nel README (Deploy) e nel vault.
+    image: alpine:3.20
+    restart: unless-stopped
+    user: "1000:1000"
+    volumes:
+      - media:/media:ro
+      - ./backups/media:/backups
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        backup() {
+          mkdir -p /backups/daily /backups/weekly /backups/last
+          tmp=/backups/last/.media-in-corso.tar.gz
+          tar czf "$$tmp" -C /media .
+          cp "$$tmp" "/backups/daily/media-$$(date +%F).tar.gz"
+          if [ "$$(date +%u)" = 7 ]; then
+            cp "$$tmp" "/backups/weekly/media-$$(date +%G-W%V).tar.gz"
+          fi
+          mv "$$tmp" /backups/last/media-latest.tar.gz
+          find /backups/daily -name 'media-*.tar.gz' -mtime +7 -delete
+          find /backups/weekly -name 'media-*.tar.gz' -mtime +28 -delete
+          echo "backup foto $$(date '+%F %T') $$(du -h /backups/last/media-latest.tar.gz | cut -f1)"
+        }
+        backup
+        while true; do
+          now=$$(date +%s)
+          next=$$(date -d "$$(date +%F) 23:30:00" +%s)
+          [ "$$next" -gt "$$now" ] || next=$$((next + 86400))
+          sleep $$((next - now))
+          backup
+        done
+
 # Watchtower non c'e' qui: quello di cinemino aggiorna tutti i container
 # etichettati del server, quindi anche questi.
 

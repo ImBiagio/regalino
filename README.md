@@ -193,9 +193,21 @@ Primo avvio sul server (già fatto):
 4. `git push origin main:prod`, poi `cd ~/regalino && docker compose -f
    compose.prod.yaml up -d` e `createsuperuser`.
 
-Backup notturno di Postgres in `~/regalino/backups/` come soldino. Le foto
-stanno nel volume Docker `regalino_media` (backend in scrittura, `web` le
-serve su `/media/`): il backup non le copre.
+Backup notturni, entrambi a ogni avvio e poi ogni notte, sul disco del server:
+
+- **Postgres** (servizio `backup`, come soldino) in `~/regalino/backups/{daily,weekly,monthly,last}`;
+- **foto** (servizio `media-backup`): il volume `regalino_media` in tar.gz alle
+  23:30 UTC, in `~/regalino/backups/media/{daily,weekly,last}` (7 giorni, 4
+  settimane).
+
+Restore delle foto, con lo stack fermo o almeno senza upload in corso:
+
+```bash
+docker run --rm -v regalino_media:/m -v ~/regalino/backups/media/last:/b:ro alpine sh -c "tar xzf /b/media-latest.tar.gz -C /m && chown -R 10001:10001 /m"
+```
+
+> Come per cinemino e soldino, i backup stanno sullo stesso disco del server:
+> non c'è ancora una copia fuori.
 
 ## Test
 
