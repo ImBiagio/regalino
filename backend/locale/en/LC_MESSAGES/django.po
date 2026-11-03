@@ -1,0 +1,144 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 10:05+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: apps/gifts/models.py:102
+msgid "Idea"
+msgstr "Idea"
+
+#: apps/gifts/models.py:103
+msgid "Comprato"
+msgstr "Bought"
+
+#: apps/gifts/models.py:104
+msgid "Regalato"
+msgstr "Given"
+
+#: apps/gifts/serializers.py:13
+msgid "Il prezzo non puo' essere negativo."
+msgstr "The price can't be negative."
+
+#: apps/gifts/serializers.py:102
+msgid "Scrivi per chi e' il regalo."
+msgstr "Write who the gift is for."
+
+#: apps/gifts/views.py:90
+msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
+msgstr "Turn on \"Show me what has been given\" to manage the ticks."
+
+#: apps/gifts/views.py:170
+msgid "Non puoi spuntare i regali della tua lista."
+msgstr "You can't tick the gifts on your own list."
+
+#: apps/gifts/views.py:175
+msgid "Qualcuno l'ha appena regalato: ricarica la lista."
+msgstr "Someone has just taken it: reload the list."
+
+#: apps/gifts/views.py:217
+msgid "Solo chi l'ha spuntato puo' togliere la spunta."
+msgstr "Only whoever ticked it can untick it."
+
+#: apps/users/emails.py:21
+msgid "Conferma il tuo indirizzo email"
+msgstr "Confirm your email address"
+
+#: apps/users/emails.py:24
+msgid "Manca un passo: conferma che questo indirizzo e' tuo e il tuo account Regalino e' pronto."
+msgstr "One last step: confirm this address is yours and your Regalino account is ready."
+
+#: apps/users/emails.py:27
+msgid "Conferma email"
+msgstr "Confirm email"
+
+#: apps/users/emails.py:30
+msgid "Il link vale 3 giorni e una volta sola. Se non ti sei registrato tu, ignora questa mail."
+msgstr "The link is valid for 3 days and can be used once. If you didn't sign up, just ignore this email."
+
+#: apps/users/emails.py:40
+msgid "Reimposta la password di Regalino"
+msgstr "Reset your Regalino password"
+
+#: apps/users/emails.py:43
+msgid "Qualcuno (speriamo tu) ha chiesto di reimpostare la password del tuo account Regalino."
+msgstr "Someone (hopefully you) asked to reset the password of your Regalino account."
+
+#: apps/users/emails.py:46
+msgid "Scegli una nuova password"
+msgstr "Choose a new password"
+
+#: apps/users/emails.py:49
+msgid "Il link vale 2 ore e una volta sola. Se non l'hai chiesto tu, ignora questa mail: la password resta quella di prima."
+msgstr "The link is valid for 2 hours and can be used once. If you didn't request it, just ignore this email: your password stays the same."
+
+#: apps/users/serializers.py:45
+msgid "Esiste gia' un account con questa email."
+msgstr "An account with this email already exists."
+
+#: apps/users/views.py:74
+msgid "Registrazione completata. Controlla la mail per confermare."
+msgstr "Sign-up complete. Check your email to confirm."
+
+#: apps/users/views.py:100
+msgid "Credenziali non valide."
+msgstr "Invalid credentials."
+
+#: apps/users/views.py:105
+msgid "Email non ancora confermata."
+msgstr "Email not confirmed yet."
+
+#: apps/users/views.py:121
+msgid "Refresh token assente."
+msgstr "Refresh token missing."
+
+#: apps/users/views.py:127
+msgid "Refresh token non valido."
+msgstr "Invalid refresh token."
+
+#: apps/users/views.py:133
+msgid "Utente non valido."
+msgstr "Invalid user."
+
+#: apps/users/views.py:170
+msgid "Link non valido o scaduto."
+msgstr "Invalid or expired link."
+
+#: apps/users/views.py:175
+msgid "Utente inesistente."
+msgstr "User doesn't exist."
+
+#: apps/users/views.py:180
+msgid "Email gia' confermata: accedi con la tua password."
+msgstr "Email already confirmed: sign in with your password."
+
+#: apps/users/views.py:212
+msgid "Password attuale errata."
+msgstr "Current password is incorrect."
+
+#: apps/users/views.py:274
+msgid "Link non valido, gia' usato o scaduto: chiedine uno nuovo."
+msgstr "Invalid, already used or expired link: request a new one."
+
+#: templates/emails/base.html:25 templates/emails/base.txt:1
+#, python-format
+msgid "Ciao %(name)s,"
+msgstr "Hi %(name)s,"
+
+#: templates/emails/base.html:37
+msgid "Se il bottone non funziona, copia questo link nel browser:"
+msgstr "If the button doesn't work, copy this link into your browser:"

@@ -1,0 +1,554 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 10:10+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Annulla"
+msgstr "Cancel"
+
+msgid "Conferma"
+msgstr "Confirm"
+
+msgid "Le mie liste"
+msgstr "My lists"
+
+msgid "Da regalare"
+msgstr "Gift ideas"
+
+msgid "Account"
+msgstr "Account"
+
+msgid "Sezioni"
+msgstr "Sections"
+
+#, javascript-format
+msgid "%s · oggi"
+msgstr "%s · today"
+
+#, javascript-format
+msgid "%s · domani"
+msgstr "%s · tomorrow"
+
+#, javascript-format
+msgid "%s · passato"
+msgstr "%s · past"
+
+#, javascript-format
+msgid "%s · tra %s giorno"
+msgid_plural "%s · tra %s giorni"
+msgstr[0] "%s · in %s day"
+msgstr[1] "%s · in %s days"
+
+msgid "Nascondi password"
+msgstr "Hide password"
+
+msgid "Mostra password"
+msgstr "Show password"
+
+msgid "Chiudi"
+msgstr "Close"
+
+msgid "Esci"
+msgstr "Sign out"
+
+msgid "Profilo"
+msgstr "Profile"
+
+msgid "Il nome che vede chi apre le tue liste."
+msgstr "The name people see when they open your lists."
+
+msgid "Nome"
+msgstr "Name"
+
+msgid "Salvato"
+msgstr "Saved"
+
+msgid "Salva"
+msgstr "Save"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Confermata"
+msgstr "Confirmed"
+
+msgid "Da confermare"
+msgstr "Not confirmed yet"
+
+msgid "Mail mandata"
+msgstr "Email sent"
+
+msgid "Rimanda la mail di conferma"
+msgstr "Resend confirmation email"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Cambiandola si chiudono le sessioni aperte sugli altri dispositivi; questa resta aperta."
+msgstr "Changing it signs you out on your other devices; this one stays signed in."
+
+msgid "Password cambiata."
+msgstr "Password changed."
+
+msgid "Password attuale"
+msgstr "Current password"
+
+msgid "Salvo…"
+msgstr "Saving…"
+
+msgid "Cambia password"
+msgstr "Change password"
+
+msgid "Non ricordi quella attuale?"
+msgstr "Can't remember your current one?"
+
+msgid "Ti mandiamo a %(email)s un link per reimpostarla, valido 2 ore."
+msgstr "We'll send a link to %(email)s to reset it, valid for 2 hours."
+
+msgid "Link mandato, controlla la mail"
+msgstr "Link sent, check your email"
+
+msgid "Mandami il link di reset"
+msgstr "Send me the reset link"
+
+msgid "Lingua"
+msgstr "Language"
+
+msgid "Vale per l'app e per le mail che ti mandiamo."
+msgstr "Applies to the app and to the emails we send you."
+
+msgid "I regali giusti, senza doppioni."
+msgstr "The right gifts, no duplicates."
+
+msgid "Prima di entrare conferma l'indirizzo dal link che ti abbiamo mandato."
+msgstr "Before signing in, confirm your address using the link we sent you."
+
+msgid "Mail rimandata"
+msgstr "Email resent"
+
+msgid "Rimanda la mail"
+msgstr "Resend email"
+
+msgid "Accedi"
+msgstr "Sign in"
+
+msgid "Non hai un account?"
+msgstr "Don't have an account?"
+
+msgid "Registrati"
+msgstr "Sign up"
+
+msgid "Accesso…"
+msgstr "Signing in…"
+
+msgid "Entra"
+msgstr "Sign in"
+
+msgid "Password dimenticata?"
+msgstr "Forgot password?"
+
+msgid "Crea un account"
+msgstr "Create an account"
+
+msgid "Hai già un account?"
+msgstr "Already have an account?"
+
+msgid "Torna al login"
+msgstr "Back to sign in"
+
+msgid "Come ti chiamano"
+msgstr "What people call you"
+
+msgid "Almeno 10 caratteri."
+msgstr "At least 10 characters."
+
+msgid "Creazione…"
+msgstr "Creating…"
+
+msgid "Crea account"
+msgstr "Create account"
+
+msgid "Conferma email"
+msgstr "Confirm email"
+
+msgid "Password dimenticata"
+msgstr "Forgot password"
+
+msgid "Se"
+msgstr "If"
+
+msgid "ha un account, tra poco ti arriva una mail con il link per scegliere una nuova password. Il link vale 2 ore. Controlla anche lo spam."
+msgstr "has an account, you'll shortly get an email with a link to choose a new password. The link is valid for 2 hours. Check your spam folder too."
+
+msgid "Scrivi l'email dell'account: ti mandiamo un link per sceglierne una nuova."
+msgstr "Enter your account email: we'll send you a link to choose a new one."
+
+msgid "Invio…"
+msgstr "Sending…"
+
+msgid "Mandami il link"
+msgstr "Send me the link"
+
+msgid "Nuova password"
+msgstr "New password"
+
+msgid "Ripeti la nuova password"
+msgstr "Repeat new password"
+
+msgid "Non coincide."
+msgstr "Doesn't match."
+
+msgid "Salva ed entra"
+msgstr "Save and sign in"
+
+msgid "Il link non va? Chiedine uno nuovo"
+msgstr "Link not working? Request a new one"
+
+msgid "Idea"
+msgstr "Idea"
+
+msgid "Comprato"
+msgstr "Bought"
+
+msgid "Regalato"
+msgstr "Given"
+
+msgid "Da fare"
+msgstr "To do"
+
+msgid "Idee"
+msgstr "Ideas"
+
+msgid "Comprati"
+msgstr "Bought"
+
+msgid "Regalati"
+msgstr "Given"
+
+#| msgid "Tutti"
+msgid "Tutte"
+msgstr "Everyone"
+
+msgid "Le idee per gli altri, e per chi. Le vedi solo tu."
+msgstr "Gift ideas for other people, and who they're for. Only you can see them."
+
+msgid "Nessuna idea, per ora"
+msgstr "No ideas yet"
+
+msgid "Quando ti viene in mente il regalo giusto per qualcuno, segnalo qui: per chi, cosa, quanto costa. Poi lo spunti quando lo compri e quando lo regali."
+msgstr "When you think of the right gift for someone, jot it down here: who, what, how much. Then tick it off when you buy it and when you give it."
+
+msgid "Aggiungi idea"
+msgstr "Add idea"
+
+msgid "Niente in questa vista."
+msgstr "Nothing in this view."
+
+msgid "Nuova idea"
+msgstr "New idea"
+
+#, javascript-format
+msgid "%s idea"
+msgid_plural "%s idee"
+msgstr[0] "%s idea"
+msgstr[1] "%s ideas"
+
+#, javascript-format
+msgid "Nuova idea per %s"
+msgstr "New idea for %s"
+
+#, javascript-format
+msgid "Stato: %s. Tocca per passare a %s"
+msgstr "Status: %s. Tap to switch to %s"
+
+msgid "Elimina idea"
+msgstr "Delete idea"
+
+msgid "Eliminare l'idea?"
+msgstr "Delete this idea?"
+
+#, javascript-format
+msgid "«%s» per %s."
+msgstr "“%s” for %s."
+
+msgid "Elimina"
+msgstr "Delete"
+
+msgid "Modifica idea"
+msgstr "Edit idea"
+
+msgid "Per chi"
+msgstr "For whom"
+
+msgid "Mamma, Luca, la collega…"
+msgstr "Mum, Luke, a colleague…"
+
+msgid "Cosa"
+msgstr "What"
+
+msgid "Occasione (facoltativa)"
+msgstr "Occasion (optional)"
+
+msgid "Natale, compleanno…"
+msgstr "Christmas, birthday…"
+
+msgid "Prezzo (facoltativo)"
+msgstr "Price (optional)"
+
+msgid "Scrivi un numero, es. 24,90"
+msgstr "Enter a number, e.g. 24.90"
+
+msgid "Link (facoltativo)"
+msgstr "Link (optional)"
+
+msgid "Note"
+msgstr "Notes"
+
+#, javascript-format
+msgid "%s regalo"
+msgid_plural "%s regali"
+msgstr[0] "%s gift"
+msgstr[1] "%s gifts"
+
+msgid "Condividi"
+msgstr "Share"
+
+msgid "Modifica lista"
+msgstr "Edit list"
+
+msgid "Aggiungi regalo"
+msgstr "Add gift"
+
+msgid "Vedi cosa è già stato regalato e da chi."
+msgstr "You can see what has already been given and by whom."
+
+msgid "Sorpresa: non vedi cosa è già stato regalato. Chi ha il link sì."
+msgstr "Surprise: you can't see what has already been given. People with the link can."
+
+msgid "Cambia"
+msgstr "Change"
+
+msgid "La lista è vuota"
+msgstr "The list is empty"
+
+msgid "Aggiungi i regali che ti piacerebbero: con il link al negozio e il prezzo è più facile per chi li compra."
+msgstr "Add the gifts you'd like: with the shop link and the price it's easier for whoever buys them."
+
+#, javascript-format
+msgid "Regalato da %s"
+msgstr "Given by %s"
+
+msgid "Togli la spunta"
+msgstr "Untick"
+
+msgid "Togliere la spunta?"
+msgstr "Untick this gift?"
+
+msgid "Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio."
+msgstr "The gift becomes available again for people with the link. Useful if someone ticked it by mistake."
+
+msgid "Elimina regalo"
+msgstr "Delete gift"
+
+msgid "Eliminare il regalo?"
+msgstr "Delete this gift?"
+
+#, javascript-format
+msgid "«%s» sparisce anche dal link condiviso."
+msgstr "“%s” also disappears from the shared link."
+
+msgid "Modifica regalo"
+msgstr "Edit gift"
+
+msgid "Nuovo regalo"
+msgstr "New gift"
+
+msgid "Cosa ti piacerebbe"
+msgstr "What would you like"
+
+msgid "Le cuffie, un libro, una cena fuori…"
+msgstr "Headphones, a book, a dinner out…"
+
+msgid "Prezzo indicativo (facoltativo)"
+msgstr "Approximate price (optional)"
+
+msgid "Note (taglia, colore, dove trovarlo)"
+msgstr "Notes (size, colour, where to find it)"
+
+msgid "Condividi la lista"
+msgstr "Share the list"
+
+msgid "Chi ha questo link vede la lista senza account e può segnare un regalo come preso, così nessuno fa doppioni."
+msgstr "Anyone with this link can see the list without an account and mark a gift as taken, so nobody buys the same thing twice."
+
+msgid "Link copiato"
+msgstr "Link copied"
+
+msgid "Copia link"
+msgstr "Copy link"
+
+#, javascript-format
+msgid "La mia lista dei regali: %s"
+msgstr "My gift list: %s"
+
+msgid "Invia…"
+msgstr "Send…"
+
+msgid "Vedi come gli altri"
+msgstr "See it as others do"
+
+msgid "Il link è finito nelle mani sbagliate?"
+msgstr "Did the link end up in the wrong hands?"
+
+msgid "Creare un link nuovo?"
+msgstr "Create a new link?"
+
+msgid "Il link di adesso smette di funzionare: dovrai rimandare quello nuovo a chi vuoi che veda la lista. Le spunte restano."
+msgstr "The current link stops working: you'll have to send the new one to whoever should see the list. Ticks are kept."
+
+msgid "Crea link nuovo"
+msgstr "Create new link"
+
+msgid "Crea un link nuovo"
+msgstr "Create a new link"
+
+msgid "Eliminare la lista?"
+msgstr "Delete this list?"
+
+#, javascript-format
+msgid "«%s» e i suoi regali spariscono, e il link condiviso smette di funzionare."
+msgstr "“%s” and its gifts disappear, and the shared link stops working."
+
+msgid "Elimina lista"
+msgstr "Delete list"
+
+#, javascript-format
+msgid "Ciao %s: qui scrivi cosa ti piacerebbe ricevere e lo condividi con un link."
+msgstr "Hi %s: write down what you'd like to receive and share it with a link."
+
+msgid "Nessuna lista, per ora"
+msgstr "No lists yet"
+
+msgid "Crea una lista per il compleanno, per Natale o per quello che vuoi: aggiungi i regali e manda il link a chi deve farteli."
+msgstr "Create a list for your birthday, for Christmas or for anything else: add the gifts and send the link to the people giving them."
+
+msgid "Crea la prima lista"
+msgstr "Create your first list"
+
+msgid "Nuova lista"
+msgstr "New list"
+
+#, javascript-format
+msgid "%s regalato"
+msgid_plural "%s regalati"
+msgstr[0] "%s given"
+msgstr[1] "%s given"
+
+msgid "Sorpresa"
+msgstr "Surprise"
+
+msgid "Nome della lista"
+msgstr "List name"
+
+msgid "Compleanno, Natale, Matrimonio…"
+msgstr "Birthday, Christmas, Wedding…"
+
+msgid "Data (facoltativa)"
+msgstr "Date (optional)"
+
+msgid "Due parole per chi la apre (facoltative)"
+msgstr "A few words for whoever opens it (optional)"
+
+msgid "Taglia M, niente cioccolato, grazie!"
+msgstr "Size M, no chocolate, thanks!"
+
+msgid "Mostrami cosa è stato regalato"
+msgstr "Show me what has been given"
+
+msgid "Spento, non vedi le spunte di chi ha il link: la sorpresa resta. Acceso, vedi cosa è preso e da chi."
+msgstr "Off, you don't see the ticks of people with the link: the surprise stays. On, you see what's taken and by whom."
+
+msgid "Crea lista"
+msgstr "Create list"
+
+msgid "Lista non trovata"
+msgstr "List not found"
+
+msgid "Il link non è giusto oppure non vale più: chiedi a chi te l’ha mandato quello nuovo."
+msgstr "The link is wrong or no longer valid: ask whoever sent it for the new one."
+
+msgid "Fai anche tu la tua lista con Regalino"
+msgstr "Make your own list with Regalino"
+
+#, javascript-format
+msgid "La lista di %s"
+msgstr "%s's list"
+
+msgid "È la tua lista: così la vede chi ha il link. Tu non puoi spuntare i regali, e se la sorpresa è attiva non vedi le spunte degli altri."
+msgstr "This is your list: this is how people with the link see it. You can't tick gifts, and if surprise mode is on you don't see other people's ticks."
+
+msgid "Scegli un regalo e tocca «Lo regalo io»: gli altri lo vedranno preso e non faranno doppioni."
+msgstr "Pick a gift and tap “I'll give it”: others will see it's taken and won't buy it twice."
+
+msgid "Tutti i regali sono già presi. Grazie!"
+msgstr "All gifts are already taken. Thank you!"
+
+msgid "Ancora nessun regalo"
+msgstr "No gifts yet"
+
+msgid "La lista è vuota: ripassa più tardi."
+msgstr "The list is empty: check back later."
+
+msgid "Lo regali tu"
+msgstr "You're giving it"
+
+#, javascript-format
+msgid "Lo regala %s"
+msgstr "%s is giving it"
+
+msgid "Già preso da qualcuno"
+msgstr "Already taken by someone"
+
+msgid "Lo regalo io"
+msgstr "I'll give it"
+
+msgid "Lo prendo"
+msgstr "I'll take it"
+
+msgid "Lo regali tu?"
+msgstr "Are you giving it?"
+
+#, javascript-format
+msgid "«%s» risulterà preso: chi apre la lista non lo regalerà due volte."
+msgstr "“%s” will show as taken: nobody opening the list will give it twice."
+
+msgid "Il tuo nome (facoltativo)"
+msgstr "Your name (optional)"
+
+msgid "Così gli altri sanno chi ci ha pensato."
+msgstr "So others know who thought of it."
+
+msgid "Potrai togliere la spunta da questo dispositivo, se cambi idea."
+msgstr "You can untick it from this device if you change your mind."
+
+msgid "Sì, lo regalo io"
+msgstr "Yes, I'll give it"
+
+#, javascript-format
+msgid "Errore %s"
+msgstr "Error %s"
