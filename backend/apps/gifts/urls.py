@@ -5,6 +5,7 @@ from .views import (
     GiftIdeaViewSet,
     ImageFromUrlView,
     ImageUploadView,
+    LinkReadView,
     SharedGiftView,
     SharedListView,
     WishListViewSet,
@@ -24,6 +25,7 @@ wish_gift = WishViewSet.as_view({"delete": "clear_gift"})
 urlpatterns = [
     path("images", ImageUploadView.as_view(), name="image-upload"),
     path("images/from-url", ImageFromUrlView.as_view(), name="image-from-url"),
+    path("links/read", LinkReadView.as_view(), name="link-read"),
     path("lists/<uuid:list_pk>/items", wish_list, name="wish-list-items"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>", wish_detail, name="wish-detail"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>/gift", wish_gift, name="wish-gift"),

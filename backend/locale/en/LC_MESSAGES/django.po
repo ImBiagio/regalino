@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 11:57+0100\n"
+"POT-Creation-Date: 2026-11-03 14:34+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,70 +18,74 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/images.py:56 apps/gifts/views.py:145
+#: apps/gifts/images.py:63 apps/gifts/views.py:154
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
-#: apps/gifts/images.py:62
+#: apps/gifts/images.py:69
 msgid "Il file non e' un'immagine che riesco a leggere."
 msgstr "That file isn't an image I can read."
 
-#: apps/gifts/images.py:90 apps/gifts/images.py:101
+#: apps/gifts/images.py:97 apps/gifts/images.py:108
 msgid "Non trovo il sito del link."
 msgstr "I can't find the link's website."
 
-#: apps/gifts/images.py:98
+#: apps/gifts/images.py:105
 msgid "Questo link punta a un indirizzo non pubblico."
 msgstr "This link points to a non-public address."
 
-#: apps/gifts/images.py:116
+#: apps/gifts/images.py:123
 msgid "Il link deve iniziare con http:// o https://."
 msgstr "The link must start with http:// or https://."
 
-#: apps/gifts/images.py:118
+#: apps/gifts/images.py:125
 msgid "Il link non puo' contenere credenziali."
 msgstr "The link can't contain credentials."
 
-#: apps/gifts/images.py:121
+#: apps/gifts/images.py:128
 msgid "Il link usa una porta non ammessa."
 msgstr "The link uses a port that isn't allowed."
 
-#: apps/gifts/images.py:148
+#: apps/gifts/images.py:156
 msgid "Il sito non si lascia leggere in automatico: carica la foto, oppure incolla il link diretto dell'immagine (tasto destro sulla foto → Copia indirizzo immagine)."
 msgstr "The site blocks automatic reading: upload the photo, or paste the direct link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/images.py:155
+#: apps/gifts/images.py:163 apps/gifts/links.py:294
 #, python-format
 msgid "Il sito ha risposto con un errore (%s)."
 msgstr "The site answered with an error (%s)."
 
-#: apps/gifts/images.py:161
+#: apps/gifts/images.py:169
 msgid "Il file del link e' troppo grande."
 msgstr "The linked file is too large."
 
-#: apps/gifts/images.py:167
+#: apps/gifts/images.py:175
 msgid "Il sito non risponde."
 msgstr "The site isn't responding."
 
-#: apps/gifts/images.py:169 apps/gifts/images.py:180
+#: apps/gifts/images.py:177 apps/gifts/images.py:188
 msgid "Non riesco a leggere il link."
 msgstr "I can't read the link."
 
-#: apps/gifts/images.py:182
+#: apps/gifts/images.py:190
 msgid "Il link rimanda troppe volte altrove."
 msgstr "The link redirects too many times."
 
-#: apps/gifts/images.py:291
+#: apps/gifts/links.py:250
 msgid "Il link non e' ne' un'immagine ne' una pagina web."
 msgstr "The link is neither an image nor a web page."
 
-#: apps/gifts/images.py:296
+#: apps/gifts/links.py:272 apps/gifts/links.py:274 apps/gifts/links.py:277
+msgid "Non riesco ad aprire la pagina del link."
+msgstr "I can't open the link's page."
+
+#: apps/gifts/links.py:286
+msgid "Il sito chiede di dimostrare di non essere un robot: carica la foto, oppure incolla il link diretto dell'immagine (tasto destro sulla foto → Copia indirizzo immagine)."
+msgstr "The site asks to prove you're not a robot: upload the photo, or paste the direct link of the image (right-click the photo → Copy image address)."
+
+#: apps/gifts/links.py:367
 msgid "In quella pagina non trovo un'immagine del prodotto: caricala tu dal telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
-
-#: apps/gifts/images.py:300
-msgid "L'immagine indicata dalla pagina non si apre."
-msgstr "The image the page points to won't open."
 
 #: apps/gifts/models.py:139
 msgid "Idea"
@@ -99,23 +103,27 @@ msgstr "Given"
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:159
+#: apps/gifts/serializers.py:175
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
-#: apps/gifts/views.py:100
+#: apps/gifts/views.py:104
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:229
+#: apps/gifts/views.py:205
+msgid "In quella pagina non trovo il prodotto."
+msgstr "I can't find the product on that page."
+
+#: apps/gifts/views.py:277
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:234
+#: apps/gifts/views.py:282
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:276
+#: apps/gifts/views.py:324
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 

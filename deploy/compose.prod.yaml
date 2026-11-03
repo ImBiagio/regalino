@@ -45,6 +45,13 @@ services:
 
   backend:
     <<: *backend
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      SCRAPER_URL: http://scraper:8000
+    # Solo il backend parla con lo scraper (ADR 0005).
+    networks: [default, scraper]
     depends_on:
       db:
         condition: service_healthy
@@ -73,6 +80,17 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+  scraper:
+    # Chromium headless che apre le pagine dei negozi per prenderne la foto
+    # (ADR 0005). Su una rete sua, senza db, redis ne' edge; ogni richiesta del
+    # browser verso indirizzi non pubblici viene bloccata dentro il servizio.
+    image: ghcr.io/imbiagio/regalino-scraper:prod
+    restart: unless-stopped
+    networks: [scraper]
+    mem_limit: 1g
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   web:
     image: ghcr.io/imbiagio/regalino-web:prod
@@ -158,6 +176,7 @@ services:
 networks:
   edge:
     external: true
+  scraper:
 
 volumes:
   pgdata:

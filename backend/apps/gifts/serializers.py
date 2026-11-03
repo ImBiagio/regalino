@@ -67,6 +67,22 @@ class ImageFromUrlSerializer(serializers.Serializer):
     url = serializers.URLField(max_length=1000)
 
 
+class LinkReadSerializer(serializers.Serializer):
+    url = serializers.URLField(max_length=1000)
+    # Falso quando nel form c'e' gia' una foto scelta a mano.
+    image = serializers.BooleanField(default=True)
+
+
+class LinkDetailsSerializer(serializers.Serializer):
+    """Proposte per il form: il form le usa solo nei campi ancora vuoti."""
+
+    title = serializers.CharField(allow_blank=True)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    notes = serializers.CharField(allow_blank=True)
+    image = GiftImageSerializer(allow_null=True)
+    image_error = serializers.CharField(allow_null=True)
+
+
 class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
     """Un regalo visto dal proprietario della lista.
 

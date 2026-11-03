@@ -1,4 +1,4 @@
-"""Foto dei regali: elaborazione e presa da un link (ADR 0003).
+"""Foto dei regali: elaborazione e lettura sicura dei link (ADR 0003).
 
 Ogni immagine, caricata o scaricata, passa da ``process_image``: si apre con
 Pillow (cosi' un file che non e' un'immagine viene rifiutato), si raddrizza
@@ -11,17 +11,15 @@ la porta d'ingresso classica per un SSRF: dal homeserver si raggiungono il
 router, la LAN e i container accanto. Per questo ``fetch`` accetta solo
 http/https, risolve il nome, rifiuta ogni indirizzo non pubblico e si collega
 proprio all'IP controllato (niente seconda risoluzione DNS fra il controllo e
-la connessione), rifacendo tutto a ogni redirect.
+la connessione), rifacendo tutto a ogni redirect. Cosa si legge dalla pagina
+di un link (foto, nome, prezzo) sta in ``links.py``.
 """
 
 from __future__ import annotations
 
 import ipaddress
-import json
-import re
 import socket
 from dataclasses import dataclass
-from html.parser import HTMLParser
 from io import BytesIO
 from urllib.parse import urljoin, urlsplit
 
@@ -45,6 +43,15 @@ MAX_HTML_BYTES = 3 * 1024 * 1024
 
 class ImageError(Exception):
     """Errore da mostrare all'utente cosi' com'e'."""
+
+
+class ReadError(ImageError):
+    """Il link e' ammesso ma il sito non ha dato la foto (blocco, errore,
+    pagina fatta in JavaScript): e' il caso in cui provare con lo scraper."""
+
+
+class ScraperDown(ReadError):
+    """Lo scraper non risponde: vale l'errore della lettura diretta."""
 
 
 # ---------------------------------------------------------------- Pillow --
@@ -142,8 +149,9 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
                     response.read()
                     return response
                 if response.status_code in (401, 403, 429, 503):
-                    # Protezioni anti-bot (Zalando, Decathlon, Amazon...): non si aggirano.
-                    raise ImageError(
+                    # Protezioni anti-bot (Zalando, Decathlon, Amazon...): non si
+                    # aggirano. Ci prova poi lo scraper, che apre la pagina col browser.
+                    raise ReadError(
                         _(
                             "Il sito non si lascia leggere in automatico: carica la foto, "
                             "oppure incolla il link diretto dell'immagine (tasto destro "
@@ -151,7 +159,7 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
                         )
                     )
                 if response.status_code >= 400:
-                    raise ImageError(
+                    raise ReadError(
                         _("Il sito ha risposto con un errore (%s).") % response.status_code
                     )
                 body = bytearray()
@@ -164,9 +172,9 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
             finally:
                 response.close()
     except httpx.TimeoutException:
-        raise ImageError(_("Il sito non risponde.")) from None
+        raise ReadError(_("Il sito non risponde.")) from None
     except httpx.HTTPError:
-        raise ImageError(_("Non riesco a leggere il link.")) from None
+        raise ReadError(_("Non riesco a leggere il link.")) from None
 
 
 def fetch(url: str, max_bytes: int) -> Fetched:
@@ -180,122 +188,3 @@ def fetch(url: str, max_bytes: int) -> Fetched:
             raise ImageError(_("Non riesco a leggere il link."))
         url = urljoin(url, location)
     raise ImageError(_("Il link rimanda troppe volte altrove."))
-
-
-# ------------------------------------------------- immagine di una pagina --
-
-
-class _MetaImageParser(HTMLParser):
-    """Raccoglie le immagini che una pagina dichiara per le anteprime."""
-
-    PRIORITY = ("og:image:secure_url", "og:image", "twitter:image", "twitter:image:src")
-
-    def __init__(self):
-        super().__init__(convert_charrefs=True)
-        self.meta: dict[str, str] = {}
-        self.others: list[str] = []
-        self._json_ld: list[str] | None = None
-        self.json_ld: list[str] = []
-
-    def handle_starttag(self, tag, attrs):
-        values = {key.lower(): (value or "") for key, value in attrs}
-        if tag == "meta":
-            key = (values.get("property") or values.get("name") or "").lower()
-            if key in self.PRIORITY and values.get("content"):
-                self.meta.setdefault(key, values["content"])
-            elif values.get("itemprop") == "image" and values.get("content"):
-                self.others.append(values["content"])
-        elif tag == "link" and values.get("rel", "").lower() == "image_src" and values.get("href"):
-            self.others.append(values["href"])
-        elif tag == "script" and values.get("type", "").lower() == "application/ld+json":
-            self._json_ld = []
-
-    def handle_data(self, data):
-        if self._json_ld is not None:
-            self._json_ld.append(data)
-
-    def handle_endtag(self, tag):
-        if tag == "script" and self._json_ld is not None:
-            self.json_ld.append("".join(self._json_ld))
-            self._json_ld = None
-
-
-def _json_ld_images(blobs: list[str]) -> list[str]:
-    found: list[str] = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            image = node.get("image")
-            if isinstance(image, str):
-                found.append(image)
-            elif isinstance(image, list):
-                for item in image:
-                    if isinstance(item, str):
-                        found.append(item)
-                    elif isinstance(item, dict) and isinstance(item.get("url"), str):
-                        found.append(item["url"])
-            elif isinstance(image, dict) and isinstance(image.get("url"), str):
-                found.append(image["url"])
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for value in node:
-                walk(value)
-
-    for blob in blobs:
-        try:
-            walk(json.loads(blob))
-        except ValueError:
-            continue
-    return [url for url in found if url]
-
-
-def find_page_image(html: str, base_url: str) -> str | None:
-    """L'immagine "di anteprima" di una pagina: og:image, poi le altre."""
-    parser = _MetaImageParser()
-    try:
-        parser.feed(html)
-    except Exception:
-        pass
-    candidates = [parser.meta[key] for key in parser.PRIORITY if key in parser.meta]
-    candidates += _json_ld_images(parser.json_ld) + parser.others
-    for candidate in candidates:
-        candidate = candidate.strip()
-        if candidate and not candidate.startswith("data:"):
-            return urljoin(base_url, candidate)
-    return None
-
-
-_CHARSET = re.compile(rb"charset=[\"']?([\w-]+)", re.I)
-
-
-def _decode(body: bytes) -> str:
-    match = _CHARSET.search(body[:2048])
-    encoding = match.group(1).decode("ascii") if match else "utf-8"
-    try:
-        return body.decode(encoding, errors="replace")
-    except LookupError:
-        return body.decode("utf-8", errors="replace")
-
-
-def image_from_url(url: str) -> tuple[ContentFile, str]:
-    """Dal link (di un'immagine o della pagina di un negozio) all'immagine pronta.
-
-    Restituisce il file elaborato e l'URL da cui e' arrivata davvero.
-    """
-    first = fetch(url, max(settings.IMAGE_MAX_BYTES, MAX_HTML_BYTES))
-    if "html" not in first.content_type:
-        # image/* o un tipo generico (certi CDN mandano octet-stream): decide Pillow.
-        if first.content_type.startswith(("image/", "application/octet-stream", "binary/")):
-            return process_image(first.body), first.url
-        raise ImageError(_("Il link non e' ne' un'immagine ne' una pagina web."))
-
-    image_url = find_page_image(_decode(first.body), first.url)
-    if not image_url:
-        raise ImageError(
-            _("In quella pagina non trovo un'immagine del prodotto: caricala tu dal telefono.")
-        )
-    second = fetch(image_url, settings.IMAGE_MAX_BYTES)
-    if "html" in second.content_type:
-        raise ImageError(_("L'immagine indicata dalla pagina non si apre."))
-    return process_image(second.body), second.url

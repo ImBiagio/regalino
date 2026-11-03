@@ -61,12 +61,25 @@ l'hash); un utente loggato può toglierla anche da un altro dispositivo.
 **Foto** ([ADR 0003](docs/decisions/0003-foto-dei-regali.md)). Ogni regalo e
 ogni idea possono avere una foto: si carica dal telefono o dal computer, oppure
 "Dal link" la prende dalla pagina del negozio (`og:image` e simili) o da un
-link diretto a un'immagine. Il server la riduce a 1280 px, la salva in WebP e
-toglie i metadati (niente GPS nelle foto fatte in casa). Leggendo i link il
-server non raggiunge mai indirizzi non pubblici (LAN, localhost, Docker): ogni
-redirect si ricontrolla e la connessione va all'IP verificato. Alcuni negozi
-(Amazon, Zalando, Decathlon) bloccano la lettura automatica: lì si carica la
-foto. Sulla lista condivisa la foto si tocca per vederla grande.
+link diretto a un'immagine; di default la prende da sola appena si scrive o
+incolla il link del regalo, se una foto non c'è. Il server la riduce a 1280 px,
+la salva in WebP e toglie i metadati (niente GPS nelle foto fatte in casa).
+Leggendo i link il server non raggiunge mai indirizzi non pubblici (LAN,
+localhost, Docker): ogni redirect si ricontrolla e la connessione va all'IP
+verificato. Se la lettura diretta non basta (Amazon, pagine fatte in
+JavaScript) la pagina si apre col browser headless del servizio `scraper`
+([ADR 0005](docs/decisions/0005-scraper-col-browser.md)), con le stesse regole
+di rete; i siti che bloccano anche il browser o chiedono un captcha (Zalando)
+restano da caricare a mano. Sulla lista condivisa la foto si tocca per vederla grande.
+
+**Dal link al form** ([ADR 0006](docs/decisions/0006-dati-del-regalo-dal-link.md)).
+Incollato il link, il form si compila da solo nei campi ancora liberi: nome,
+prezzo, note e foto (sotto i campi compilati: "Dal link del negozio"). Quello
+che si è scritto a mano non si tocca; se il link cambia, cambia anche quello
+che aveva messo il link. Il server legge i dati che i negozi dichiarano
+(`og:*`, JSON-LD, microdata) e, con `GEMINI_API_KEY`, fa leggere a Gemini il
+testo della pagina per un nome corto, il prezzo e una nota con la variante:
+funziona con qualsiasi negozio, non solo con quelli che dichiarano i dati.
 
 **Da regalare** (`/da-regalare`). Idee per gli altri: per chi (testo libero,
 con suggerimenti dai nomi già usati), cosa, occasione, prezzo, link, note e
@@ -117,7 +130,9 @@ backend/
 └── apps/
     ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
     ├── users/           User custom + auth JWT + mail dell'account
-    └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa, images.py
+    └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa,
+                         images.py (foto, rete), links.py (pagina del link), ai.py (Gemini)
+scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape {url}, guard.py
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
 ├── lib/                 client HTTP, auth, i18n, format (prezzi, date), tipi
@@ -136,6 +151,7 @@ docs/decisions/          ADR
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
+| `POST /api/links/read` `{url, image}` | nome, prezzo, note e foto dal link per il form |
 | `GET /api/shared/{token}` | lista condivisa, pubblica |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta |
 
@@ -149,6 +165,10 @@ docker compose run --rm -e DJANGO_SETTINGS_MODULE=config.settings.test backend p
 
 ```bash
 docker compose run --rm --no-deps backend ruff check apps config
+```
+
+```bash
+docker compose run --rm --no-deps -v "$PWD/scraper:/app" scraper python -m pytest -q -p no:cacheprovider tests
 ```
 
 ```bash
@@ -185,8 +205,12 @@ docker compose run --rm --no-deps backend python manage.py compilemessages -l en
 **https://regal.inoo.it** (dal 2026-11-03), sul homeserver accanto a soldino e
 cinemino. Stesso schema: push sul branch `prod` → la GitHub
 Action (`.github/workflows/prod.yml`) fa ruff, pytest, tsc ed eslint e pubblica
-`regalino-backend:prod` e `regalino-web:prod` su ghcr.io → Watchtower (quello di
-cinemino) ricrea i container. Le migrazioni girano all'avvio del backend.
+`regalino-backend:prod`, `regalino-web:prod` e `regalino-scraper:prod` su
+ghcr.io → Watchtower (quello di cinemino) ricrea i container. Le migrazioni
+girano all'avvio del backend. Watchtower aggiorna le immagini ma non aggiunge
+servizi né reti: quando cambia `deploy/compose.prod.yaml` (es. l'arrivo dello
+scraper) va ricopiato a mano in `~/regalino` e poi `docker compose -f
+compose.prod.yaml up -d`.
 
 Primo avvio sul server (già fatto):
 
@@ -220,7 +244,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-65 test (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+102 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -228,4 +252,12 @@ spengono il link, regali eliminati che spariscono. Foto: WebP ridotto senza
 EXIF/GPS, file non immagine o troppo grandi rifiutati, foto altrui non
 collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
 non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta
-vera), pulizia delle orfane.
+vera), pulizia delle orfane; ripiego sullo scraper quando il sito blocca o la
+pagina è in JavaScript, stop davanti al captcha, foto dello scraper verso la LAN
+rifiutate, errore diretto se lo scraper è giù. Dal link al form: dati dichiarati
+(JSON-LD, meta, `#productTitle`), prezzi in tutti i formati (e niente prezzi in
+altre valute), titoli ripuliti, browser quando manca il prezzo o il testo,
+Gemini finto che scrive nome e note, prezzo dichiarato che vince, Gemini in
+errore che non blocca. Lo scraper ha i suoi test delle
+regole di rete (`scraper/tests`); il browser vero si prova a mano con un link
+Amazon e uno IKEA.

@@ -5,6 +5,7 @@ import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
+  LinkDetails,
   SharedWish,
   SharedWishList,
   UUID,
@@ -127,6 +128,14 @@ export function useUploadImage() {
 export function useImageFromUrl() {
   return useMutation({
     mutationFn: (url: string) => api.post<GiftImage>('/api/images/from-url', { url }),
+  })
+}
+
+/** Nome, prezzo, note e foto dal link del negozio, per compilare il form. */
+export function useReadLink() {
+  return useMutation({
+    mutationFn: (body: { url: string; image: boolean }) =>
+      api.post<LinkDetails>('/api/links/read', body),
   })
 }
 

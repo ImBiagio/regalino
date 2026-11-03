@@ -3,13 +3,13 @@
 
 import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { useImageFromUrl, useUploadImage } from '../api/hooks'
+import { useImageFromUrl, useReadLink, useUploadImage } from '../api/hooks'
 import { ApiError, mediaUrl } from '../lib/api'
-import { daysUntil, formatDate, formatPrice, hostOf } from '../lib/format'
+import { daysUntil, formatDate, formatPrice, hostOf, priceInput } from '../lib/format'
 import { gettext, interpolate, ngettext } from '../lib/i18n'
-import type { Money, UUID } from '../lib/types'
+import type { LinkDetails, Money, UUID } from '../lib/types'
 import { Field, Icon, Modal } from './ui'
 
 /** Prezzo e link del regalo, sotto il titolo di una riga. */
@@ -432,16 +432,89 @@ export function ImageViewer({
 /** Cosa il form manda come `image_id`: assente se la foto non e' cambiata. */
 export type ImageChoice = { id: UUID | null; url: string | null } | undefined
 
+/** Un link che vale la pena far leggere al server: http(s) con un dominio vero. */
+function readableLink(raw: string): string | null {
+  const text = raw.trim()
+  try {
+    const url = new URL(text)
+    const web = url.protocol === 'http:' || url.protocol === 'https:'
+    return web && url.hostname.includes('.') ? text : null
+  } catch {
+    return null
+  }
+}
+
+/** Quanto aspettare dopo l'ultimo tasto prima di leggere il link da soli. */
+const AUTO_DELAY_MS = 700
+
+/** I campi del form che il link del negozio puo' compilare. */
+export type LinkFields = { title: string; price: string; notes: string }
+const LINK_FIELDS = ['title', 'price', 'notes'] as const
+
+/** Cosa serve a `ImagePicker` per compilare il form dal link. */
+export type LinkFill = ReturnType<typeof useLinkFill>
+
+/**
+ * Compila dal link i campi del form ancora liberi: vuoti, o con quello che ci
+ * aveva messo il link di prima (se il link cambia, cambiano anche loro).
+ * Quello che l'utente ha scritto non si tocca mai.
+ */
+export function useLinkFill(
+  values: LinkFields,
+  set: { [K in keyof LinkFields]: (value: string) => void },
+) {
+  const auto = useRef<Partial<LinkFields>>({})
+  // Si legge quando arriva la risposta, magari secondi dopo: servono i valori di allora.
+  const now = useRef(values)
+  now.current = values
+  const [, rerender] = useState(0)
+  const isFree = (key: keyof LinkFields) =>
+    !now.current[key].trim() || now.current[key] === auto.current[key]
+
+  return {
+    /** Almeno un campo e' libero: vale la pena leggere il link anche senza foto da prendere. */
+    wanted: LINK_FIELDS.some(isFree),
+    apply(details: LinkDetails) {
+      const proposed: LinkFields = {
+        title: details.title,
+        price: priceInput(details.price),
+        notes: details.notes,
+      }
+      const next: Partial<LinkFields> = {}
+      for (const key of LINK_FIELDS) {
+        if (!isFree(key)) continue
+        set[key](proposed[key])
+        if (proposed[key]) next[key] = proposed[key]
+      }
+      auto.current = next
+      rerender((n) => n + 1)
+    },
+    /** Testo di supporto per un campo compilato dal link e non ancora toccato. */
+    hint(key: keyof LinkFields): string | undefined {
+      const value = auto.current[key]
+      return value && values[key] === value ? gettext('Dal link del negozio') : undefined
+    },
+  }
+}
+
 /**
  * Foto del regalo nel form: carica dal dispositivo o prendila dal link del
  * negozio. La foto si carica subito (cosi' c'e' l'anteprima) e si collega al
  * regalo solo quando si salva; quelle abbandonate le pulisce il server.
+ *
+ * Di default, quando nel form si scrive o incolla un link, legge la pagina e
+ * prende da sola la foto (se non c'e') e, con `fill`, nome, prezzo e note per i
+ * campi ancora liberi. Non lo fa col link gia' salvato (aprire un regalo per
+ * correggerlo non deve partire a leggere siti); la foto non la cambia dopo che
+ * se n'e' scelta o tolta una a mano. Se il link cambia, cambia anche quello
+ * che il link aveva messo.
  */
 export function ImagePicker({
   current,
   choice,
   onChoice,
   link,
+  fill,
 }: {
   /** Foto gia' salvata sul regalo. */
   current: string | null
@@ -449,31 +522,89 @@ export function ImagePicker({
   onChoice: (choice: ImageChoice) => void
   /** Il link del form: se c'e', "Dal link" usa quello. */
   link: string
+  /** I campi del form da compilare col link (`useLinkFill`). */
+  fill?: LinkFill
 }) {
   const upload = useUploadImage()
   const fromUrl = useImageFromUrl()
+  const readLink = useReadLink()
   const input = useRef<HTMLInputElement>(null)
   const [askUrl, setAskUrl] = useState(false)
   const [otherUrl, setOtherUrl] = useState('')
+  // Il link da cui viene la foto presa da sola (null: nessuna, o scelta a mano).
+  const [autoFrom, setAutoFrom] = useState<string | null>(null)
+  const initialLink = useRef(link.trim())
+  const tried = useRef<string | null>(null)
+  // Ogni scelta incrementa il biglietto: una risposta arrivata dopo una scelta
+  // piu' recente (es. una lettura lenta del link e intanto una foto caricata) si scarta.
+  const latest = useRef(0)
   const shown = choice === undefined ? current : choice.url
-  const busy = upload.isPending || fromUrl.isPending
-  const error = upload.error ?? fromUrl.error
+  // Il link si e' letto ma la foto no: lo si dice, il resto del form e' compilato.
+  const [imageNote, setImageNote] = useState<string | null>(null)
+  const busy = upload.isPending || fromUrl.isPending || readLink.isPending
+  const error = upload.error ?? fromUrl.error ?? readLink.error
   const errorText =
     error instanceof ApiError
       ? (error.fieldErrors().file ?? error.fieldErrors().url ?? error.message)
       : error
         ? String(error)
-        : null
+        : imageNote
+
+  const resetAll = () => {
+    upload.reset()
+    fromUrl.reset()
+    readLink.reset()
+    setImageNote(null)
+  }
 
   const takeFrom = async (url: string) => {
-    upload.reset()
+    resetAll()
+    const ticket = ++latest.current
     const image = await fromUrl.mutateAsync(url).catch(() => null)
-    if (image) {
-      onChoice({ id: image.id, url: image.url })
-      setAskUrl(false)
-      setOtherUrl('')
+    if (ticket !== latest.current || !image) return
+    onChoice({ id: image.id, url: image.url })
+    setAutoFrom(null)
+    setAskUrl(false)
+    setOtherUrl('')
+  }
+
+  // La foto si prende da sola se non ce n'e', o se c'e' quella presa da sola.
+  const canAutoImage = choice === undefined ? !current : autoFrom !== null
+  const readFrom = async (url: string) => {
+    resetAll()
+    const withImage = canAutoImage
+    const ticket = withImage ? ++latest.current : latest.current
+    const details = await readLink.mutateAsync({ url, image: withImage }).catch(() => null)
+    // Intanto il link e' cambiato: arrivera' la risposta di quello nuovo.
+    if (url !== tried.current) return
+    if (details) fill?.apply(details)
+    if (!withImage || ticket !== latest.current) return
+    if (details?.image) {
+      onChoice({ id: details.image.id, url: details.image.url })
+      setAutoFrom(url)
+    } else {
+      setImageNote(details?.image_error ?? null)
+      if (autoFrom !== null) {
+        // La foto presa da sola era del link di prima: col link nuovo non vale piu'.
+        setAutoFrom(null)
+        onChoice(undefined)
+      }
     }
   }
+  const readFromRef = useRef(readFrom)
+  readFromRef.current = readFrom
+
+  const target = readableLink(link)
+  const autoTarget =
+    target && target !== initialLink.current && (canAutoImage || fill?.wanted) ? target : null
+  useEffect(() => {
+    if (!autoTarget || autoTarget === tried.current) return
+    const timer = window.setTimeout(() => {
+      tried.current = autoTarget
+      void readFromRef.current(autoTarget)
+    }, AUTO_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [autoTarget])
 
   return (
     <div className="grid gap-3 rounded-row bg-surface-container-low p-3">
@@ -491,6 +622,18 @@ export function ImagePicker({
         )}
         <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
           <p className="text-body-medium font-medium">{gettext('Foto')}</p>
+          {(fromUrl.isPending || readLink.isPending) && (
+            <p className="text-body-small text-on-surface-variant">
+              {fromUrl.isPending
+                ? gettext('Prendo la foto dal link…')
+                : gettext('Leggo la pagina del negozio…')}
+            </p>
+          )}
+          {autoFrom && !busy && (
+            <p className="text-body-small text-on-surface-variant">
+              {gettext('Presa dal link del negozio.')}
+            </p>
+          )}
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
@@ -515,7 +658,12 @@ export function ImagePicker({
                 type="button"
                 className="btn-text btn-sm"
                 disabled={busy}
-                onClick={() => onChoice({ id: null, url: null })}
+                onClick={() => {
+                  latest.current += 1
+                  setAutoFrom(null)
+                  setImageNote(null)
+                  onChoice({ id: null, url: null })
+                }}
               >
                 {gettext('Togli')}
               </button>
@@ -571,9 +719,13 @@ export function ImagePicker({
           const file = event.target.files?.[0]
           event.target.value = ''
           if (!file) return
-          fromUrl.reset()
+          resetAll()
+          const ticket = ++latest.current
           const image = await upload.mutateAsync(file).catch(() => null)
-          if (image) onChoice({ id: image.id, url: image.url })
+          if (image && ticket === latest.current) {
+            setAutoFrom(null)
+            onChoice({ id: image.id, url: image.url })
+          }
         }}
       />
     </div>

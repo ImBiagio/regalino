@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import socket
 from datetime import timedelta
 from io import BytesIO
 
@@ -13,26 +12,12 @@ from django.utils import timezone
 from PIL import Image
 
 from apps.conftest import GiftIdeaFactory, UserFactory, WishFactory
-from apps.gifts import images
+from apps.gifts import images, links
 from apps.gifts.models import GiftImage
 from apps.gifts.tasks import delete_orphan_images
+from apps.gifts.tests.conftest import PUBLIC_IP, png_bytes
 
 pytestmark = pytest.mark.django_db
-
-PUBLIC_IP = "93.184.215.14"
-
-
-@pytest.fixture(autouse=True)
-def media(settings, tmp_path):
-    settings.MEDIA_ROOT = tmp_path
-    return tmp_path
-
-
-def png_bytes(size=(2000, 1000), color=(200, 30, 80, 255), mode="RGBA") -> bytes:
-    out = BytesIO()
-    Image.new(mode, size, color).save(out, format="PNG")
-    return out.getvalue()
-
 
 def jpeg_with_gps() -> bytes:
     image = Image.new("RGB", (800, 600), (10, 120, 200))
@@ -42,51 +27,6 @@ def jpeg_with_gps() -> bytes:
     out = BytesIO()
     image.save(out, format="JPEG", exif=exif)
     return out.getvalue()
-
-
-@pytest.fixture
-def dns(monkeypatch):
-    """Risolutore finto: ``dns["host"] = "ip"``. Gli host sconosciuti non esistono."""
-    table: dict[str, str] = {}
-
-    def fake_getaddrinfo(host, port, *args, **kwargs):
-        if host not in table:
-            raise socket.gaierror("sconosciuto")
-        family = socket.AF_INET6 if ":" in table[host] else socket.AF_INET
-        return [(family, socket.SOCK_STREAM, 6, "", (table[host], port))]
-
-    monkeypatch.setattr(images.socket, "getaddrinfo", fake_getaddrinfo)
-    return table
-
-
-class FakeWeb(dict):
-    """``web["https://host/path"] = (status, headers, body)`` + le richieste viste."""
-
-    def __init__(self):
-        super().__init__()
-        self.seen: list[httpx.Request] = []
-
-
-@pytest.fixture
-def web(monkeypatch):
-    """Internet finta: registra le richieste, cosi' si vede a quale IP ci si collega."""
-    pages = FakeWeb()
-    seen = pages.seen
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        url = f"{request.url.scheme}://{request.headers['host']}{request.url.raw_path.decode()}"
-        status, headers, body = pages.get(url, (404, {}, b""))
-        return httpx.Response(status, headers=headers, content=body)
-
-    real_client = httpx.Client
-
-    def client(*args, **kwargs):
-        kwargs["transport"] = httpx.MockTransport(handler)
-        return real_client(*args, **kwargs)
-
-    monkeypatch.setattr(images.httpx, "Client", client)
-    return pages
 
 
 # ------------------------------------------------------------ elaborazione --
@@ -283,16 +223,125 @@ def test_sito_con_protezione_anti_bot(user, api, dns, web):
     assert "Copia indirizzo immagine" in str(response.data["url"][0])
 
 
+# --------------------------------------------- scraper col browser (ADR 0005) --
+
+
+def test_sito_che_blocca_si_apre_con_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    dns["m.media-negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/dp/1"] = (503, {"content-type": "text/html"}, b"robot?")
+    web["https://m.media-negozio.it/big.png"] = (200, {"content-type": "image/png"}, png_bytes())
+    scraper.page = {
+        "status": 200,
+        "blocked": False,
+        "images": ["https://m.media-negozio.it/manca.png", "https://m.media-negozio.it/big.png"],
+    }
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/dp/1"}, format="json"
+    )
+    assert response.status_code == 201, response.data
+    assert scraper.asked == ["https://www.negozio.it/dp/1"]
+    # La prima candidata non si apre (404): si passa alla seguente.
+    assert response.data["source_url"] == "https://m.media-negozio.it/big.png"
+
+
+def test_pagina_fatta_in_javascript_si_apre_con_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (200, {"content-type": "text/html"}, b"<div id=app></div>")
+    web["https://www.negozio.it/foto.png"] = (200, {"content-type": "image/png"}, png_bytes())
+    scraper.page = {"status": 200, "blocked": False, "images": ["https://www.negozio.it/foto.png"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 201, response.data
+
+
+def test_scraper_davanti_a_un_captcha_si_ferma(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    scraper.page = {"status": 200, "blocked": True, "images": ["https://www.negozio.it/x.png"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "robot" in str(response.data["url"][0])
+    assert len(web.seen) == 1  # la foto della pagina-captcha non si scarica
+
+
+def test_foto_dello_scraper_verso_la_lan_rifiutata(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    dns["nas.casa"] = "192.168.1.20"
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    scraper.page = {"status": 200, "blocked": False, "images": ["http://nas.casa/foto.jpg"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert [request.url.host for request in web.seen] == [PUBLIC_IP]
+
+
+def test_link_non_ammessi_non_arrivano_allo_scraper(user, api, dns, web, scraper):
+    dns["router.casa"] = "192.168.1.1"
+    response = api(user).post(
+        "/api/images/from-url", {"url": "http://router.casa/"}, format="json"
+    )
+    assert response.status_code == 400
+    assert scraper.asked == []
+
+
+def test_errore_del_sito_anche_per_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    scraper.page = {"status": 404, "blocked": False, "images": []}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/sparito"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "404" in str(response.data["url"][0])
+
+
+def test_scrape_chiama_il_servizio_interno(settings, monkeypatch):
+    settings.SCRAPER_URL = "http://scraper:8000/"
+    calls = []
+
+    def fake_post(url, json, timeout):
+        calls.append((url, json))
+        return httpx.Response(200, json={"images": [], "blocked": False})
+
+    monkeypatch.setattr(images.httpx, "post", fake_post)
+    assert links.scrape("https://n.it/p") == {"images": [], "blocked": False}
+    assert calls == [("http://scraper:8000/scrape", {"url": "https://n.it/p"})]
+
+    monkeypatch.setattr(images.httpx, "post", lambda *a, **k: httpx.Response(502))
+    with pytest.raises(images.ScraperDown):
+        links.scrape("https://n.it/p")
+
+
+def test_scraper_spento_resta_l_errore_diretto(user, api, dns, web, settings, monkeypatch):
+    settings.SCRAPER_URL = "http://scraper:8000"
+
+    def down(*args, **kwargs):
+        raise httpx.ConnectError("giu'")
+
+    monkeypatch.setattr(images.httpx, "post", down)
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "Copia indirizzo immagine" in str(response.data["url"][0])
+
+
 def test_find_page_image_priorita_e_url_relativi():
     html = """<html><head>
       <link rel="image_src" href="/fallback.jpg">
       <meta name="twitter:image" content="/tw.jpg">
       <script type="application/ld+json">{"@type": "Product", "image": ["/ld.jpg"]}</script>
     </head></html>"""
-    assert images.find_page_image(html, "https://n.it/p/1") == "https://n.it/tw.jpg"
+    assert links.find_page_image(html, "https://n.it/p/1") == "https://n.it/tw.jpg"
     only_ld = '<script type="application/ld+json">{"image": {"url": "/ld.jpg"}}</script>'
-    assert images.find_page_image(only_ld, "https://n.it/p/1") == "https://n.it/ld.jpg"
-    assert images.find_page_image("<p>niente</p>", "https://n.it/") is None
+    assert links.find_page_image(only_ld, "https://n.it/p/1") == "https://n.it/ld.jpg"
+    assert links.find_page_image("<p>niente</p>", "https://n.it/") is None
 
 
 # ------------------------------------------------------------- pulizia -----
