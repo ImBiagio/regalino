@@ -5,11 +5,11 @@ import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 
-import { useImageFromUrl, useReadLink, useUploadImage } from '../api/hooks'
+import { useDescribeLink, useImageFromUrl, useReadLink, useUploadImage } from '../api/hooks'
 import { ApiError, mediaUrl } from '../lib/api'
 import { daysUntil, formatDate, formatPrice, hostOf, priceInput } from '../lib/format'
 import { gettext, interpolate, ngettext } from '../lib/i18n'
-import type { LinkDetails, Money, UUID } from '../lib/types'
+import type { LinkDescription, Money, UUID } from '../lib/types'
 import { Field, Icon, Modal } from './ui'
 
 /** Prezzo e link del regalo, sotto il titolo di una riga. */
@@ -474,7 +474,7 @@ export function useLinkFill(
   return {
     /** Almeno un campo e' libero: vale la pena leggere il link anche senza foto da prendere. */
     wanted: LINK_FIELDS.some(isFree),
-    apply(details: LinkDetails) {
+    apply(details: LinkDescription) {
       const proposed: LinkFields = {
         title: details.title,
         price: priceInput(details.price),
@@ -504,7 +504,8 @@ export function useLinkFill(
  *
  * Di default, quando nel form si scrive o incolla un link, legge la pagina e
  * prende da sola la foto (se non c'e') e, con `fill`, nome, prezzo e note per i
- * campi ancora liberi. Non lo fa col link gia' salvato (aprire un regalo per
+ * campi ancora liberi: prima quelli che la pagina dichiara, poi (se c'e')
+ * quelli di Gemini, che a volte ci mette decine di secondi. Non lo fa col link gia' salvato (aprire un regalo per
  * correggerlo non deve partire a leggere siti); la foto non la cambia dopo che
  * se n'e' scelta o tolta una a mano. Se il link cambia, cambia anche quello
  * che il link aveva messo.
@@ -528,6 +529,7 @@ export function ImagePicker({
   const upload = useUploadImage()
   const fromUrl = useImageFromUrl()
   const readLink = useReadLink()
+  const describeLink = useDescribeLink()
   const input = useRef<HTMLInputElement>(null)
   const [askUrl, setAskUrl] = useState(false)
   const [otherUrl, setOtherUrl] = useState('')
@@ -578,6 +580,7 @@ export function ImagePicker({
     // Intanto il link e' cambiato: arrivera' la risposta di quello nuovo.
     if (url !== tried.current) return
     if (details) fill?.apply(details)
+    if (details?.describe_id && fill) void describeFrom(url, details.describe_id)
     if (!withImage || ticket !== latest.current) return
     if (details?.image) {
       onChoice({ id: details.image.id, url: details.image.url })
@@ -590,6 +593,11 @@ export function ImagePicker({
         onChoice(undefined)
       }
     }
+  }
+  // Gemini dopo: i campi che l'utente ha toccato nel frattempo restano suoi.
+  const describeFrom = async (url: string, describeId: string) => {
+    const description = await describeLink.mutateAsync(describeId).catch(() => null)
+    if (description && url === tried.current) fill?.apply(description)
   }
   const readFromRef = useRef(readFrom)
   readFromRef.current = readFrom
@@ -629,7 +637,13 @@ export function ImagePicker({
                 : gettext('Leggo la pagina del negozio…')}
             </p>
           )}
-          {autoFrom && !busy && (
+          {describeLink.isPending && !busy && (
+            <p className="flex items-center gap-1 text-body-small text-on-surface-variant">
+              <Icon name="auto_awesome" size={16} />
+              {gettext('Miglioro nome e note…')}
+            </p>
+          )}
+          {autoFrom && !busy && !describeLink.isPending && (
             <p className="text-body-small text-on-surface-variant">
               {gettext('Presa dal link del negozio.')}
             </p>

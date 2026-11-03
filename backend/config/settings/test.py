@@ -19,6 +19,7 @@ REST_FRAMEWORK = {
         "refresh": "10000/min",
         "shared": "10000/min",
         "images": "10000/min",
+        "links": "10000/min",
     },
 }
 STORAGES = {

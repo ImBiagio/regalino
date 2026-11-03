@@ -78,14 +78,20 @@ export interface GiftImage {
   source_url: string
 }
 
-/** Quello che si legge dal link di un regalo (ADR 0006): proposte per il form. */
-export interface LinkDetails {
+/** Nome, prezzo e note proposti per il form (ADR 0006). */
+export interface LinkDescription {
   title: string
   price: Money | null
   notes: string
+}
+
+/** Quello che si legge subito dal link di un regalo: i dati della pagina. */
+export interface LinkDetails extends LinkDescription {
   image: GiftImage | null
   /** Perche' la foto non c'e', se il resto si e' letto. */
   image_error: string | null
+  /** Da passare a `links/describe` per nome e note di Gemini; null se non si usa. */
+  describe_id: string | null
 }
 
 export interface SharedWish {

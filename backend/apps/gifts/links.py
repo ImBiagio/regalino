@@ -7,20 +7,25 @@ browser dello scraper. Le foto le scarica sempre ``fetch``, anche quando i
 link arrivano dallo scraper, quindi con le stesse difese SSRF.
 
 Nome e note si possono far scrivere a Gemini (``ai.py``) partendo dal testo
-della pagina: senza chiave restano i dati dichiarati, e le note vuote.
+della pagina: senza chiave restano i dati dichiarati, e le note vuote. Gemini
+a volte ci mette decine di secondi, quindi va in una seconda richiesta: la
+pagina letta si tiene in cache con ``remember_page`` e ``links/describe`` la
+riprende (ADR 0006).
 """
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+import secrets
+from dataclasses import asdict, dataclass, field
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 import httpx
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.utils.translation import gettext as _
 
@@ -34,6 +39,8 @@ MIN_TEXT = 500
 # Le stesse lunghezze dei campi di Wish e GiftIdea.
 MAX_TITLE = 160
 MAX_NOTES = 500
+# Quanto resta in cache la pagina letta, in attesa che il form chieda Gemini.
+PAGE_TTL = 10 * 60
 
 
 @dataclass
@@ -456,14 +463,43 @@ def clean_title(title: str) -> str:
     return title.strip()
 
 
+def declared_details(page: Page) -> Details:
+    """Nome e prezzo che la pagina dichiara: subito, senza Gemini."""
+    return Details(title=clean_title(page.title), price=parse_price(page.price, page.currency))
+
+
+def can_describe(page: Page) -> bool:
+    """Vale la pena chiedere a Gemini: c'e' la chiave e una pagina da leggere."""
+    return ai.enabled() and page.image is None and bool(page.text or page.title)
+
+
+def remember_page(page: Page, owner_id) -> str:
+    """Tiene la pagina letta per ``links/describe``; torna la chiave da usare.
+
+    La chiave e' casuale e legata all'utente: un altro non puo' far leggere a
+    Gemini (a spese della chiave) pagine che non ha letto lui.
+    """
+    key = secrets.token_urlsafe(16)
+    data = {k: v for k, v in asdict(page).items() if k != "image"}
+    cache.set(f"link-page:{key}", {"owner": str(owner_id), "page": data}, PAGE_TTL)
+    return key
+
+
+def recall_page(key: str, owner_id) -> Page | None:
+    stored = cache.get(f"link-page:{key}")
+    if not stored or stored.get("owner") != str(owner_id):
+        return None
+    return Page(**stored["page"])
+
+
 def details_of(page: Page, language: str = "it") -> Details:
     """Nome, prezzo e note: i dati dichiarati, migliorati da Gemini se c'e' la chiave.
 
     Il prezzo dichiarato (JSON-LD, meta) vince su quello letto da Gemini nel
     testo: e' quello del prodotto, non di un consigliato accanto.
     """
-    details = Details(title=clean_title(page.title), price=parse_price(page.price, page.currency))
-    if page.image is not None or not (page.text or page.title):
+    details = declared_details(page)
+    if not can_describe(page):
         return details
     summary = ai.describe_product(
         url=page.url,

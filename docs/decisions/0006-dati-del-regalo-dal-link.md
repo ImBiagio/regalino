@@ -36,7 +36,18 @@ link (due Amazon, due IKEA): flash-lite risponde in 1–2 secondi, sempre, e
 scrive le note migliori (colore, misura, formato); `gemini-3.6-flash`,
 `gemini-3.8-flash` e `gemini-flash-latest` davano spesso 503 ("troppa
 richiesta") o 6–20 secondi, e note vuote. Su 503, 429 e 500 si riprova una
-volta dopo un secondo; l'attesa massima è 12 secondi.
+volta dopo un secondo.
+
+**In due tempi.** Il giorno stesso, in produzione, anche flash-lite ci metteva
+18–25 secondi (piano gratuito sotto carico, uguale dal Mac). Quindi
+`links/read` risponde subito con i dati dichiarati e la foto, più un
+`describe_id`; il form li applica e chiama `links/describe`, che riprende la
+pagina dalla cache (Redis, 10 minuti, legata all'utente che l'ha letta) e
+chiede a Gemini, con attesa massima 30 secondi. Quando arriva, la risposta va
+negli stessi campi liberi: quelli toccati nel frattempo restano dell'utente.
+Mentre aspetta il form mostra "Miglioro nome e note…" ma si può già salvare.
+`links/describe` ha il suo limite (`links`, 60/ora), perché consuma la quota
+della chiave.
 
 **Sicurezza e privacy.**
 
@@ -51,6 +62,7 @@ volta dopo un secondo; l'attesa massima è 12 secondi.
 - Un prezzo in una valuta diversa dall'euro non si propone: l'app ragiona in
   euro.
 
-**Costo accettato:** un link nuovo nel form ci mette 1–10 secondi (lettura,
-browser se serve, Gemini). Il form resta usabile intanto; una risposta
-arrivata dopo che il link è cambiato si scarta.
+**Costo accettato:** i dati della pagina arrivano in 1–20 secondi (lettura,
+browser se serve), quelli di Gemini dopo, fino a 30 secondi in più. Il form
+resta usabile intanto; una risposta arrivata dopo che il link è cambiato si
+scarta.

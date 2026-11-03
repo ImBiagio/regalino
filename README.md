@@ -79,7 +79,9 @@ che si è scritto a mano non si tocca; se il link cambia, cambia anche quello
 che aveva messo il link. Il server legge i dati che i negozi dichiarano
 (`og:*`, JSON-LD, microdata) e, con `GEMINI_API_KEY`, fa leggere a Gemini il
 testo della pagina per un nome corto, il prezzo e una nota con la variante:
-funziona con qualsiasi negozio, non solo con quelli che dichiarano i dati.
+funziona con qualsiasi negozio, non solo con quelli che dichiarano i dati. I
+dati della pagina arrivano subito, quelli di Gemini dopo ("Miglioro nome e
+note…"), senza toccare i campi che intanto si sono scritti.
 
 **Da regalare** (`/da-regalare`). Idee per gli altri: per chi (testo libero,
 con suggerimenti dai nomi già usati), cosa, occasione, prezzo, link, note e
@@ -151,7 +153,8 @@ docs/decisions/          ADR
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
-| `POST /api/links/read` `{url, image}` | nome, prezzo, note e foto dal link per il form |
+| `POST /api/links/read` `{url, image}` | nome, prezzo e foto dichiarati dalla pagina, subito, più `describe_id` |
+| `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
 | `GET /api/shared/{token}` | lista condivisa, pubblica |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta |
 
@@ -244,7 +247,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-102 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+104 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che

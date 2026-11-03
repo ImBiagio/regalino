@@ -5,6 +5,7 @@ import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
+  LinkDescription,
   LinkDetails,
   SharedWish,
   SharedWishList,
@@ -136,6 +137,14 @@ export function useReadLink() {
   return useMutation({
     mutationFn: (body: { url: string; image: boolean }) =>
       api.post<LinkDetails>('/api/links/read', body),
+  })
+}
+
+/** Nome, prezzo e note scritti da Gemini: arrivano dopo, anche decine di secondi. */
+export function useDescribeLink() {
+  return useMutation({
+    mutationFn: (describeId: string) =>
+      api.post<LinkDescription>('/api/links/describe', { describe_id: describeId }),
   })
 }
 

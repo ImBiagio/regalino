@@ -9,7 +9,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -18,7 +18,16 @@ from rest_framework.views import APIView
 from apps.core.methods import hash_secret, random_token
 
 from .images import ImageError, process_image
-from .links import details_of, image_from_url, image_of, read_page
+from .links import (
+    can_describe,
+    declared_details,
+    details_of,
+    image_from_url,
+    image_of,
+    read_page,
+    recall_page,
+    remember_page,
+)
 from .models import GiftIdea, GiftImage, Wish, WishList, new_share_token
 from .serializers import (
     GiftClaimSerializer,
@@ -27,6 +36,8 @@ from .serializers import (
     GiftReleaseSerializer,
     ImageFromUrlSerializer,
     ImageUploadSerializer,
+    LinkDescribeSerializer,
+    LinkDescriptionSerializer,
     LinkDetailsSerializer,
     LinkReadSerializer,
     SharedWishListSerializer,
@@ -178,9 +189,11 @@ class ImageFromUrlView(APIView):
 class LinkReadView(APIView):
     """Tutto quello che si legge dal link di un regalo, per compilare il form.
 
-    Nome, prezzo e note (ADR 0006) e, se ``image`` e' vero, la foto gia'
-    caricata come quelle di ``images/from-url``. Una foto che non si trova
-    non e' un errore se il resto c'e': torna in ``image_error``.
+    Nome e prezzo che la pagina dichiara (ADR 0006) e, se ``image`` e' vero,
+    la foto gia' caricata come quelle di ``images/from-url``. Una foto che non
+    si trova non e' un errore se il resto c'e': torna in ``image_error``.
+    Gemini non si aspetta qui: se si puo' usare torna ``describe_id``, da
+    passare a ``links/describe`` per nome e note migliori.
     """
 
     throttle_scope = "images"
@@ -193,7 +206,7 @@ class LinkReadView(APIView):
             page = read_page(serializer.validated_data["url"], details=True)
         except ImageError as exc:
             raise ValidationError({"url": [str(exc)]}) from None
-        details = details_of(page, (get_language() or "it")[:2])
+        details = declared_details(page)
         image = image_error = None
         if serializer.validated_data["image"]:
             try:
@@ -210,8 +223,31 @@ class LinkReadView(APIView):
             "notes": details.notes,
             "image": image,
             "image_error": image_error,
+            "describe_id": remember_page(page, request.user.pk) if can_describe(page) else None,
         }
         return Response(LinkDetailsSerializer(data).data)
+
+
+class LinkDescribeView(APIView):
+    """Nome, prezzo e note scritti da Gemini per una pagina letta da ``links/read``.
+
+    Separata perche' Gemini a volte ci mette decine di secondi: il form intanto
+    e' gia' compilato coi dati della pagina, e questi arrivano dopo. Se Gemini
+    non risponde tornano gli stessi dati dichiarati.
+    """
+
+    throttle_scope = "links"
+
+    @extend_schema(request=LinkDescribeSerializer, responses={200: LinkDescriptionSerializer})
+    def post(self, request):
+        serializer = LinkDescribeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        page = recall_page(serializer.validated_data["describe_id"], request.user.pk)
+        if page is None:
+            raise NotFound()
+        details = details_of(page, (get_language() or "it")[:2])
+        data = {"title": details.title, "price": details.price, "notes": details.notes}
+        return Response(LinkDescriptionSerializer(data).data)
 
 
 # ------------------------------------------------------- lista condivisa --

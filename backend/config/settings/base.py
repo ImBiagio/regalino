@@ -152,6 +152,8 @@ REST_FRAMEWORK = {
         "shared": env("THROTTLE_SHARED", "120/min"),
         # Upload e link scaricati dal server: costano disco e banda.
         "images": env("THROTTLE_IMAGES", "60/hour"),
+        # Richieste a Gemini (ADR 0006): costano quota della chiave.
+        "links": env("THROTTLE_LINKS", "60/hour"),
     },
 }
 
@@ -247,7 +249,9 @@ GEMINI_API_KEY = env("GEMINI_API_KEY", "")
 # flash-lite: provato su Amazon e IKEA risponde in 1-2 s e scrive note migliori;
 # i flash piu' grandi davano spesso 503 (troppa richiesta) o 6-20 s.
 GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.5-flash-lite")
-GEMINI_TIMEOUT = float(env("GEMINI_TIMEOUT", "12"))
+# Gemini va in una richiesta a parte (il form e' gia' compilato): si puo'
+# aspettare di piu'. Col piano gratuito a tratti ci mette 20 secondi.
+GEMINI_TIMEOUT = float(env("GEMINI_TIMEOUT", "30"))
 # Dopo quanto una foto mai collegata a un regalo si cancella.
 IMAGE_ORPHAN_HOURS = int(env("IMAGE_ORPHAN_HOURS", "24"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES
