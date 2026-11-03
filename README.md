@@ -206,8 +206,10 @@ Restore delle foto, con lo stack fermo o almeno senza upload in corso:
 docker run --rm -v regalino_media:/m -v ~/regalino/backups/media/last:/b:ro alpine sh -c "tar xzf /b/media-latest.tar.gz -C /m && chown -R 10001:10001 /m"
 ```
 
-> Come per cinemino e soldino, i backup stanno sullo stesso disco del server:
-> non c'è ancora una copia fuori.
+**Copia fuori dal server** (dal 2026-11-03): lo stack condiviso `~/offsite`
+(sorgenti in `soldino/deploy/offsite/`) manda ogni notte alle 01:30 UTC le
+cartelle `backups` di cinemino, soldino e regalino su Google Drive, cifrate con
+rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
