@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.utils.translation import gettext as _
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import GiftIdea, Wish, WishList
@@ -152,6 +153,7 @@ class SharedWishListSerializer(serializers.ModelSerializer):
     def get_is_owner(self, obj: WishList) -> bool:
         return bool(self.context.get("is_owner"))
 
+    @extend_schema_field(SharedWishSerializer(many=True))
     def get_items(self, obj: WishList):
         return SharedWishSerializer(obj.items.all(), many=True, context=self.context).data
 

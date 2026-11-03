@@ -172,14 +172,15 @@ cinemino) ricrea i container. Le migrazioni girano all'avvio del backend.
 
 Primo avvio sul server:
 
-1. DNS `regal.inoo.it` verso il server;
+1. DNS: record A `regal` → `104.167.28.163` (come `cinem` e `sold`);
 2. `~/regalino/compose.prod.yaml` (da `deploy/`) e `~/regalino/.env` (modello
-   `deploy/.env.prod.example`, SMTP Brevo dal vault di cinemino);
-3. aggiungere il blocco `regal.inoo.it` al Caddyfile dell'edge (`deploy/edge/`,
-   condiviso con soldino: aggiornare anche quello in soldino) e
-   `docker compose up -d` in `~/edge`;
-4. `cd ~/regalino && docker compose -f compose.prod.yaml up -d`, poi
-   `createsuperuser`.
+   `deploy/.env.prod.example`, SMTP Brevo come soldino) — già fatto;
+3. il blocco `regal.inoo.it` del Caddyfile dell'edge (`deploy/edge/`, condiviso:
+   è anche nel repo di soldino) copiato in `~/edge/` e ricaricato con
+   `docker exec edge-caddy-1 caddy reload --config /etc/caddy/Caddyfile`, che
+   non ferma cinemino e soldino;
+4. `git push origin main:prod`, poi `cd ~/regalino && docker compose -f
+   compose.prod.yaml up -d` e `createsuperuser`.
 
 Backup notturno di Postgres in `~/regalino/backups/` come soldino.
 

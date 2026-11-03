@@ -38,6 +38,8 @@ class WishListViewSet(viewsets.ModelViewSet):
     pagination_class = NO_PAGINATION
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return WishList.objects.none()
         return WishList.objects.filter(owner=self.request.user).annotate(
             item_count=Count("items", filter=ALIVE_ITEMS),
             gifted_total=Count("items", filter=ALIVE_ITEMS & Q(items__gifted_at__isnull=False)),
@@ -71,6 +73,8 @@ class WishViewSet(viewsets.ModelViewSet):
         return self._wish_list
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Wish.objects.none()
         return (
             Wish.objects.filter(wish_list=self.get_wish_list())
             .select_related("wish_list")
@@ -101,6 +105,8 @@ class GiftIdeaViewSet(viewsets.ModelViewSet):
     filterset_fields = ["status", "recipient"]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return GiftIdea.objects.none()
         return GiftIdea.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
