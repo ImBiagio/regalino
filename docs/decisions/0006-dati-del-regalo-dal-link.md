@@ -31,6 +31,13 @@ i dati dichiarati e le note vuote.
 gratuita da Google AI Studio, output JSON con schema. Il modello si cambia con
 `GEMINI_MODEL` senza toccare il codice.
 
+**Quale modello.** `gemini-3.5-flash-lite`. Provati il 2026-11-03 sugli stessi
+link (due Amazon, due IKEA): flash-lite risponde in 1–2 secondi, sempre, e
+scrive le note migliori (colore, misura, formato); `gemini-3.6-flash`,
+`gemini-3.8-flash` e `gemini-flash-latest` davano spesso 503 ("troppa
+richiesta") o 6–20 secondi, e note vuote. Su 503, 429 e 500 si riprova una
+volta dopo un secondo; l'attesa massima è 12 secondi.
+
 **Sicurezza e privacy.**
 
 - A Gemini va solo la pagina pubblica del negozio e il suo link, mai dati

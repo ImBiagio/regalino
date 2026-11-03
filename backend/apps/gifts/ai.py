@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 
 import httpx
 from django.conf import settings
@@ -30,6 +31,9 @@ ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:gene
 # Abbastanza per nome, prezzo e varianti; tiene bassi tempi e costi.
 MAX_TEXT = 8_000
 LANGUAGES = {"it": "italiano", "en": "inglese"}
+# "Troppa richiesta" o errore passeggero: un secondo tentativo di solito passa.
+RETRY_STATUS = {429, 500, 503}
+RETRY_PAUSE = 1.0
 
 INSTRUCTIONS = """Sei l'aiuto di un'app di liste regali. Ricevi i dati e il testo
 della pagina di un prodotto in un negozio online e rispondi solo col JSON
@@ -94,16 +98,20 @@ def describe_product(
             "responseJsonSchema": SCHEMA,
         },
     }
-    try:
-        response = httpx.post(
-            ENDPOINT.format(model=settings.GEMINI_MODEL),
-            headers={"x-goog-api-key": settings.GEMINI_API_KEY},
-            json=body,
-            timeout=settings.GEMINI_TIMEOUT,
-        )
-    except httpx.HTTPError as exc:
-        logger.warning("Gemini non risponde: %s", exc)
-        return None
+    for attempt in range(2):
+        try:
+            response = httpx.post(
+                ENDPOINT.format(model=settings.GEMINI_MODEL),
+                headers={"x-goog-api-key": settings.GEMINI_API_KEY},
+                json=body,
+                timeout=settings.GEMINI_TIMEOUT,
+            )
+        except httpx.HTTPError as exc:
+            logger.warning("Gemini non risponde: %s", exc)
+            return None
+        if response.status_code not in RETRY_STATUS or attempt:
+            break
+        time.sleep(RETRY_PAUSE)
     if response.status_code != 200:
         # Il corpo dell'errore dice il perche' (chiave, quota, modello) e non
         # contiene la chiave: si logga per capire dal log del container.

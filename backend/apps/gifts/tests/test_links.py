@@ -172,12 +172,20 @@ def test_il_prezzo_dichiarato_vince_su_gemini(user, api, shop, gemini):
     assert response.data["price"] == "129.90"
 
 
-def test_gemini_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini):
-    gemini.status = 429
+def test_gemini_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini, monkeypatch):
+    monkeypatch.setattr(ai, "RETRY_PAUSE", 0)
+    gemini.status = 503
     response = read(api(user), "https://www.negozio.it/wave")
     assert response.status_code == 200
     assert response.data["title"] == "Cuffie Wave Pro"
     assert response.data["notes"] == ""
+    assert len(gemini.asked) == 2  # un secondo tentativo, poi basta
+
+
+def test_gemini_rifiuta_la_chiave_senza_riprovare(user, api, shop, gemini):
+    gemini.status = 400
+    read(api(user), "https://www.negozio.it/wave")
+    assert len(gemini.asked) == 1
 
 
 def test_gemini_non_parte_per_un_link_a_un_immagine(user, api, dns, web, gemini):
