@@ -8,6 +8,11 @@ import { gettext, interpolate } from './i18n'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin
 
+/** URL completo di un file di `/media/...` (in sviluppo sta sulla porta dell'API). */
+export function mediaUrl(path: string): string {
+  return path.startsWith('http') ? path : `${BASE_URL}${path}`
+}
+
 let accessToken: string | null = null
 let onUnauthenticated: (() => void) | null = null
 

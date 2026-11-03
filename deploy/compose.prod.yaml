@@ -12,6 +12,9 @@ x-backend: &backend
     POSTGRES_HOST: db
     REDIS_URL: redis://redis:6379/0
     CELERY_BROKER_URL: redis://redis:6379/1
+  # Le foto dei regali (ADR 0003): le scrive il backend, le serve "web".
+  volumes:
+    - media:/app/media
   labels:
     - com.centurylinklabs.watchtower.enable=true
 
@@ -76,6 +79,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    volumes:
+      - media:/srv/media:ro
     networks:
       default:
       edge:
@@ -117,3 +122,4 @@ networks:
 
 volumes:
   pgdata:
+  media:

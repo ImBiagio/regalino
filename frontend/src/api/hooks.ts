@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import type {
   GiftIdea,
   GiftIdeaPayload,
+  GiftImage,
   SharedWish,
   SharedWishList,
   UUID,
@@ -106,6 +107,26 @@ export function useClearGift(listId: UUID) {
   return useMutation({
     mutationFn: (id: UUID) => api.delete<Wish>(`/api/lists/${listId}/items/${id}/gift`),
     onSuccess: invalidate,
+  })
+}
+
+/* ------------------------------------------------------------------- foto -- */
+
+/** Foto dal dispositivo: torna l'id da mettere in `image_id` al salvataggio. */
+export function useUploadImage() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api.post<GiftImage>('/api/images', form)
+    },
+  })
+}
+
+/** Foto da un link: un'immagine diretta o la pagina del negozio (og:image). */
+export function useImageFromUrl() {
+  return useMutation({
+    mutationFn: (url: string) => api.post<GiftImage>('/api/images/from-url', { url }),
   })
 }
 

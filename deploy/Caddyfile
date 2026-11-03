@@ -40,6 +40,14 @@
 		reverse_proxy backend:8000
 	}
 
+	# Foto dei regali (ADR 0003): file statici dal volume "media", letto in
+	# sola lettura. Nomi casuali e mai riscritti, quindi cache lunga.
+	handle /media/* {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
 	# SPA: ogni rotta che non e' un file torna a index.html.
 	handle {
 		root * /srv/www

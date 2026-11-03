@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
@@ -25,3 +27,8 @@ urlpatterns = [
         name="swagger-ui",
     ),
 ]
+
+# In sviluppo le foto le serve Django; in produzione il Caddy di ``web`` legge
+# lo stesso volume (deploy/Caddyfile).
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -33,9 +33,12 @@ RUN DJANGO_SECRET_KEY=collectstatic-build python manage.py collectstatic --noinp
 # chmod: il codice dev'essere leggibile dall'utente non root qualunque siano i
 # permessi del checkout da cui parte la build.
 # --create-home: gunicorn 23+ apre il suo control socket nella home.
+# /app/media e' il volume delle foto: creata qui di appuser, cosi' il volume
+# nuovo nasce gia' scrivibile da lui.
 RUN useradd --system --create-home --uid 10001 appuser \
+    && mkdir -p /app/media \
     && chmod -R a+rX /app \
-    && chown -R appuser /app/staticfiles
+    && chown -R appuser /app/staticfiles /app/media
 USER appuser
 EXPOSE 8000
 # Migrazioni a ogni avvio (idempotenti). worker e beat usano la stessa immagine

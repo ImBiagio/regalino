@@ -1,7 +1,15 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from .views import GiftIdeaViewSet, SharedGiftView, SharedListView, WishListViewSet, WishViewSet
+from .views import (
+    GiftIdeaViewSet,
+    ImageFromUrlView,
+    ImageUploadView,
+    SharedGiftView,
+    SharedListView,
+    WishListViewSet,
+    WishViewSet,
+)
 
 router = SimpleRouter(trailing_slash=False)
 router.register("lists", WishListViewSet, basename="wish-list")
@@ -14,6 +22,8 @@ wish_detail = WishViewSet.as_view(
 wish_gift = WishViewSet.as_view({"delete": "clear_gift"})
 
 urlpatterns = [
+    path("images", ImageUploadView.as_view(), name="image-upload"),
+    path("images/from-url", ImageFromUrlView.as_view(), name="image-from-url"),
     path("lists/<uuid:list_pk>/items", wish_list, name="wish-list-items"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>", wish_detail, name="wish-detail"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>/gift", wish_gift, name="wish-gift"),

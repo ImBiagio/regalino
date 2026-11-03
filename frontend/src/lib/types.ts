@@ -35,6 +35,8 @@ export interface Wish {
   notes: string
   url: string
   price: Money | null
+  /** Percorso della foto (`/media/...`), da passare a `mediaUrl`. */
+  image: string | null
   /** `null` quando la lista nasconde le spunte al proprietario. */
   gifted: boolean | null
   gifted_by_name: string
@@ -42,7 +44,10 @@ export interface Wish {
   updated_at: string
 }
 
-export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price'>
+/** `image_id`: assente = foto invariata, `null` = toglila, id = quella caricata. */
+export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price'> & {
+  image_id?: UUID | null
+}
 
 export type IdeaStatus = 'idea' | 'bought' | 'given'
 
@@ -53,13 +58,25 @@ export interface GiftIdea {
   notes: string
   url: string
   price: Money | null
+  image: string | null
   occasion: string
   status: IdeaStatus
   created_at: string
   updated_at: string
 }
 
-export type GiftIdeaPayload = Omit<GiftIdea, 'id' | 'created_at' | 'updated_at'>
+export type GiftIdeaPayload = Omit<GiftIdea, 'id' | 'image' | 'created_at' | 'updated_at'> & {
+  image_id?: UUID | null
+}
+
+/** Una foto appena caricata o presa da un link, da collegare con `image_id`. */
+export interface GiftImage {
+  id: UUID
+  url: string
+  width: number
+  height: number
+  source_url: string
+}
 
 export interface SharedWish {
   id: UUID
@@ -67,6 +84,7 @@ export interface SharedWish {
   notes: string
   url: string
   price: Money | null
+  image: string | null
   gifted: boolean | null
   gifted_by_name: string
   /** Spuntato dall'utente loggato che guarda: puo' togliere la spunta. */

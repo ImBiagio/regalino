@@ -150,6 +150,8 @@ REST_FRAMEWORK = {
         "auth": env("THROTTLE_AUTH", "10/min"),
         "refresh": env("THROTTLE_REFRESH", "60/min"),
         "shared": env("THROTTLE_SHARED", "120/min"),
+        # Upload e link scaricati dal server: costano disco e banda.
+        "images": env("THROTTLE_IMAGES", "60/hour"),
     },
 }
 
@@ -205,6 +207,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.users.tasks.flush_expired_tokens",
         "schedule": crontab(hour=4, minute=0),
     },
+    # Foto caricate e mai collegate a un regalo, o sostituite (ADR 0003).
+    "delete-orphan-images": {
+        "task": "apps.gifts.tasks.delete_orphan_images",
+        "schedule": crontab(hour=4, minute=30),
+    },
 }
 
 CACHES = {
@@ -225,6 +232,16 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_TIMEOUT = 15
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Regalino <no-reply@regalino.local>")
+# --- Foto dei regali (ADR 0003) ---
+IMAGE_MAX_BYTES = int(env("IMAGE_MAX_BYTES", str(10 * 1024 * 1024)))
+# Lato lungo dopo la riduzione: basta per un ingrandimento su telefono.
+IMAGE_MAX_SIDE = int(env("IMAGE_MAX_SIDE", "1280"))
+IMAGE_FETCH_TIMEOUT = float(env("IMAGE_FETCH_TIMEOUT", "10"))
+# Dopo quanto una foto mai collegata a un regalo si cancella.
+IMAGE_ORPHAN_HOURS = int(env("IMAGE_ORPHAN_HOURS", "24"))
+FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES
+DATA_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES + 1024 * 1024
+
 # Il link di reset vale 2 ore (il default di Django sono 3 giorni).
 PASSWORD_RESET_TIMEOUT = int(env("PASSWORD_RESET_TIMEOUT", str(2 * 60 * 60)))
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", "http://localhost:5176")

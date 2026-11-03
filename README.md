@@ -56,6 +56,16 @@ sbagliata.
 `claim_key` che il browser tiene in `localStorage` (sul server ne resta solo
 l'hash); un utente loggato può toglierla anche da un altro dispositivo.
 
+**Foto** ([ADR 0003](docs/decisions/0003-foto-dei-regali.md)). Ogni regalo e
+ogni idea possono avere una foto: si carica dal telefono o dal computer, oppure
+"Dal link" la prende dalla pagina del negozio (`og:image` e simili) o da un
+link diretto a un'immagine. Il server la riduce a 1280 px, la salva in WebP e
+toglie i metadati (niente GPS nelle foto fatte in casa). Leggendo i link il
+server non raggiunge mai indirizzi non pubblici (LAN, localhost, Docker): ogni
+redirect si ricontrolla e la connessione va all'IP verificato. Alcuni negozi
+(Amazon, Zalando, Decathlon) bloccano la lettura automatica: lì si carica la
+foto. Sulla lista condivisa la foto si tocca per vederla grande.
+
 **Da regalare** (`/da-regalare`). Idee per gli altri: per chi (testo libero,
 con suggerimenti dai nomi già usati), cosa, occasione, prezzo, link, note e
 stato `idea → comprato → regalato` (un tocco sulla pill passa al successivo).
@@ -75,8 +85,8 @@ Presi così come sono ([ADR 0001](docs/decisions/0001-stack-da-soldino.md)):
 - **Auth JWT ibrida**: access token (15 min) in memoria, refresh (14 giorni) in
   cookie `httpOnly` su `/api/auth`, blacklist a logout e cambio password, un
   solo refresh in volo nel client (`frontend/src/lib/api.ts`). Rate limit su
-  login/registrazione (`THROTTLE_AUTH`) e sulle pagine condivise
-  (`THROTTLE_SHARED`, 120/min per IP).
+  login/registrazione (`THROTTLE_AUTH`), sulle pagine condivise
+  (`THROTTLE_SHARED`, 120/min per IP) e sulle foto (`THROTTLE_IMAGES`, 60/ora).
 - **Mail** dal worker Celery dopo il commit, con retry, testo + HTML su un solo
   layout (`backend/templates/emails/`). In produzione SMTP di **Brevo, lo stesso
   account di cinemino e soldino** (mittente `messagg@inoo.it`).
@@ -100,7 +110,7 @@ backend/
 └── apps/
     ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
     ├── users/           User custom + auth JWT + mail dell'account
-    └── gifts/           WishList, Wish, GiftIdea, lista condivisa
+    └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa, images.py
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
 ├── lib/                 client HTTP, auth, i18n, format (prezzi, date), tipi
@@ -118,6 +128,7 @@ docs/decisions/          ADR
 | `GET/POST /api/lists/{id}/items`, `…/items/{id}` | i regali di una lista |
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
+| `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
 | `GET /api/shared/{token}` | lista condivisa, pubblica |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta |
 
@@ -182,12 +193,18 @@ Primo avvio sul server (già fatto):
 4. `git push origin main:prod`, poi `cd ~/regalino && docker compose -f
    compose.prod.yaml up -d` e `createsuperuser`.
 
-Backup notturno di Postgres in `~/regalino/backups/` come soldino.
+Backup notturno di Postgres in `~/regalino/backups/` come soldino. Le foto
+stanno nel volume Docker `regalino_media` (backend in scrittura, `web` le
+serve su `/media/`): il backup non le copre.
 
 ## Test
 
-36 test (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+65 test (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
-spengono il link, regali eliminati che spariscono.
+spengono il link, regali eliminati che spariscono. Foto: WebP ridotto senza
+EXIF/GPS, file non immagine o troppo grandi rifiutati, foto altrui non
+collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
+non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta
+vera), pulizia delle orfane.

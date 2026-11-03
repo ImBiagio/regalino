@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -8,17 +9,22 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.methods import hash_secret, random_token
 
-from .models import GiftIdea, Wish, WishList, new_share_token
+from .images import ImageError, image_from_url, process_image
+from .models import GiftIdea, GiftImage, Wish, WishList, new_share_token
 from .serializers import (
     GiftClaimSerializer,
     GiftIdeaSerializer,
+    GiftImageSerializer,
     GiftReleaseSerializer,
+    ImageFromUrlSerializer,
+    ImageUploadSerializer,
     SharedWishListSerializer,
     SharedWishSerializer,
     WishListSerializer,
@@ -77,7 +83,7 @@ class WishViewSet(viewsets.ModelViewSet):
             return Wish.objects.none()
         return (
             Wish.objects.filter(wish_list=self.get_wish_list())
-            .select_related("wish_list")
+            .select_related("wish_list", "image")
             .order_by("created_at")
         )
 
@@ -107,10 +113,57 @@ class GiftIdeaViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return GiftIdea.objects.none()
-        return GiftIdea.objects.filter(owner=self.request.user)
+        return GiftIdea.objects.filter(owner=self.request.user).select_related("image")
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+# ------------------------------------------------------------------ foto --
+
+
+def _save_image(request, content, source_url: str = "") -> Response:
+    image = GiftImage(owner=request.user, source_url=source_url)
+    image.file.save(content.name, content, save=False)
+    image.save()
+    return Response(GiftImageSerializer(image).data, status=status.HTTP_201_CREATED)
+
+
+class ImageUploadView(APIView):
+    """Foto dal telefono o dal computer. Torna l'id da mettere in ``image_id``."""
+
+    parser_classes = [MultiPartParser, FormParser]
+    throttle_scope = "images"
+
+    @extend_schema(request={"multipart/form-data": ImageUploadSerializer},
+                   responses={201: GiftImageSerializer})
+    def post(self, request):
+        serializer = ImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        upload = serializer.validated_data["file"]
+        if upload.size > settings.IMAGE_MAX_BYTES:
+            raise ValidationError({"file": [_("L'immagine e' troppo grande (massimo 10 MB).")]})
+        try:
+            content = process_image(upload.read())
+        except ImageError as exc:
+            raise ValidationError({"file": [str(exc)]}) from None
+        return _save_image(request, content)
+
+
+class ImageFromUrlView(APIView):
+    """Foto presa da un link: un'immagine diretta o la pagina del negozio."""
+
+    throttle_scope = "images"
+
+    @extend_schema(request=ImageFromUrlSerializer, responses={201: GiftImageSerializer})
+    def post(self, request):
+        serializer = ImageFromUrlSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            content, source = image_from_url(serializer.validated_data["url"])
+        except ImageError as exc:
+            raise ValidationError({"url": [str(exc)]}) from None
+        return _save_image(request, content, source[:1000])
 
 
 # ------------------------------------------------------- lista condivisa --

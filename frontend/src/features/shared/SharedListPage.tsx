@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { readClaims, useClaimGift, useReleaseGift, useSharedList } from '../../api/hooks'
-import { GiftMeta, eventLabel } from '../../components/gift'
+import { GiftMeta, GiftThumb, ImageViewer, eventLabel } from '../../components/gift'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import { EmptyState, ErrorBanner, Field, Icon, Modal, RowsSkeleton } from '../../components/ui'
 import { ApiError } from '../../lib/api'
@@ -63,6 +63,7 @@ export function SharedListPage() {
 
 function SharedList({ token, list }: { token: string; list: SharedWishList }) {
   const [claiming, setClaiming] = useState<SharedWish | null>(null)
+  const [viewing, setViewing] = useState<SharedWish | null>(null)
   const claim = useClaimGift(token)
   const release = useReleaseGift(token)
   const claims = readClaims()
@@ -132,16 +133,12 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                   item.gifted ? 'bg-surface-container' : 'bg-surface-container-low',
                 )}
               >
-                <span
-                  className={clsx(
-                    'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-pill',
-                    item.gifted
-                      ? 'bg-surface-container-highest text-on-surface-variant'
-                      : 'bg-primary-container text-on-primary-container',
-                  )}
-                >
-                  <Icon name={item.gifted ? 'check' : 'redeem'} size={22} />
-                </span>
+                <GiftThumb
+                  image={item.image}
+                  done={Boolean(item.gifted)}
+                  size={72}
+                  onOpen={item.image ? () => setViewing(item) : undefined}
+                />
                 <div className="min-w-0 flex-1">
                   <p
                     className={clsx(
@@ -201,6 +198,9 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
         </div>
       )}
 
+      {viewing?.image && (
+        <ImageViewer image={viewing.image} title={viewing.title} onClose={() => setViewing(null)} />
+      )}
       {claiming && (
         <ClaimModal
           item={claiming}

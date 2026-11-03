@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import GiftIdea, Wish, WishList
+from .models import GiftIdea, GiftImage, Wish, WishList
 
 
 def validate_price(value: Decimal | None) -> Decimal | None:
@@ -15,7 +15,59 @@ def validate_price(value: Decimal | None) -> Decimal | None:
     return value
 
 
-class WishSerializer(serializers.ModelSerializer):
+def image_url(image: GiftImage | None) -> str | None:
+    """Percorso pubblico della foto (``/media/...``): il client ci mette l'origine."""
+    return image.file.url if image and image.file else None
+
+
+class GiftImageSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GiftImage
+        fields = ["id", "url", "width", "height", "source_url"]
+        read_only_fields = fields
+
+    def get_url(self, obj: GiftImage) -> str | None:
+        return image_url(obj)
+
+
+class ImageFieldsMixin(serializers.Serializer):
+    """``image`` in lettura (l'URL), ``image_id`` in scrittura (``null`` toglie la foto).
+
+    La foto deve essere dell'utente che salva: l'id di una foto altrui non si
+    puo' attaccare ai propri regali.
+    """
+
+    image = serializers.SerializerMethodField()
+    image_id = serializers.PrimaryKeyRelatedField(
+        source="image",
+        queryset=GiftImage.objects.none(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if request is not None and request.user.is_authenticated:
+            fields["image_id"].queryset = GiftImage.objects.filter(owner=request.user)
+        return fields
+
+    def get_image(self, obj) -> str | None:
+        return image_url(obj.image)
+
+
+class ImageUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+
+class ImageFromUrlSerializer(serializers.Serializer):
+    url = serializers.URLField(max_length=1000)
+
+
+class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
     """Un regalo visto dal proprietario della lista.
 
     Lo stato "regalato" esce solo se la lista ha ``show_gifted``: altrimenti
@@ -34,6 +86,8 @@ class WishSerializer(serializers.ModelSerializer):
             "notes",
             "url",
             "price",
+            "image",
+            "image_id",
             "gifted",
             "gifted_by_name",
             "created_at",
@@ -80,7 +134,7 @@ class WishListSerializer(serializers.ModelSerializer):
         return getattr(obj, "gifted_total", None) or 0
 
 
-class GiftIdeaSerializer(serializers.ModelSerializer):
+class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):
     class Meta:
         model = GiftIdea
         fields = [
@@ -90,6 +144,8 @@ class GiftIdeaSerializer(serializers.ModelSerializer):
             "notes",
             "url",
             "price",
+            "image",
+            "image_id",
             "occasion",
             "status",
             "created_at",
@@ -118,11 +174,25 @@ class SharedWishSerializer(serializers.ModelSerializer):
     # Spuntato dall'utente loggato che sta guardando: puo' togliere la spunta
     # anche da un altro dispositivo, senza la chiave salvata nel browser.
     mine = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Wish
-        fields = ["id", "title", "notes", "url", "price", "gifted", "gifted_by_name", "mine"]
+        fields = [
+            "id",
+            "title",
+            "notes",
+            "url",
+            "price",
+            "image",
+            "gifted",
+            "gifted_by_name",
+            "mine",
+        ]
         read_only_fields = fields
+
+    def get_image(self, obj: Wish) -> str | None:
+        return image_url(obj.image)
 
     def _hidden(self) -> bool:
         # Il proprietario che apre il proprio link non deve vedere le spunte,
@@ -155,7 +225,8 @@ class SharedWishListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(SharedWishSerializer(many=True))
     def get_items(self, obj: WishList):
-        return SharedWishSerializer(obj.items.all(), many=True, context=self.context).data
+        items = obj.items.select_related("image")
+        return SharedWishSerializer(items, many=True, context=self.context).data
 
 
 class GiftClaimSerializer(serializers.Serializer):

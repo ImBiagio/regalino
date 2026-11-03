@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 10:10+0100\n"
+"POT-Creation-Date: 2026-11-03 11:57+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,6 +53,34 @@ msgid "%s · tra %s giorno"
 msgid_plural "%s · tra %s giorni"
 msgstr[0] "%s · in %s day"
 msgstr[1] "%s · in %s days"
+
+msgid "Vedi la foto"
+msgstr "View photo"
+
+msgid "Foto"
+msgstr "Photo"
+
+msgid "Carica"
+msgstr "Upload"
+
+msgid "Cerco…"
+msgstr "Searching…"
+
+#| msgid "Copia link"
+msgid "Dal link"
+msgstr "Copy link"
+
+msgid "Togli"
+msgstr "Remove"
+
+msgid "Usa il link di un'altra immagine"
+msgstr "Use a link to another image"
+
+msgid "Link dell'immagine o della pagina"
+msgstr "Image or page link"
+
+msgid "Prendi"
+msgstr "Get"
 
 msgid "Nascondi password"
 msgstr "Hide password"
@@ -240,7 +268,6 @@ msgstr "Bought"
 msgid "Regalati"
 msgstr "Given"
 
-#| msgid "Tutti"
 msgid "Tutte"
 msgstr "Everyone"
 

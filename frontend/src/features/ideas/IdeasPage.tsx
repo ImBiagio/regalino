@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react'
 
 import { useDeleteIdea, useIdeas, useSaveIdea } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta } from '../../components/gift'
+import { GiftMeta, GiftThumb, ImagePicker } from '../../components/gift'
+import type { ImageChoice } from '../../components/gift'
 import { PageHeader } from '../../components/Layout'
 import {
   Avatar,
@@ -198,6 +199,7 @@ function RecipientGroup({
             }}
             className="state flex cursor-pointer items-start gap-3 rounded-row bg-surface px-4 py-3"
           >
+            {idea.image && <GiftThumb image={idea.image} size={48} />}
             <div className="min-w-0 flex-1">
               <p
                 className={clsx(
@@ -269,6 +271,7 @@ function IdeaFormModal({
   const [price, setPrice] = useState(priceInput(idea?.price ?? null))
   const [url, setUrl] = useState(idea?.url ?? '')
   const [notes, setNotes] = useState(idea?.notes ?? '')
+  const [image, setImage] = useState<ImageChoice>(undefined)
   const [status, setStatus] = useState<IdeaStatus>(idea?.status ?? 'idea')
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
   const priceInvalid = price.trim() !== '' && parsePrice(price) === null
@@ -290,6 +293,7 @@ function IdeaFormModal({
               url: url.trim(),
               notes: notes.trim(),
               status,
+              ...(image !== undefined && { image_id: image.id }),
             })
             .catch(() => null)
           if (saved) onClose()
@@ -359,6 +363,7 @@ function IdeaFormModal({
             placeholder="https://"
           />
         </Field>
+        <ImagePicker current={idea?.image ?? null} choice={image} onChoice={setImage} link={url} />
         <Field label={gettext('Note')}>
           <textarea
             className="field-input min-h-[64px] resize-y"

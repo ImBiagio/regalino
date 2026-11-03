@@ -11,7 +11,8 @@ import {
   useWishes,
 } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta, eventLabel } from '../../components/gift'
+import { GiftMeta, GiftThumb, ImagePicker, eventLabel } from '../../components/gift'
+import type { ImageChoice } from '../../components/gift'
 import { PageHeader } from '../../components/Layout'
 import {
   EmptyState,
@@ -185,15 +186,7 @@ function WishRows({
           }}
           className="row-m3 cursor-pointer items-start"
         >
-          <span
-            className={
-              wish.gifted
-                ? 'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-primary text-on-primary'
-                : 'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-primary-container text-on-primary-container'
-            }
-          >
-            <Icon name={wish.gifted ? 'check' : 'redeem'} size={22} />
-          </span>
+          <GiftThumb image={wish.image} done={Boolean(wish.gifted)} />
           <div className="min-w-0 flex-1">
             <p className="break-words text-body-large font-medium">{wish.title}</p>
             <GiftMeta price={wish.price} url={wish.url} />
@@ -265,6 +258,7 @@ function WishFormModal({
   const [url, setUrl] = useState(wish?.url ?? '')
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
   const [notes, setNotes] = useState(wish?.notes ?? '')
+  const [image, setImage] = useState<ImageChoice>(undefined)
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
   const priceInvalid = price.trim() !== '' && parsePrice(price) === null
 
@@ -286,12 +280,15 @@ function WishFormModal({
               url: url.trim(),
               price: parsePrice(price),
               notes: notes.trim(),
+              ...(image !== undefined && { image_id: image.id }),
             })
             .catch(() => null)
           if (saved) onClose()
         }}
       >
-        {!fields.title && !fields.url && !fields.price && <ErrorBanner error={save.error} />}
+        {!fields.title && !fields.url && !fields.price && !fields.image_id && (
+          <ErrorBanner error={save.error} />
+        )}
         <Field label={gettext('Cosa ti piacerebbe')} error={fields.title}>
           <input
             className="field-input"
@@ -328,6 +325,7 @@ function WishFormModal({
             />
           </div>
         </Field>
+        <ImagePicker current={wish?.image ?? null} choice={image} onChoice={setImage} link={url} />
         <Field label={gettext('Note (taglia, colore, dove trovarlo)')}>
           <textarea
             className="field-input min-h-[72px] resize-y"
