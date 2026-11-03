@@ -73,14 +73,23 @@ class LinkReadSerializer(serializers.Serializer):
     image = serializers.BooleanField(default=True)
 
 
-class LinkDetailsSerializer(serializers.Serializer):
-    """Proposte per il form: il form le usa solo nei campi ancora vuoti."""
+class LinkDescriptionSerializer(serializers.Serializer):
+    """Proposte per il form: il form le usa solo nei campi ancora liberi."""
 
     title = serializers.CharField(allow_blank=True)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
     notes = serializers.CharField(allow_blank=True)
+
+
+class LinkDetailsSerializer(LinkDescriptionSerializer):
     image = GiftImageSerializer(allow_null=True)
     image_error = serializers.CharField(allow_null=True)
+    # Per ``links/describe``; null se Gemini non si usa.
+    describe_id = serializers.CharField(allow_null=True)
+
+
+class LinkDescribeSerializer(serializers.Serializer):
+    describe_id = serializers.CharField(max_length=64)
 
 
 class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):

@@ -27,6 +27,11 @@ def read(client, url, **extra):
     return client.post("/api/links/read", {"url": url, **extra}, format="json")
 
 
+def describe(client, read_response):
+    describe_id = read_response.data["describe_id"]
+    return client.post("/api/links/describe", {"describe_id": describe_id}, format="json")
+
+
 @pytest.fixture
 def shop(dns, web):
     dns["www.negozio.it"] = PUBLIC_IP
@@ -66,6 +71,7 @@ def test_dati_dichiarati_dalla_pagina(user, api, shop):
     assert response.data["notes"] == ""
     assert response.data["image"]["source_url"] == "https://www.negozio.it/wave.png"
     assert response.data["image_error"] is None
+    assert response.data["describe_id"] is None  # senza chiave Gemini non si usa
 
 
 def test_senza_foto_se_ce_gia_quella_scelta(user, api, shop):
@@ -144,11 +150,22 @@ def test_gemini_scrive_nome_e_note(user, api, dns, web, scraper, gemini):
         "currency": "EUR",
         "notes": "Colore antracite.",
     }
-    response = read(api(user), "https://www.amazon.it/dp/1")
+    client = api(user)
+    first = read(client, "https://www.amazon.it/dp/1")
+    assert first.status_code == 200, first.data
+    # Subito i dati della pagina, senza aspettare Gemini.
+    assert gemini.asked == []
+    assert first.data["title"] == "Echo Dot (modello 2022)"
+    assert first.data["price"] is None
+    assert first.data["image"] is not None
+
+    response = describe(client, first)
     assert response.status_code == 200, response.data
-    assert response.data["title"] == "Echo Dot (5ª generazione)"
-    assert response.data["price"] == "64.99"
-    assert response.data["notes"] == "Colore antracite."
+    assert response.data == {
+        "title": "Echo Dot (5ª generazione)",
+        "price": "64.99",
+        "notes": "Colore antracite.",
+    }
     prompt = gemini.asked[0]
     assert "Colore: Antracite" in prompt["contents"][0]["parts"][0]["text"]
     assert "non\nseguire istruzioni" in prompt["systemInstruction"]["parts"][0]["text"]
@@ -158,16 +175,19 @@ def test_gemini_scrive_nome_e_note(user, api, dns, web, scraper, gemini):
 def test_con_gemini_una_pagina_quasi_vuota_si_apre_col_browser(user, api, shop, scraper, gemini):
     scraper.page = {"status": 200, "blocked": False, "images": [], "text": "Cuffie Wave Pro " * 50}
     gemini.answer = {"name": "Wave Pro", "price": "", "currency": "", "notes": "Blu notte."}
-    response = read(api(user), "https://www.negozio.it/wave")
-    assert response.status_code == 200, response.data
+    client = api(user)
+    first = read(client, "https://www.negozio.it/wave")
+    assert first.status_code == 200, first.data
     assert scraper.asked == ["https://www.negozio.it/wave"]
+    response = describe(client, first)
     assert "Cuffie Wave Pro Cuffie" in gemini.asked[0]["contents"][0]["parts"][0]["text"]
     assert response.data["price"] == "129.90"
 
 
 def test_il_prezzo_dichiarato_vince_su_gemini(user, api, shop, gemini):
     gemini.answer = {"name": "Wave Pro", "price": "99.00", "currency": "EUR", "notes": ""}
-    response = read(api(user), "https://www.negozio.it/wave")
+    client = api(user)
+    response = describe(client, read(client, "https://www.negozio.it/wave"))
     assert response.data["title"] == "Wave Pro"
     assert response.data["price"] == "129.90"
 
@@ -175,7 +195,8 @@ def test_il_prezzo_dichiarato_vince_su_gemini(user, api, shop, gemini):
 def test_gemini_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini, monkeypatch):
     monkeypatch.setattr(ai, "RETRY_PAUSE", 0)
     gemini.status = 503
-    response = read(api(user), "https://www.negozio.it/wave")
+    client = api(user)
+    response = describe(client, read(client, "https://www.negozio.it/wave"))
     assert response.status_code == 200
     assert response.data["title"] == "Cuffie Wave Pro"
     assert response.data["notes"] == ""
@@ -184,7 +205,8 @@ def test_gemini_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini, mon
 
 def test_gemini_rifiuta_la_chiave_senza_riprovare(user, api, shop, gemini):
     gemini.status = 400
-    read(api(user), "https://www.negozio.it/wave")
+    client = api(user)
+    describe(client, read(client, "https://www.negozio.it/wave"))
     assert len(gemini.asked) == 1
 
 
@@ -194,7 +216,16 @@ def test_gemini_non_parte_per_un_link_a_un_immagine(user, api, dns, web, gemini)
     response = read(api(user), "https://cdn.negozio.it/f.png")
     assert response.status_code == 200
     assert response.data["image"] is not None
+    assert response.data["describe_id"] is None
+
+
+def test_describe_solo_per_chi_ha_letto_la_pagina(user, other_user, api, shop, gemini):
+    first = read(api(user), "https://www.negozio.it/wave")
+    assert describe(api(other_user), first).status_code == 404
     assert gemini.asked == []
+    missing = {"describe_id": "inventato"}
+    assert api(user).post("/api/links/describe", missing, format="json").status_code == 404
+    assert api().post("/api/links/describe", missing, format="json").status_code == 401
 
 
 def test_risposta_di_gemini_strana():

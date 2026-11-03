@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 14:33+0100\n"
+"POT-Creation-Date: 2026-11-03 15:49+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -75,6 +75,9 @@ msgstr "Getting the photo from the link…"
 
 msgid "Leggo la pagina del negozio…"
 msgstr "Reading the shop page…"
+
+msgid "Miglioro nome e note…"
+msgstr "Improving name and notes…"
 
 msgid "Presa dal link del negozio."
 msgstr "Taken from the shop link."
