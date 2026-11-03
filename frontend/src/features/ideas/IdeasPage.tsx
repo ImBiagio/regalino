@@ -80,12 +80,13 @@ export function IdeasPage() {
   ]
 
   return (
-    <>
+    // Centrata come Account: su schermi larghi i gruppi non restano appesi a sinistra.
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         title={gettext('Da regalare')}
         subtitle={gettext('Le idee per gli altri, e per chi. Le vedi solo tu.')}
       />
-      <div className="grid gap-4 px-5 md:px-8 lg:max-w-4xl">
+      <div className="grid gap-4 px-5 md:px-8">
         <ErrorBanner error={error} />
         {ideas && ideas.length > 0 && (
           <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">
@@ -144,7 +145,7 @@ export function IdeasPage() {
           onClose={() => setForm(null)}
         />
       )}
-    </>
+    </div>
   )
 }
 
