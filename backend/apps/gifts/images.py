@@ -47,6 +47,15 @@ class ImageError(Exception):
     """Errore da mostrare all'utente cosi' com'e'."""
 
 
+class ReadError(ImageError):
+    """Il link e' ammesso ma il sito non ha dato la foto (blocco, errore,
+    pagina fatta in JavaScript): e' il caso in cui provare con lo scraper."""
+
+
+class ScraperDown(ReadError):
+    """Lo scraper non risponde: vale l'errore della lettura diretta."""
+
+
 # ---------------------------------------------------------------- Pillow --
 
 
@@ -142,8 +151,9 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
                     response.read()
                     return response
                 if response.status_code in (401, 403, 429, 503):
-                    # Protezioni anti-bot (Zalando, Decathlon, Amazon...): non si aggirano.
-                    raise ImageError(
+                    # Protezioni anti-bot (Zalando, Decathlon, Amazon...): non si
+                    # aggirano. Ci prova poi lo scraper, che apre la pagina col browser.
+                    raise ReadError(
                         _(
                             "Il sito non si lascia leggere in automatico: carica la foto, "
                             "oppure incolla il link diretto dell'immagine (tasto destro "
@@ -151,7 +161,7 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
                         )
                     )
                 if response.status_code >= 400:
-                    raise ImageError(
+                    raise ReadError(
                         _("Il sito ha risposto con un errore (%s).") % response.status_code
                     )
                 body = bytearray()
@@ -164,9 +174,9 @@ def _get(url: str, max_bytes: int) -> httpx.Response | Fetched:
             finally:
                 response.close()
     except httpx.TimeoutException:
-        raise ImageError(_("Il sito non risponde.")) from None
+        raise ReadError(_("Il sito non risponde.")) from None
     except httpx.HTTPError:
-        raise ImageError(_("Non riesco a leggere il link.")) from None
+        raise ReadError(_("Non riesco a leggere il link.")) from None
 
 
 def fetch(url: str, max_bytes: int) -> Fetched:
@@ -278,11 +288,8 @@ def _decode(body: bytes) -> str:
         return body.decode("utf-8", errors="replace")
 
 
-def image_from_url(url: str) -> tuple[ContentFile, str]:
-    """Dal link (di un'immagine o della pagina di un negozio) all'immagine pronta.
-
-    Restituisce il file elaborato e l'URL da cui e' arrivata davvero.
-    """
+def _image_direct(url: str) -> tuple[ContentFile, str]:
+    """Lettura semplice: il link e' l'immagine, o una pagina che la dichiara."""
     first = fetch(url, max(settings.IMAGE_MAX_BYTES, MAX_HTML_BYTES))
     if "html" not in first.content_type:
         # image/* o un tipo generico (certi CDN mandano octet-stream): decide Pillow.
@@ -292,10 +299,79 @@ def image_from_url(url: str) -> tuple[ContentFile, str]:
 
     image_url = find_page_image(_decode(first.body), first.url)
     if not image_url:
-        raise ImageError(
+        raise ReadError(
             _("In quella pagina non trovo un'immagine del prodotto: caricala tu dal telefono.")
         )
     second = fetch(image_url, settings.IMAGE_MAX_BYTES)
     if "html" in second.content_type:
-        raise ImageError(_("L'immagine indicata dalla pagina non si apre."))
+        raise ReadError(_("L'immagine indicata dalla pagina non si apre."))
     return process_image(second.body), second.url
+
+
+def scrape(url: str) -> dict:
+    """Chiede allo scraper (ADR 0005) di aprire la pagina col browser.
+
+    Restituisce quello che ha letto: ``images`` (in ordine di affidabilita'),
+    ``title``, ``description``, ``price``, ``currency``, ``blocked``. Lo
+    scraper e' un servizio interno: la richiesta non passa da ``fetch``.
+    """
+    try:
+        response = httpx.post(
+            f"{settings.SCRAPER_URL.rstrip('/')}/scrape",
+            json={"url": url},
+            timeout=settings.SCRAPER_TIMEOUT,
+        )
+    except httpx.HTTPError:
+        raise ScraperDown(_("Non riesco ad aprire la pagina del link.")) from None
+    if response.status_code >= 500:
+        raise ScraperDown(_("Non riesco ad aprire la pagina del link."))
+    if response.status_code != 200:
+        # 400: link rifiutato dalle regole di rete del browser.
+        raise ReadError(_("Non riesco ad aprire la pagina del link."))
+    return response.json()
+
+
+def _image_scraped(url: str) -> tuple[ContentFile, str]:
+    """La pagina aperta dallo scraper; la foto la scarica comunque ``fetch``."""
+    page = scrape(url)
+    if page.get("blocked"):
+        raise ImageError(
+            _(
+                "Il sito chiede di dimostrare di non essere un robot: carica la foto, "
+                "oppure incolla il link diretto dell'immagine (tasto destro sulla "
+                "foto → Copia indirizzo immagine)."
+            )
+        )
+    status = page.get("status")
+    if not page.get("images") and status and status >= 400:
+        raise ReadError(_("Il sito ha risposto con un errore (%s).") % status)
+    for candidate in page.get("images", [])[:4]:
+        try:
+            image = fetch(candidate, settings.IMAGE_MAX_BYTES)
+            if "html" not in image.content_type:
+                return process_image(image.body), image.url
+        except ImageError:
+            continue
+    raise ImageError(
+        _("In quella pagina non trovo un'immagine del prodotto: caricala tu dal telefono.")
+    )
+
+
+def image_from_url(url: str) -> tuple[ContentFile, str]:
+    """Dal link (di un'immagine o della pagina di un negozio) all'immagine pronta.
+
+    Prima la lettura diretta, che e' veloce; se il sito blocca o la foto non si
+    trova, la pagina si apre col browser dello scraper. Gli errori sul link in
+    se' (indirizzo non pubblico, porta, credenziali) non arrivano allo scraper.
+    Restituisce il file elaborato e l'URL da cui e' arrivata davvero.
+    """
+    try:
+        return _image_direct(url)
+    except ReadError as direct:
+        if not settings.SCRAPER_URL:
+            raise
+        direct_error = direct
+    try:
+        return _image_scraped(url)
+    except ScraperDown:
+        raise direct_error from None

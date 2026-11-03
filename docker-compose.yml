@@ -36,6 +36,10 @@ services:
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     ports:
       - "8020:8000"
+    environment:
+      SCRAPER_URL: http://scraper:8000
+    # Anche sulla rete dello scraper, che invece non vede db e redis.
+    networks: [default, scraper]
     # Risponde solo dopo migrate: worker e beat aspettano questo, non il
     # semplice avvio del container (beat crasha se le sue tabelle mancano).
     healthcheck:
@@ -63,6 +67,13 @@ services:
         condition: service_healthy
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
+  # Browser headless che apre le pagine dei negozi (ADR 0005). Sta da solo su
+  # una rete sua: dalla pagina di un sito non si arriva a db, redis o backend admin.
+  scraper:
+    build:
+      context: ./scraper
+    networks: [scraper]
+
   frontend:
     build:
       context: ./frontend
@@ -71,6 +82,9 @@ services:
       - backend
     ports:
       - "5176:5176"
+
+networks:
+  scraper:
 
 volumes:
   pgdata:

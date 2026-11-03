@@ -237,6 +237,10 @@ IMAGE_MAX_BYTES = int(env("IMAGE_MAX_BYTES", str(10 * 1024 * 1024)))
 # Lato lungo dopo la riduzione: basta per un ingrandimento su telefono.
 IMAGE_MAX_SIDE = int(env("IMAGE_MAX_SIDE", "1280"))
 IMAGE_FETCH_TIMEOUT = float(env("IMAGE_FETCH_TIMEOUT", "10"))
+# Lo scraper col browser headless (ADR 0005): si usa quando la lettura diretta
+# del link non basta. Vuoto = spento (test, sviluppo senza il container).
+SCRAPER_URL = env("SCRAPER_URL", "")
+SCRAPER_TIMEOUT = float(env("SCRAPER_TIMEOUT", "40"))
 # Dopo quanto una foto mai collegata a un regalo si cancella.
 IMAGE_ORPHAN_HOURS = int(env("IMAGE_ORPHAN_HOURS", "24"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES

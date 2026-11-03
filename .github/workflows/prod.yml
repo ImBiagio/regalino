@@ -55,8 +55,23 @@ jobs:
       - run: npx tsc -b
       - run: npx eslint src --ext .ts,.tsx
 
+  scraper:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scraper
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff pytest
+      - run: ruff check .
+      # Solo le regole di rete: il browser vero si prova a mano (README).
+      - run: pytest tests
+
   build:
-    needs: [backend, frontend]
+    needs: [backend, frontend, scraper]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -68,6 +83,10 @@ jobs:
           - image: regalino-web
             context: .
             dockerfile: deploy/web.Dockerfile
+            target: ""
+          - image: regalino-scraper
+            context: scraper
+            dockerfile: scraper/Dockerfile
             target: ""
     steps:
       - uses: actions/checkout@v4

@@ -283,6 +283,133 @@ def test_sito_con_protezione_anti_bot(user, api, dns, web):
     assert "Copia indirizzo immagine" in str(response.data["url"][0])
 
 
+# --------------------------------------------- scraper col browser (ADR 0005) --
+
+
+@pytest.fixture
+def scraper(settings, monkeypatch):
+    """Scraper finto: ``scraper.page`` e' quello che "vede" il browser."""
+    settings.SCRAPER_URL = "http://scraper:8000"
+
+    class Fake:
+        page: dict = {"images": [], "blocked": False, "status": 200}
+        asked: list[str] = []
+
+    def fake_scrape(url):
+        Fake.asked.append(url)
+        return Fake.page
+
+    Fake.asked = []
+    monkeypatch.setattr(images, "scrape", fake_scrape)
+    return Fake
+
+
+def test_sito_che_blocca_si_apre_con_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    dns["m.media-negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/dp/1"] = (503, {"content-type": "text/html"}, b"robot?")
+    web["https://m.media-negozio.it/big.png"] = (200, {"content-type": "image/png"}, png_bytes())
+    scraper.page = {
+        "status": 200,
+        "blocked": False,
+        "images": ["https://m.media-negozio.it/manca.png", "https://m.media-negozio.it/big.png"],
+    }
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/dp/1"}, format="json"
+    )
+    assert response.status_code == 201, response.data
+    assert scraper.asked == ["https://www.negozio.it/dp/1"]
+    # La prima candidata non si apre (404): si passa alla seguente.
+    assert response.data["source_url"] == "https://m.media-negozio.it/big.png"
+
+
+def test_pagina_fatta_in_javascript_si_apre_con_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (200, {"content-type": "text/html"}, b"<div id=app></div>")
+    web["https://www.negozio.it/foto.png"] = (200, {"content-type": "image/png"}, png_bytes())
+    scraper.page = {"status": 200, "blocked": False, "images": ["https://www.negozio.it/foto.png"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 201, response.data
+
+
+def test_scraper_davanti_a_un_captcha_si_ferma(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    scraper.page = {"status": 200, "blocked": True, "images": ["https://www.negozio.it/x.png"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "robot" in str(response.data["url"][0])
+    assert len(web.seen) == 1  # la foto della pagina-captcha non si scarica
+
+
+def test_foto_dello_scraper_verso_la_lan_rifiutata(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    dns["nas.casa"] = "192.168.1.20"
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    scraper.page = {"status": 200, "blocked": False, "images": ["http://nas.casa/foto.jpg"]}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert [request.url.host for request in web.seen] == [PUBLIC_IP]
+
+
+def test_link_non_ammessi_non_arrivano_allo_scraper(user, api, dns, web, scraper):
+    dns["router.casa"] = "192.168.1.1"
+    response = api(user).post(
+        "/api/images/from-url", {"url": "http://router.casa/"}, format="json"
+    )
+    assert response.status_code == 400
+    assert scraper.asked == []
+
+
+def test_errore_del_sito_anche_per_lo_scraper(user, api, dns, web, scraper):
+    dns["www.negozio.it"] = PUBLIC_IP
+    scraper.page = {"status": 404, "blocked": False, "images": []}
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/sparito"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "404" in str(response.data["url"][0])
+
+
+def test_scrape_chiama_il_servizio_interno(settings, monkeypatch):
+    settings.SCRAPER_URL = "http://scraper:8000/"
+    calls = []
+
+    def fake_post(url, json, timeout):
+        calls.append((url, json))
+        return httpx.Response(200, json={"images": [], "blocked": False})
+
+    monkeypatch.setattr(images.httpx, "post", fake_post)
+    assert images.scrape("https://n.it/p") == {"images": [], "blocked": False}
+    assert calls == [("http://scraper:8000/scrape", {"url": "https://n.it/p"})]
+
+    monkeypatch.setattr(images.httpx, "post", lambda *a, **k: httpx.Response(502))
+    with pytest.raises(images.ScraperDown):
+        images.scrape("https://n.it/p")
+
+
+def test_scraper_spento_resta_l_errore_diretto(user, api, dns, web, settings, monkeypatch):
+    settings.SCRAPER_URL = "http://scraper:8000"
+
+    def down(*args, **kwargs):
+        raise httpx.ConnectError("giu'")
+
+    monkeypatch.setattr(images.httpx, "post", down)
+    dns["www.negozio.it"] = PUBLIC_IP
+    web["https://www.negozio.it/p"] = (403, {"content-type": "text/html"}, b"blocked")
+    response = api(user).post(
+        "/api/images/from-url", {"url": "https://www.negozio.it/p"}, format="json"
+    )
+    assert response.status_code == 400
+    assert "Copia indirizzo immagine" in str(response.data["url"][0])
+
+
 def test_find_page_image_priorita_e_url_relativi():
     html = """<html><head>
       <link rel="image_src" href="/fallback.jpg">

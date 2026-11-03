@@ -1,0 +1,5 @@
+# playwright deve restare uguale al tag dell'immagine nel Dockerfile.
+playwright==1.49.1
+fastapi==0.115.6
+uvicorn==0.34.0
+pytest==8.3.4
