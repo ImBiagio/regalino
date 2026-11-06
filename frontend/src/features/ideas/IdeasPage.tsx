@@ -5,7 +5,7 @@ import { useDeleteIdea, useIdeas, useSaveIdea } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { GiftMeta, GiftThumb, ImagePicker, useLinkFill } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
-import { PageHeader } from '../../components/Layout'
+import { Page, PageHeader } from '../../components/Layout'
 import {
   Avatar,
   Chip,
@@ -80,8 +80,7 @@ export function IdeasPage() {
   ]
 
   return (
-    // Centrata come Account: su schermi larghi i gruppi non restano appesi a sinistra.
-    <div className="mx-auto max-w-4xl">
+    <Page>
       <PageHeader
         title={gettext('Da regalare')}
         subtitle={gettext('Le idee per gli altri, e per chi. Le vedi solo tu.')}
@@ -145,7 +144,7 @@ export function IdeasPage() {
           onClose={() => setForm(null)}
         />
       )}
-    </div>
+    </Page>
   )
 }
 

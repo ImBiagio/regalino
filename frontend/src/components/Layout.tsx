@@ -87,6 +87,16 @@ function NavItem({ destination, grow }: { destination: Destination; grow?: boole
   )
 }
 
+/**
+ * Il contenitore di ogni pagina: centrato e largo uguale dappertutto (liste,
+ * dettaglio, Da regalare, Account, lista condivisa), col testo che resta a
+ * sinistra. Senza, su schermi larghi una pagina si allargava a tutto lo
+ * schermo e un'altra no, e le sezioni avevano larghezze diverse.
+ */
+export function Page({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={clsx('mx-auto w-full max-w-5xl', className)}>{children}</div>
+}
+
 /** Intestazione di pagina: titolo grande, sottotitolo, azioni a destra. */
 export function PageHeader({
   title,

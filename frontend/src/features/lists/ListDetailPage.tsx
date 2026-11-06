@@ -12,6 +12,7 @@ import {
   useWishes,
 } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
+import { Page } from '../../components/Layout'
 import {
   AddTile,
   GiftBadge,
@@ -55,7 +56,7 @@ export function ListDetailPage() {
   if (error instanceof ApiError && error.status === 404) return <Navigate to="/" replace />
   if (isLoading || !list) {
     return (
-      <div className="grid gap-4 p-5 md:p-8">
+      <Page className="grid gap-4 px-5 pt-5 md:px-8 md:pt-8">
         <ErrorBanner error={error} />
         <Skeleton className="h-52 rounded-panel" />
         <div className={GIFT_GRID}>
@@ -63,12 +64,12 @@ export function ListDetailPage() {
             <Skeleton key={index} className="aspect-[3/4] rounded-card" />
           ))}
         </div>
-      </div>
+      </Page>
     )
   }
 
   return (
-    <>
+    <Page>
       <div className="grid gap-4 px-5 pt-3 md:px-8 md:pt-6">
         <NavLink to="/" className="btn-text btn-sm -ml-3 justify-self-start">
           <Icon name="arrow_back" size={20} />
@@ -120,7 +121,7 @@ export function ListDetailPage() {
           footer={<DeleteListButton list={list} onDeleted={() => setEditing(false)} />}
         />
       )}
-    </>
+    </Page>
   )
 }
 

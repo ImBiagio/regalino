@@ -53,13 +53,13 @@ export function SharedListPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <header className="mx-auto flex max-w-5xl items-center gap-2 px-4 pt-4 sm:px-6">
+      <header className="mx-auto flex max-w-5xl items-center gap-2 px-5 pt-5 md:px-8">
         <Link to="/" className="inline-flex items-center gap-2 text-title-medium">
           <img src="/logo-mark.svg" alt="" width={32} height={32} className="h-8 w-8" />
           Regalino
         </Link>
       </header>
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 p-4 sm:p-6">
+      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-4 md:px-8 md:py-6">
         {(!ready || isLoading) && (
           <>
             <Skeleton className="h-52 rounded-panel" />

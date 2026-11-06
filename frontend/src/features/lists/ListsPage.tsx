@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useLists, useSaveList } from '../../api/hooks'
 import { AddTile, GiftWrap, countdownLabel } from '../../components/gift'
-import { PageHeader } from '../../components/Layout'
+import { Page, PageHeader } from '../../components/Layout'
 import {
   EmptyState,
   ErrorBanner,
@@ -46,7 +46,7 @@ export function ListsPage() {
   const sorted = useMemo(() => [...(lists ?? [])].sort(byNextEvent), [lists])
 
   return (
-    <>
+    <Page>
       <PageHeader
         title={gettext('Le mie liste')}
         subtitle={interpolate(
@@ -99,7 +99,7 @@ export function ListsPage() {
           onSaved={(list) => navigate(`/liste/${list.id}`)}
         />
       )}
-    </>
+    </Page>
   )
 }
 

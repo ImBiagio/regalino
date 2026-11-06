@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
+import { Page } from '../../components/Layout'
 import { Avatar, ErrorBanner, Field, Icon, PasswordInput } from '../../components/ui'
 import { ApiError, api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -14,7 +15,7 @@ export function AccountPage() {
   if (!user) return null
 
   return (
-    <div className="mx-auto max-w-2xl p-5 md:p-8">
+    <Page className="px-5 pt-5 md:px-8 md:pt-8">
       <div className="grid gap-5">
         <header className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-[28px] font-medium leading-9 md:text-headline-small">
@@ -31,7 +32,7 @@ export function AccountPage() {
         <PasswordSection user={user} />
         <LanguageSection />
       </div>
-    </div>
+    </Page>
   )
 }
 
