@@ -152,7 +152,7 @@ class WishViewSet(viewsets.ModelViewSet):
             return Wish.objects.none()
         return (
             Wish.objects.filter(wish_list=self.get_wish_list())
-            .select_related("wish_list", "image")
+            .select_related("wish_list", "image", "requires")
             .order_by("created_at")
         )
 
@@ -390,7 +390,9 @@ class SharedGiftView(APIView):
         mine = Q(wish_list=wish_list) | Q(wish_list__in=wish_list.included_lists.all())
         # select_for_update: due persone che spuntano insieme non vincono entrambe.
         wish = get_object_or_404(
-            Wish.objects.select_for_update(of=("self",)).select_related("wish_list").filter(mine),
+            Wish.objects.select_for_update(of=("self",))
+            .select_related("wish_list", "requires")
+            .filter(mine),
             pk=item_id,
         )
         return wish.wish_list, wish
@@ -408,6 +410,14 @@ class SharedGiftView(APIView):
         if wish.is_gifted:
             return Response(
                 {"detail": _("Qualcuno l'ha appena regalato: ricarica la lista.")},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if wish.is_blocked:
+            return Response(
+                {
+                    "detail": _("Va con «%(title)s»: prima serve che qualcuno regali quello.")
+                    % {"title": wish.required_gift.title}
+                },
                 status=status.HTTP_409_CONFLICT,
             )
 

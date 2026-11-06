@@ -102,6 +102,11 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
 
     gifted = serializers.SerializerMethodField()
     gifted_by_name = serializers.SerializerMethodField()
+    # "Va con": in scrittura l'id di un regalo della stessa lista (``null`` lo toglie).
+    requires_id = serializers.PrimaryKeyRelatedField(
+        source="requires", queryset=Wish.objects.all(), required=False, allow_null=True
+    )
+    requires_title = serializers.SerializerMethodField()
 
     class Meta:
         model = Wish
@@ -113,6 +118,8 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
             "price",
             "image",
             "image_id",
+            "requires_id",
+            "requires_title",
             "gifted",
             "gifted_by_name",
             "created_at",
@@ -122,6 +129,39 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
 
     def validate_price(self, value):
         return validate_price(value)
+
+    def validate_requires_id(self, value: Wish | None) -> Wish | None:
+        """Della stessa lista, non se stesso, e senza giri (A va con B che va con A)."""
+        if value is None:
+            return None
+        wish_list = self.context["view"].get_wish_list()
+        if value.wish_list_id != wish_list.pk:
+            raise serializers.ValidationError(_("Scegli un regalo di questa lista."))
+        if self.instance is not None:
+            if value.pk == self.instance.pk:
+                raise serializers.ValidationError(_("Un regalo non puo' andare con se stesso."))
+            current: Wish | None = value
+            for _step in range(50):
+                if current is None:
+                    break
+                if current.pk == self.instance.pk:
+                    raise serializers.ValidationError(
+                        _("«%(title)s» va gia' con questo regalo: sarebbe un giro.")
+                        % {"title": value.title}
+                    )
+                current = current.required_gift
+        return value
+
+    def get_requires_title(self, obj: Wish) -> str:
+        required = obj.required_gift
+        return required.title if required else ""
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Un regalo cancellato non si mostra piu' come "va con".
+        if instance.required_gift is None:
+            data["requires_id"] = None
+        return data
 
     def _reveals(self, obj: Wish) -> bool:
         return obj.wish_list.show_gifted
@@ -325,6 +365,8 @@ class SharedWishSerializer(serializers.ModelSerializer):
     # anche da un altro dispositivo, senza la chiave salvata nel browser.
     mine = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    # Il regalo con cui va (stessa lista): si spunta solo dopo quello.
+    requires_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Wish
@@ -335,6 +377,7 @@ class SharedWishSerializer(serializers.ModelSerializer):
             "url",
             "price",
             "image",
+            "requires_id",
             "gifted",
             "gifted_by_name",
             "mine",
@@ -343,6 +386,10 @@ class SharedWishSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj: Wish) -> str | None:
         return image_url(obj.image)
+
+    def get_requires_id(self, obj: Wish) -> str | None:
+        required = obj.required_gift
+        return str(required.pk) if required else None
 
     def _hidden(self) -> bool:
         # Il proprietario che apre il proprio link non deve vedere le spunte,
@@ -393,7 +440,7 @@ class SharedWishListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(SharedWishSerializer(many=True))
     def get_items(self, obj: WishList):
-        items = obj.items.select_related("image")
+        items = obj.items.select_related("image", "requires")
         return SharedWishSerializer(items, many=True, context=self.context).data
 
     @extend_schema_field(SharedSectionSerializer(many=True))
@@ -402,7 +449,7 @@ class SharedWishListSerializer(serializers.ModelSerializer):
         context_of = self.context["context_of"]
         sections = []
         for child in alive_children(obj):
-            items = child.items.select_related("image")
+            items = child.items.select_related("image", "requires")
             sections.append(
                 {
                     "id": child.id,

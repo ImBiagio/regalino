@@ -307,6 +307,9 @@ function WishCards({
             url={wish.url}
             notes={wish.notes}
             taken={Boolean(wish.gifted)}
+            detail={
+              wish.requires_title && interpolate(gettext('Va con «%s»'), [wish.requires_title])
+            }
             onClick={() => onEdit(wish)}
             badge={
               wish.gifted && (
@@ -556,6 +559,19 @@ function WishFormModal({
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
   const [notes, setNotes] = useState(wish?.notes ?? '')
   const [image, setImage] = useState<ImageChoice>(undefined)
+  // "Va con": gli altri regali della lista, tranne quelli che gia' vanno con
+  // questo (sarebbe un giro; il server lo rifiuta comunque).
+  const [requires, setRequires] = useState<UUID | ''>(wish?.requires_id ?? '')
+  const { data: siblings } = useWishes(listId)
+  const companions = (siblings ?? []).filter((other) => {
+    if (wish === undefined) return true
+    let current: Wish | undefined = other
+    for (let step = 0; current && step < 50; step += 1) {
+      if (current.id === wish.id) return false
+      current = (siblings ?? []).find((candidate) => candidate.id === current?.requires_id)
+    }
+    return true
+  })
   // Nome, prezzo e note dal link del negozio, solo nei campi ancora liberi.
   const fill = useLinkFill(
     { title, price, notes },
@@ -582,15 +598,18 @@ function WishFormModal({
               url: url.trim(),
               price: parsePrice(price),
               notes: notes.trim(),
+              requires_id: requires || null,
               ...(image !== undefined && { image_id: image.id }),
             })
             .catch(() => null)
           if (saved) onClose()
         }}
       >
-        {!fields.title && !fields.url && !fields.price && !fields.image_id && (
-          <ErrorBanner error={save.error ?? remove.error} />
-        )}
+        {!fields.title &&
+          !fields.url &&
+          !fields.price &&
+          !fields.image_id &&
+          !fields.requires_id && <ErrorBanner error={save.error ?? remove.error} />}
         <Field label={gettext('Cosa ti piacerebbe')} error={fields.title} hint={fill.hint('title')}>
           <input
             className="field-input"
@@ -635,6 +654,26 @@ function WishFormModal({
           link={url}
           fill={fill}
         />
+        {companions.length > 0 && (
+          <Field
+            label={gettext('Va con un altro regalo (facoltativo)')}
+            error={fields.requires_id}
+            hint={gettext('Chi ha il link può prenderlo solo dopo che quello è stato preso.')}
+          >
+            <select
+              className="field-input"
+              value={requires}
+              onChange={(event) => setRequires(event.target.value as UUID | '')}
+            >
+              <option value="">{gettext('Nessuno')}</option>
+              {companions.map((other) => (
+                <option key={other.id} value={other.id}>
+                  {other.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label={gettext('Note (taglia, colore, dove trovarlo)')} hint={fill.hint('notes')}>
           <textarea
             className="field-input min-h-[72px] resize-y"

@@ -164,6 +164,11 @@ class Wish(BaseModel):
     image = models.ForeignKey(
         GiftImage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # "Va con" un altro regalo della stessa lista (ADR 0009): la custodia va
+    # con le cuffie. Si puo' spuntare solo quando quello e' gia' preso.
+    requires = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="dependents"
+    )
 
     # Spuntato da chi ha il link. ``claim_key_hash`` e' l'hash della chiave data
     # a chi ha spuntato: solo lui (o l'utente loggato che l'ha fatto) puo'
@@ -190,6 +195,18 @@ class Wish(BaseModel):
     @property
     def is_gifted(self) -> bool:
         return self.gifted_at is not None
+
+    @property
+    def required_gift(self) -> Wish | None:
+        """Il regalo che deve arrivare prima, se c'e' ancora (la cancellazione e' logica)."""
+        required = self.requires
+        return required if required is not None and not required.is_deleted else None
+
+    @property
+    def is_blocked(self) -> bool:
+        """Non ancora spuntabile: il regalo con cui va non e' stato preso."""
+        required = self.required_gift
+        return required is not None and not required.is_gifted
 
     def clear_gift(self) -> None:
         self.gifted_at = None

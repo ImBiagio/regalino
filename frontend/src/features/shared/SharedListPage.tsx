@@ -104,6 +104,7 @@ export function SharedListPage() {
 function SharedCards({
   items,
   isMine,
+  requiredOf,
   onClaim,
   onView,
   onRelease,
@@ -111,6 +112,8 @@ function SharedCards({
 }: {
   items: SharedWish[]
   isMine: (item: SharedWish) => boolean
+  /** Il regalo con cui va, se c'e' (ADR 0009): finche' non e' preso, l'altro aspetta. */
+  requiredOf: (item: SharedWish) => SharedWish | undefined
   onClaim: (item: SharedWish) => void
   onView: (item: SharedWish) => void
   onRelease: (item: SharedWish) => void
@@ -120,6 +123,7 @@ function SharedCards({
     <div className={GIFT_GRID}>
       {items.map((item) => {
         const mine = isMine(item)
+        const required = requiredOf(item)
         return (
           <GiftCard
             key={item.id}
@@ -130,6 +134,7 @@ function SharedCards({
             url={item.url}
             notes={item.notes}
             taken={Boolean(item.gifted) && !mine}
+            detail={required && interpolate(gettext('Va con «%s»'), [required.title])}
             onImage={item.image ? () => onView(item) : undefined}
             badge={
               item.gifted && (
@@ -144,14 +149,28 @@ function SharedCards({
             }
             footer={
               item.gifted === false ? (
-                <button
-                  type="button"
-                  className="btn-primary-tonal btn-sm w-full"
-                  onClick={() => onClaim(item)}
-                >
-                  <Icon name="redeem" size={18} />
-                  {gettext('Lo regalo io')}
-                </button>
+                required && required.gifted !== true ? (
+                  <button
+                    type="button"
+                    className="btn-outlined btn-sm w-full"
+                    disabled
+                    title={interpolate(gettext('Prima serve che qualcuno prenda «%s».'), [
+                      required.title,
+                    ])}
+                  >
+                    <Icon name="hourglass_top" size={18} />
+                    {interpolate(gettext('Prima «%s»'), [required.title])}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary-tonal btn-sm w-full"
+                    onClick={() => onClaim(item)}
+                  >
+                    <Icon name="redeem" size={18} />
+                    {gettext('Lo regalo io')}
+                  </button>
+                )
               ) : (
                 mine && (
                   <button
@@ -219,6 +238,8 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
     [...all]
       .filter((item) => view === 'all' || !item.gifted || isMine(item))
       .sort((a, b) => Number(Boolean(a.gifted)) - Number(Boolean(b.gifted)))
+  const requiredOf = (item: SharedWish) =>
+    item.requires_id ? everything.find((other) => other.id === item.requires_id) : undefined
   const items = visible(list.items)
   const sections = list.sections
     .map((section) => ({ ...section, items: visible(section.items) }))
@@ -304,6 +325,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
           <SharedCards
             items={items}
             isMine={isMine}
+            requiredOf={requiredOf}
             onClaim={setClaiming}
             onView={setViewing}
             onRelease={(item) => release.mutate(item.id)}
@@ -314,6 +336,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
               <SharedCards
                 items={section.items}
                 isMine={isMine}
+                requiredOf={requiredOf}
                 onClaim={setClaiming}
                 onView={setViewing}
                 onRelease={(item) => release.mutate(item.id)}

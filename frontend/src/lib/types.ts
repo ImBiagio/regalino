@@ -65,6 +65,9 @@ export interface Wish {
   price: Money | null
   /** Percorso della foto (`/media/...`), da passare a `mediaUrl`. */
   image: string | null
+  /** "Va con" un altro regalo della lista: si spunta solo dopo quello (ADR 0009). */
+  requires_id: UUID | null
+  requires_title: string
   /** `null` quando la lista nasconde le spunte al proprietario. */
   gifted: boolean | null
   gifted_by_name: string
@@ -75,6 +78,7 @@ export interface Wish {
 /** `image_id`: assente = foto invariata, `null` = toglila, id = quella caricata. */
 export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price'> & {
   image_id?: UUID | null
+  requires_id?: UUID | null
 }
 
 export type IdeaStatus = 'idea' | 'bought' | 'given'
@@ -139,6 +143,8 @@ export interface SharedWish {
   url: string
   price: Money | null
   image: string | null
+  /** Il regalo con cui va (stessa lista): "Lo regalo io" solo dopo quello. */
+  requires_id: UUID | null
   gifted: boolean | null
   gifted_by_name: string
   /** Spuntato dall'utente loggato che guarda: puo' togliere la spunta. */

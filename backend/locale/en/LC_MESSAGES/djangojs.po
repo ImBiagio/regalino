@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 10:27+0100\n"
+"POT-Creation-Date: 2026-11-06 10:32+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -482,6 +482,10 @@ msgid "Totale indicativo"
 msgstr "Approximate total"
 
 #, javascript-format
+msgid "Va con «%s»"
+msgstr "Goes with “%s”"
+
+#, javascript-format
 msgid "Regalato da %s"
 msgstr "Given by %s"
 
@@ -513,7 +517,9 @@ msgstr "Include another list"
 msgid ""
 "I regali di una lista inclusa compaiono anche qui e nel link di questa, in "
 "una sezione a parte."
-msgstr "The gifts of an included list show up here too, and in this list’s link, in a section of their own."
+msgstr ""
+"The gifts of an included list show up here too, and in this list’s link, in "
+"a section of their own."
 
 msgid "Apri la lista"
 msgstr "Open the list"
@@ -524,7 +530,10 @@ msgstr "Included lists"
 msgid ""
 "I regali delle liste scelte compaiono qui sotto e nel link di questa lista, "
 "ognuna nella sua sezione. Le liste restano anche da sole, con il loro link."
-msgstr "The gifts of the chosen lists show up below and in this list’s link, each in its own section. The lists also keep living on their own, with their own link."
+msgstr ""
+"The gifts of the chosen lists show up below and in this list’s link, each in "
+"its own section. The lists also keep living on their own, with their own "
+"link."
 
 msgid "Non hai altre liste da includere."
 msgstr "You have no other lists to include."
@@ -546,6 +555,15 @@ msgstr "Headphones, a book, a dinner out…"
 
 msgid "Prezzo indicativo (facoltativo)"
 msgstr "Approximate price (optional)"
+
+msgid "Va con un altro regalo (facoltativo)"
+msgstr "Goes with another gift (optional)"
+
+msgid "Chi ha il link può prenderlo solo dopo che quello è stato preso."
+msgstr "Whoever has the link can take it only after that one has been taken."
+
+msgid "Nessuno"
+msgstr "None"
 
 msgid "Note (taglia, colore, dove trovarlo)"
 msgstr "Notes (size, colour, where to find it)"
@@ -794,6 +812,14 @@ msgstr "%s is giving it"
 
 msgid "Già preso"
 msgstr "Taken"
+
+#, javascript-format
+msgid "Prima serve che qualcuno prenda «%s»."
+msgstr "Someone needs to take “%s” first."
+
+#, javascript-format
+msgid "Prima «%s»"
+msgstr "“%s” first"
 
 msgid "Lo regalo io"
 msgstr "I'll give it"

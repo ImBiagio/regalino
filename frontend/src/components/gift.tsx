@@ -198,6 +198,7 @@ export function GiftCard({
   taken,
   onClick,
   onImage,
+  detail,
   footer,
 }: {
   /** L'id del regalo: sceglie la carta del pacco se manca la foto. */
@@ -215,6 +216,8 @@ export function GiftCard({
   onClick?: () => void
   /** Tocco sulla foto (chi ha il link la vede grande). */
   onImage?: () => void
+  /** Una riga sotto prezzo e negozio (es. "Va con «Cuffie»"). */
+  detail?: ReactNode
   footer?: ReactNode
 }) {
   const media = (
@@ -278,6 +281,12 @@ export function GiftCard({
           {title}
         </p>
         <GiftMeta price={price} url={url} />
+        {detail && (
+          <p className="mt-1 flex items-center gap-1 text-body-small text-on-surface-variant">
+            <Icon name="link" size={16} />
+            <span className="truncate">{detail}</span>
+          </p>
+        )}
         {notes && (
           <p className="mt-1 line-clamp-3 whitespace-pre-line text-body-small text-on-surface-variant">
             {notes}

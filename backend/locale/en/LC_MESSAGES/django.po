@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 10:27+0100\n"
+"POT-Creation-Date: 2026-11-06 10:32+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -99,15 +99,15 @@ msgid ""
 "telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
 
-#: apps/gifts/models.py:212
+#: apps/gifts/models.py:229
 msgid "Idea"
 msgstr "Idea"
 
-#: apps/gifts/models.py:213
+#: apps/gifts/models.py:230
 msgid "Comprato"
 msgstr "Bought"
 
-#: apps/gifts/models.py:214
+#: apps/gifts/models.py:231
 msgid "Regalato"
 msgstr "Given"
 
@@ -115,25 +115,40 @@ msgstr "Given"
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:233
+#: apps/gifts/serializers.py:139
+msgid "Scegli un regalo di questa lista."
+msgstr "Pick a gift from this list."
+
+#: apps/gifts/serializers.py:142
+msgid "Un regalo non puo' andare con se stesso."
+msgstr "A gift can't go with itself."
+
+#: apps/gifts/serializers.py:149
+#, python-format
+msgid "«%(title)s» va gia' con questo regalo: sarebbe un giro."
+msgstr "“%(title)s” already goes with this gift: that would be a loop."
+
+#: apps/gifts/serializers.py:273
 msgid "Una lista non puo' includere se stessa."
 msgstr "A list can't include itself."
 
-#: apps/gifts/serializers.py:238
+#: apps/gifts/serializers.py:278
 msgid ""
 "Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
-msgstr "This list already sits inside another one: it can't include lists in turn."
+msgstr ""
+"This list already sits inside another one: it can't include lists in turn."
 
-#: apps/gifts/serializers.py:243
+#: apps/gifts/serializers.py:283
 msgid "Una delle liste non esiste piu'."
 msgstr "One of the lists no longer exists."
 
-#: apps/gifts/serializers.py:246
+#: apps/gifts/serializers.py:286
 #, python-format
 msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
-msgstr "“%(title)s” already includes other lists: an included list can't include any."
+msgstr ""
+"“%(title)s” already includes other lists: an included list can't include any."
 
-#: apps/gifts/serializers.py:309
+#: apps/gifts/serializers.py:349
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
@@ -149,15 +164,20 @@ msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:405
+#: apps/gifts/views.py:407
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:410
+#: apps/gifts/views.py:412
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:452
+#: apps/gifts/views.py:418
+#, python-format
+msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
+msgstr "It goes with “%(title)s”: someone needs to give that one first."
+
+#: apps/gifts/views.py:462
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 
