@@ -91,14 +91,26 @@ function ResendVerification({ email }: { email: string }) {
   )
 }
 
+/**
+ * Dove andare dopo login o registrazione (`?next=/unisciti/...`): solo
+ * percorsi interni, cosi' un link falso non manda fuori dall'app.
+ */
+function useNextPath(): { next: string; query: string } {
+  const [params] = useSearchParams()
+  const raw = params.get('next') ?? ''
+  const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
+  return { next, query: next === '/' ? '' : `?next=${encodeURIComponent(next)}` }
+}
+
 export function LoginPage() {
   const { login, user } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const { next, query } = useNextPath()
 
-  if (user) return <Navigate to="/" replace />
+  if (user) return <Navigate to={next} replace />
 
   return (
     <Shell
@@ -108,7 +120,7 @@ export function LoginPage() {
           {gettext('Non hai un account?')}{' '}
           <Link
             className="font-medium text-primary underline-offset-2 hover:underline"
-            to="/registrati"
+            to={`/registrati${query}`}
           >
             {gettext('Registrati')}
           </Link>
@@ -175,8 +187,9 @@ export function RegisterPage() {
   const [error, setError] = useState<unknown>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const { next, query } = useNextPath()
 
-  if (user) return <Navigate to="/" replace />
+  if (user) return <Navigate to={next} replace />
 
   return (
     <Shell
@@ -186,7 +199,7 @@ export function RegisterPage() {
           {gettext('Hai già un account?')}{' '}
           <Link
             className="font-medium text-primary underline-offset-2 hover:underline"
-            to="/accedi"
+            to={`/accedi${query}`}
           >
             {gettext('Accedi')}
           </Link>
@@ -196,7 +209,7 @@ export function RegisterPage() {
       {message ? (
         <div className="grid gap-3">
           <p className="text-body-medium">{message}</p>
-          <Link className="btn-tonal w-full" to="/accedi">
+          <Link className="btn-tonal w-full" to={`/accedi${query}`}>
             {gettext('Torna al login')}
           </Link>
         </div>

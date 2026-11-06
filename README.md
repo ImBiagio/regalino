@@ -48,6 +48,14 @@ chi lo ha vede la lista **senza account** (quanti regali restano, filtri "Da
 prendere" / "Tutti"), e tocca "Lo regalo io" lasciando il nome se vuole. Il regalo risulta preso per tutti. Rigenerare il link spegne
 quello vecchio; eliminare la lista lo spegne del tutto.
 
+**Scritta in due** ([ADR 0007](docs/decisions/0007-liste-scritte-insieme.md)).
+Una lista si può scrivere con altri: dal riquadro "La scrivi solo tu" si crea
+un link d'invito (`/unisciti/<token>`), chi lo apre con un account entra e
+aggiunge e modifica i regali come il proprietario (e sul link pubblico, come
+lui, non spunta e non vede le spunte). Solo il proprietario elimina la lista,
+rigenera il link pubblico e toglie gli altri; un membro può uscire. Il link
+d'invito si spegne e si rinnova.
+
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua
 area né aprendo il proprio link (e lì non può spuntare). Se preferisce saperlo
@@ -148,7 +156,10 @@ docs/decisions/          ADR
 | | |
 |---|---|
 | `GET/POST /api/lists`, `GET/PATCH/DELETE /api/lists/{id}` | le mie liste |
-| `POST /api/lists/{id}/regenerate-link` | link nuovo, il vecchio muore |
+| `POST /api/lists/{id}/regenerate-link` | link nuovo, il vecchio muore (solo il proprietario) |
+| `POST/DELETE /api/lists/{id}/invite-link` | crea/rinnova o spegne il link d'invito |
+| `DELETE /api/lists/{id}/members/{user_id}` | toglie un membro (proprietario) o se stessi |
+| `GET /api/invites/{token}` · `POST /api/invites/{token}` | anteprima dell'invito ed entrata nella lista (serve il login) |
 | `GET/POST /api/lists/{id}/items`, `…/items/{id}` | i regali di una lista |
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
@@ -247,11 +258,14 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-104 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+110 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
-spengono il link, regali eliminati che spariscono. Foto: WebP ridotto senza
+spengono il link, regali eliminati che spariscono. Liste scritte insieme:
+invito col link (serve il login, due volte non fa due membri, link spento o
+rinnovato → 404), il membro scrive e invita ma non elimina, non rigenera e non
+toglie gli altri, esce da solo, sul link pubblico è come il proprietario. Foto: WebP ridotto senza
 EXIF/GPS, file non immagine o troppo grandi rifiutati, foto altrui non
 collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
 non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta

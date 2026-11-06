@@ -6,6 +6,7 @@ import { useLists, useSaveList } from '../../api/hooks'
 import { AddTile, GiftWrap, countdownLabel } from '../../components/gift'
 import { Page, PageHeader } from '../../components/Layout'
 import {
+  AvatarStack,
   EmptyState,
   ErrorBanner,
   Fab,
@@ -18,7 +19,7 @@ import {
 } from '../../components/ui'
 import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { daysUntil, formatDate } from '../../lib/format'
+import { daysUntil, formatDate, joinNames } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { WishList } from '../../lib/types'
 
@@ -105,7 +106,12 @@ export function ListsPage() {
 
 /** Una lista come un pacco: la carta in alto con quanto manca, sotto i conti. */
 function ListCard({ list }: { list: WishList }) {
+  const { user } = useAuth()
   const past = list.event_date !== null && daysUntil(list.event_date) < 0
+  // Chi la scrive insieme a me: gli altri membri, piu' il proprietario se non sono io.
+  const others = (list.is_owner ? list.members : [list.owner, ...list.members]).filter(
+    (person) => person.id !== user?.id,
+  )
   return (
     <Link to={`/liste/${list.id}`} className="card-elevated state flex flex-col overflow-hidden">
       <span className="relative block h-24">
@@ -135,6 +141,16 @@ function ListCard({ list }: { list: WishList }) {
         {list.description && (
           <span className="line-clamp-2 text-body-medium text-on-surface-variant">
             {list.description}
+          </span>
+        )}
+        {others.length > 0 && (
+          <span className="flex items-center gap-2 text-body-small text-on-surface-variant">
+            <AvatarStack people={others.map((p) => ({ name: p.display_name }))} size={24} />
+            <span className="truncate">
+              {list.is_owner
+                ? interpolate(gettext('Con %s'), [joinNames(others.map((p) => p.display_name))])
+                : interpolate(gettext('Di %s'), [list.owner.display_name])}
+            </span>
           </span>
         )}
         <span className="mt-auto grid gap-2">

@@ -5,6 +5,7 @@ import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
+  Invite,
   LinkDescription,
   LinkDetails,
   SharedWish,
@@ -21,6 +22,7 @@ export const keys = {
   items: (id: UUID) => ['lists', id, 'items'] as const,
   ideas: ['ideas'] as const,
   shared: (token: string) => ['shared', token] as const,
+  invite: (token: string) => ['invites', token] as const,
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -68,6 +70,44 @@ export function useRegenerateLink(listId: UUID) {
   const client = useQueryClient()
   return useMutation({
     mutationFn: () => api.post<WishList>(`/api/lists/${listId}/regenerate-link`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
+  })
+}
+
+/* ------------------------------------------------- scrivere la lista insieme -- */
+
+/** `true` crea (o rinnova) il link d'invito, `false` lo spegne. */
+export function useInviteLink(listId: UUID) {
+  const client = useQueryClient()
+  const url = `/api/lists/${listId}/invite-link`
+  return useMutation({
+    mutationFn: (enable: boolean) => (enable ? api.post<WishList>(url) : api.delete<WishList>(url)),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
+  })
+}
+
+/** Toglie un membro (il proprietario) o se stesso (un membro che esce). */
+export function useRemoveMember(listId: UUID) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: UUID) =>
+      api.delete<WishList | void>(`/api/lists/${listId}/members/${userId}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
+  })
+}
+
+export function useInvite(token: string) {
+  return useQuery({
+    queryKey: keys.invite(token),
+    queryFn: () => api.get<Invite>(`/api/invites/${token}`),
+    retry: false,
+  })
+}
+
+export function useAcceptInvite(token: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<WishList>(`/api/invites/${token}`),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
   })
 }

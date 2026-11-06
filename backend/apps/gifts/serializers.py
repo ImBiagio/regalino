@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import GiftIdea, GiftImage, Wish, WishList
+from .models import GiftIdea, GiftImage, Wish, WishList, WishListMember
 
 
 def validate_price(value: Decimal | None) -> Decimal | None:
@@ -133,9 +133,19 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
         return obj.gifted_by_name if self._reveals(obj) and obj.is_gifted else ""
 
 
+class PersonSerializer(serializers.Serializer):
+    """Chi e' (proprietario, membro): solo id e nome, mai l'email."""
+
+    id = serializers.UUIDField(read_only=True)
+    display_name = serializers.CharField(read_only=True)
+
+
 class WishListSerializer(serializers.ModelSerializer):
     item_count = serializers.IntegerField(read_only=True, default=0)
     gifted_count = serializers.SerializerMethodField()
+    owner = PersonSerializer(read_only=True)
+    members = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
 
     class Meta:
         model = WishList
@@ -146,17 +156,52 @@ class WishListSerializer(serializers.ModelSerializer):
             "event_date",
             "show_gifted",
             "share_token",
+            "invite_token",
+            "owner",
+            "members",
+            "is_owner",
             "item_count",
             "gifted_count",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "share_token", "created_at", "updated_at"]
+        read_only_fields = ["id", "share_token", "invite_token", "created_at", "updated_at"]
 
     def get_gifted_count(self, obj: WishList) -> int | None:
         if not obj.show_gifted:
             return None
         return getattr(obj, "gifted_total", None) or 0
+
+    @extend_schema_field(PersonSerializer(many=True))
+    def get_members(self, obj: WishList):
+        # ``memberships`` e' prefetchato dalla vista: ordinato per ingresso.
+        return PersonSerializer([m.user for m in obj.memberships.all()], many=True).data
+
+    def get_is_owner(self, obj: WishList) -> bool:
+        request = self.context.get("request")
+        return request is not None and request.user.pk == obj.owner_id
+
+
+class InviteSerializer(serializers.Serializer):
+    """L'anteprima di un invito: cosa si accetta, prima di entrare."""
+
+    id = serializers.UUIDField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    event_date = serializers.DateField(read_only=True, allow_null=True)
+    owner_name = serializers.CharField(read_only=True)
+    member_count = serializers.IntegerField(read_only=True)
+    already_member = serializers.BooleanField(read_only=True)
+
+
+def invite_data(wish_list: WishList, user) -> dict:
+    return {
+        "id": wish_list.id,
+        "title": wish_list.title,
+        "event_date": wish_list.event_date,
+        "owner_name": wish_list.owner.display_name,
+        "member_count": WishListMember.objects.filter(wish_list=wish_list).count(),
+        "already_member": wish_list.is_member(user),
+    }
 
 
 class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):

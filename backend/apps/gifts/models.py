@@ -4,7 +4,9 @@ Due cose diverse, che non si toccano:
 
 - ``WishList`` + ``Wish``: i regali che *io* vorrei ricevere. La lista si
   condivide con un link segreto (``share_token``): chi lo ha vede i regali e
-  puo' spuntarli come fatti, senza account.
+  puo' spuntarli come fatti, senza account. Una lista puo' essere scritta da
+  piu' utenti (``WishListMember``, ADR 0007): chi entra col link d'invito
+  (``invite_token``) la vede e la modifica come il proprietario.
 - ``GiftIdea``: i regali che ho in mente *per gli altri*. Privata, la vede solo
   chi l'ha scritta.
 """
@@ -15,6 +17,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
@@ -72,6 +75,10 @@ class WishList(BaseModel):
     # sorpresa resta. Chi preferisce saperlo (es. per non ricevere doppioni
     # dalla stessa persona) lo accende.
     show_gifted = models.BooleanField(default=False)
+    # Il link d'invito per scrivere insieme (``/unisciti/<invite_token>``):
+    # chi lo apre da loggato diventa membro. Nullo finche' nessuno lo crea, e
+    # di nuovo nullo quando lo si spegne.
+    invite_token = models.CharField(max_length=40, unique=True, null=True, blank=True)
 
     history = HistoricalRecords()
 
@@ -80,6 +87,42 @@ class WishList(BaseModel):
 
     def __str__(self) -> str:
         return self.title
+
+    @classmethod
+    def for_user(cls, user) -> models.QuerySet[WishList]:
+        """Le liste che l'utente puo' vedere e modificare: sue o in cui e' membro."""
+        return cls.objects.filter(Q(owner=user) | Q(memberships__user=user)).distinct()
+
+    def is_member(self, user) -> bool:
+        """Proprietario o membro: chi scrive la lista (e non ne spunta i regali)."""
+        if user is None or not user.is_authenticated:
+            return False
+        return user.pk == self.owner_id or self.memberships.filter(user=user).exists()
+
+
+class WishListMember(models.Model):
+    """Un utente che scrive una lista non sua (ADR 0007).
+
+    Nessun ruolo: chi e' dentro fa tutto quello che fa il proprietario, tranne
+    eliminare la lista, rigenerare il link pubblico e togliere gli altri.
+    Togliere un membro cancella la riga: non c'e' niente da ripristinare.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    wish_list = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="list_memberships"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["wish_list", "user"], name="unique_list_member")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} ∈ {self.wish_list}"
 
 
 class Wish(BaseModel):

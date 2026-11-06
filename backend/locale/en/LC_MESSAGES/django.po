@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 14:34+0100\n"
+"POT-Creation-Date: 2026-11-06 10:20+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/images.py:63 apps/gifts/views.py:154
+#: apps/gifts/images.py:63 apps/gifts/views.py:247
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
@@ -47,10 +47,15 @@ msgid "Il link usa una porta non ammessa."
 msgstr "The link uses a port that isn't allowed."
 
 #: apps/gifts/images.py:156
-msgid "Il sito non si lascia leggere in automatico: carica la foto, oppure incolla il link diretto dell'immagine (tasto destro sulla foto → Copia indirizzo immagine)."
-msgstr "The site blocks automatic reading: upload the photo, or paste the direct link of the image (right-click the photo → Copy image address)."
+msgid ""
+"Il sito non si lascia leggere in automatico: carica la foto, oppure incolla "
+"il link diretto dell'immagine (tasto destro sulla foto → Copia indirizzo "
+"immagine)."
+msgstr ""
+"The site blocks automatic reading: upload the photo, or paste the direct "
+"link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/images.py:163 apps/gifts/links.py:294
+#: apps/gifts/images.py:163 apps/gifts/links.py:320
 #, python-format
 msgid "Il sito ha risposto con un errore (%s)."
 msgstr "The site answered with an error (%s)."
@@ -71,31 +76,38 @@ msgstr "I can't read the link."
 msgid "Il link rimanda troppe volte altrove."
 msgstr "The link redirects too many times."
 
-#: apps/gifts/links.py:250
+#: apps/gifts/links.py:276
 msgid "Il link non e' ne' un'immagine ne' una pagina web."
 msgstr "The link is neither an image nor a web page."
 
-#: apps/gifts/links.py:272 apps/gifts/links.py:274 apps/gifts/links.py:277
+#: apps/gifts/links.py:298 apps/gifts/links.py:300 apps/gifts/links.py:303
 msgid "Non riesco ad aprire la pagina del link."
 msgstr "I can't open the link's page."
 
-#: apps/gifts/links.py:286
-msgid "Il sito chiede di dimostrare di non essere un robot: carica la foto, oppure incolla il link diretto dell'immagine (tasto destro sulla foto → Copia indirizzo immagine)."
-msgstr "The site asks to prove you're not a robot: upload the photo, or paste the direct link of the image (right-click the photo → Copy image address)."
+#: apps/gifts/links.py:312
+msgid ""
+"Il sito chiede di dimostrare di non essere un robot: carica la foto, oppure "
+"incolla il link diretto dell'immagine (tasto destro sulla foto → Copia "
+"indirizzo immagine)."
+msgstr ""
+"The site asks to prove you're not a robot: upload the photo, or paste the "
+"direct link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/links.py:367
-msgid "In quella pagina non trovo un'immagine del prodotto: caricala tu dal telefono."
+#: apps/gifts/links.py:397
+msgid ""
+"In quella pagina non trovo un'immagine del prodotto: caricala tu dal "
+"telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
 
-#: apps/gifts/models.py:139
+#: apps/gifts/models.py:182
 msgid "Idea"
 msgstr "Idea"
 
-#: apps/gifts/models.py:140
+#: apps/gifts/models.py:183
 msgid "Comprato"
 msgstr "Bought"
 
-#: apps/gifts/models.py:141
+#: apps/gifts/models.py:184
 msgid "Regalato"
 msgstr "Given"
 
@@ -103,27 +115,31 @@ msgstr "Given"
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:175
+#: apps/gifts/serializers.py:229
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
-#: apps/gifts/views.py:104
+#: apps/gifts/views.py:78
+msgid "Solo chi ha creato la lista puo' farlo."
+msgstr "Only whoever created the list can do that."
+
+#: apps/gifts/views.py:169
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:205
+#: apps/gifts/views.py:300
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:277
+#: apps/gifts/views.py:396
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:282
+#: apps/gifts/views.py:401
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:324
+#: apps/gifts/views.py:443
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 
@@ -132,32 +148,47 @@ msgid "Conferma il tuo indirizzo email"
 msgstr "Confirm your email address"
 
 #: apps/users/emails.py:24
-msgid "Manca un passo: conferma che questo indirizzo e' tuo e il tuo account Regalino e' pronto."
-msgstr "One last step: confirm this address is yours and your Regalino account is ready."
+msgid ""
+"Manca un passo: conferma che questo indirizzo e' tuo e il tuo account "
+"Regalino e' pronto."
+msgstr ""
+"One last step: confirm this address is yours and your Regalino account is "
+"ready."
 
 #: apps/users/emails.py:27
 msgid "Conferma email"
 msgstr "Confirm email"
 
 #: apps/users/emails.py:30
-msgid "Il link vale 3 giorni e una volta sola. Se non ti sei registrato tu, ignora questa mail."
-msgstr "The link is valid for 3 days and can be used once. If you didn't sign up, just ignore this email."
+msgid ""
+"Il link vale 3 giorni e una volta sola. Se non ti sei registrato tu, ignora "
+"questa mail."
+msgstr ""
+"The link is valid for 3 days and can be used once. If you didn't sign up, "
+"just ignore this email."
 
 #: apps/users/emails.py:40
 msgid "Reimposta la password di Regalino"
 msgstr "Reset your Regalino password"
 
 #: apps/users/emails.py:43
-msgid "Qualcuno (speriamo tu) ha chiesto di reimpostare la password del tuo account Regalino."
-msgstr "Someone (hopefully you) asked to reset the password of your Regalino account."
+msgid ""
+"Qualcuno (speriamo tu) ha chiesto di reimpostare la password del tuo account "
+"Regalino."
+msgstr ""
+"Someone (hopefully you) asked to reset the password of your Regalino account."
 
 #: apps/users/emails.py:46
 msgid "Scegli una nuova password"
 msgstr "Choose a new password"
 
 #: apps/users/emails.py:49
-msgid "Il link vale 2 ore e una volta sola. Se non l'hai chiesto tu, ignora questa mail: la password resta quella di prima."
-msgstr "The link is valid for 2 hours and can be used once. If you didn't request it, just ignore this email: your password stays the same."
+msgid ""
+"Il link vale 2 ore e una volta sola. Se non l'hai chiesto tu, ignora questa "
+"mail: la password resta quella di prima."
+msgstr ""
+"The link is valid for 2 hours and can be used once. If you didn't request "
+"it, just ignore this email: your password stays the same."
 
 #: apps/users/serializers.py:45
 msgid "Esiste gia' un account con questa email."

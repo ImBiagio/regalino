@@ -5,6 +5,7 @@ from .views import (
     GiftIdeaViewSet,
     ImageFromUrlView,
     ImageUploadView,
+    InviteView,
     LinkDescribeView,
     LinkReadView,
     SharedGiftView,
@@ -31,6 +32,7 @@ urlpatterns = [
     path("lists/<uuid:list_pk>/items", wish_list, name="wish-list-items"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>", wish_detail, name="wish-detail"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>/gift", wish_gift, name="wish-gift"),
+    path("invites/<str:token>", InviteView.as_view(), name="invite"),
     path("shared/<str:token>", SharedListView.as_view(), name="shared-list"),
     path(
         "shared/<str:token>/items/<uuid:item_id>/gift",

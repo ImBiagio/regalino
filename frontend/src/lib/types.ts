@@ -14,6 +14,12 @@ export interface User {
   language?: string
 }
 
+/** Chi e' (proprietario o membro di una lista): solo id e nome. */
+export interface Person {
+  id: UUID
+  display_name: string
+}
+
 export interface WishList {
   id: UUID
   title: string
@@ -22,6 +28,13 @@ export interface WishList {
   /** Se falso il proprietario non vede cosa e' gia' stato regalato. */
   show_gifted: boolean
   share_token: string
+  /** Il link `/unisciti/<token>` per scrivere la lista insieme; `null` se spento. */
+  invite_token: string | null
+  owner: Person
+  /** Chi scrive la lista oltre al proprietario. */
+  members: Person[]
+  /** Chi guarda e' il proprietario (puo' eliminare, rigenerare il link, togliere gli altri). */
+  is_owner: boolean
   item_count: number
   /** `null` finche' `show_gifted` e' spento: la sorpresa resta. */
   gifted_count: number | null
@@ -92,6 +105,16 @@ export interface LinkDetails extends LinkDescription {
   image_error: string | null
   /** Da passare a `links/describe` per nome e note di Gemini; null se non si usa. */
   describe_id: string | null
+}
+
+/** L'anteprima di un invito a scrivere una lista insieme. */
+export interface Invite {
+  id: UUID
+  title: string
+  event_date: string | null
+  owner_name: string
+  member_count: number
+  already_member: boolean
 }
 
 export interface SharedWish {

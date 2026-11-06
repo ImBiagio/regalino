@@ -9,7 +9,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -28,7 +28,7 @@ from .links import (
     recall_page,
     remember_page,
 )
-from .models import GiftIdea, GiftImage, Wish, WishList, new_share_token
+from .models import GiftIdea, GiftImage, Wish, WishList, WishListMember, new_share_token
 from .serializers import (
     GiftClaimSerializer,
     GiftIdeaSerializer,
@@ -36,6 +36,7 @@ from .serializers import (
     GiftReleaseSerializer,
     ImageFromUrlSerializer,
     ImageUploadSerializer,
+    InviteSerializer,
     LinkDescribeSerializer,
     LinkDescriptionSerializer,
     LinkDetailsSerializer,
@@ -44,6 +45,7 @@ from .serializers import (
     SharedWishSerializer,
     WishListSerializer,
     WishSerializer,
+    invite_data,
 )
 
 # Le liste di regali sono corte: niente paginazione, il client riceve tutto.
@@ -52,8 +54,32 @@ NO_PAGINATION = None
 ALIVE_ITEMS = Q(items__deleted_at__isnull=True)
 
 
+def lists_of(user):
+    """Le liste che l'utente scrive (sue o condivise con lui), coi contatori.
+
+    ``distinct=True`` nei conteggi: il join sui membri ripete le righe.
+    """
+    return (
+        WishList.for_user(user)
+        .select_related("owner")
+        .prefetch_related("memberships__user")
+        .annotate(
+            item_count=Count("items", filter=ALIVE_ITEMS, distinct=True),
+            gifted_total=Count(
+                "items", filter=ALIVE_ITEMS & Q(items__gifted_at__isnull=False), distinct=True
+            ),
+        )
+    )
+
+
+def _owner_only(request, wish_list: WishList) -> None:
+    """Eliminare la lista, rigenerare il link, togliere gli altri: solo chi l'ha creata."""
+    if request.user.pk != wish_list.owner_id:
+        raise PermissionDenied(_("Solo chi ha creato la lista puo' farlo."))
+
+
 class WishListViewSet(viewsets.ModelViewSet):
-    """Le liste dell'utente: ognuno vede e tocca solo le sue."""
+    """Le liste dell'utente: le sue e quelle in cui e' membro (ADR 0007)."""
 
     serializer_class = WishListSerializer
     pagination_class = NO_PAGINATION
@@ -61,21 +87,49 @@ class WishListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return WishList.objects.none()
-        return WishList.objects.filter(owner=self.request.user).annotate(
-            item_count=Count("items", filter=ALIVE_ITEMS),
-            gifted_total=Count("items", filter=ALIVE_ITEMS & Q(items__gifted_at__isnull=False)),
-        )
+        return lists_of(self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_destroy(self, instance):
+        _owner_only(self.request, instance)
+        instance.delete()
 
     @extend_schema(request=None, responses={200: WishListSerializer})
     @action(detail=True, methods=["post"], url_path="regenerate-link")
     def regenerate_link(self, request, pk=None):
         """Link nuovo: chi aveva il vecchio non vede piu' la lista."""
         wish_list = self.get_object()
+        _owner_only(request, wish_list)
         wish_list.share_token = new_share_token()
         wish_list.save(update_fields=["share_token", "updated_at"])
+        return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(request=None, responses={200: WishListSerializer})
+    @action(detail=True, methods=["post", "delete"], url_path="invite-link")
+    def invite_link(self, request, pk=None):
+        """POST crea (o rinnova) il link d'invito, DELETE lo spegne.
+
+        Lo puo' fare ogni membro: chi scrive la lista invita chi vuole.
+        """
+        wish_list = self.get_object()
+        wish_list.invite_token = new_share_token() if request.method == "POST" else None
+        wish_list.save(update_fields=["invite_token", "updated_at"])
+        return Response(self.get_serializer(self.get_object()).data)
+
+    @extend_schema(request=None, responses={200: WishListSerializer})
+    @action(detail=True, methods=["delete"], url_path=r"members/(?P<user_id>[^/]+)")
+    def remove_member(self, request, pk=None, user_id=None):
+        """Toglie un membro: il proprietario chiunque, un membro solo se stesso."""
+        wish_list = self.get_object()
+        if str(request.user.pk) != user_id:
+            _owner_only(request, wish_list)
+        deleted, _n = WishListMember.objects.filter(wish_list=wish_list, user_id=user_id).delete()
+        if not deleted:
+            raise NotFound()
+        if str(request.user.pk) == user_id:
+            return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(self.get_serializer(self.get_object()).data)
 
 
@@ -89,7 +143,7 @@ class WishViewSet(viewsets.ModelViewSet):
         # 404 e non 403 anche per le liste altrui: la loro esistenza non si dice.
         if getattr(self, "_wish_list", None) is None:
             self._wish_list = get_object_or_404(
-                WishList.objects.filter(owner=self.request.user), pk=self.kwargs["list_pk"]
+                WishList.for_user(self.request.user), pk=self.kwargs["list_pk"]
             )
         return self._wish_list
 
@@ -116,6 +170,34 @@ class WishViewSet(viewsets.ModelViewSet):
             )
         wish.clear_gift()
         return Response(self.get_serializer(wish).data)
+
+
+class InviteView(APIView):
+    """L'invito a scrivere una lista insieme: anteprima (GET) e ingresso (POST).
+
+    Serve un account: chi entra scrive la lista, e deve avere un nome e una
+    sessione per farlo. Un link spento o sbagliato da' 404, senza dire altro.
+    """
+
+    throttle_scope = "shared"
+
+    def _wish_list(self, token: str) -> WishList:
+        return get_object_or_404(WishList.objects.select_related("owner"), invite_token=token)
+
+    @extend_schema(responses={200: InviteSerializer})
+    def get(self, request, token: str):
+        wish_list = self._wish_list(token)
+        return Response(InviteSerializer(invite_data(wish_list, request.user)).data)
+
+    @extend_schema(request=None, responses={200: WishListSerializer})
+    def post(self, request, token: str):
+        wish_list = self._wish_list(token)
+        if request.user.pk != wish_list.owner_id:
+            WishListMember.objects.get_or_create(wish_list=wish_list, user=request.user)
+        data = WishListSerializer(
+            lists_of(request.user).get(pk=wish_list.pk), context={"request": request}
+        ).data
+        return Response(data)
 
 
 class GiftIdeaViewSet(viewsets.ModelViewSet):
@@ -258,7 +340,8 @@ def _shared_list(token: str) -> WishList:
 
 
 def _is_owner(request, wish_list: WishList) -> bool:
-    return request.user.is_authenticated and request.user.pk == wish_list.owner_id
+    """Chi scrive la lista (proprietario o membro): non spunta e non vede le spunte."""
+    return wish_list.is_member(request.user)
 
 
 def _shared_context(request, wish_list: WishList) -> dict:

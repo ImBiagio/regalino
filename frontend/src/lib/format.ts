@@ -1,4 +1,4 @@
-import { intlLocale } from './i18n'
+import { gettext, intlLocale } from './i18n'
 import type { Money } from './types'
 
 export function formatDate(isoDate: string): string {
@@ -47,6 +47,12 @@ export function parsePrice(raw: string): Money | null {
 export function priceInput(value: Money | null): string {
   if (!value) return ''
   return intlLocale().startsWith('it') ? value.replace('.', ',') : value
+}
+
+/** "Anna", "Anna e Luca", "Anna, Luca e Marco". */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? ''
+  return `${names.slice(0, -1).join(', ')} ${gettext('e')} ${names[names.length - 1]}`
 }
 
 /** Il dominio di un link, per mostrarlo al posto dell'URL intero. */

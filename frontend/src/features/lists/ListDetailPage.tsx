@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { NavLink, Navigate, useNavigate, useParams } from 'react-router-dom'
 
 import {
   useClearGift,
   useDeleteList,
   useDeleteWish,
+  useInviteLink,
   useList,
   useRegenerateLink,
+  useRemoveMember,
   useSaveList,
   useSaveWish,
   useWishes,
@@ -23,24 +26,32 @@ import {
 } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
 import {
+  Avatar,
+  AvatarStack,
   EmptyState,
   ErrorBanner,
   Fab,
   Field,
   Icon,
+  IconButton,
   Modal,
   Progress,
   Skeleton,
   Switch,
 } from '../../components/ui'
 import { ApiError } from '../../lib/api'
-import { formatPrice, parsePrice, priceInput } from '../../lib/format'
+import { useAuth } from '../../lib/auth'
+import { formatPrice, joinNames, parsePrice, priceInput } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
-import type { UUID, Wish, WishList } from '../../lib/types'
+import type { Person, UUID, Wish, WishList } from '../../lib/types'
 import { ListFormModal } from './ListsPage'
 
 export function shareUrl(list: Pick<WishList, 'share_token'>): string {
   return `${window.location.origin}/l/${list.share_token}`
+}
+
+export function inviteUrl(list: Pick<WishList, 'invite_token'>): string {
+  return `${window.location.origin}/unisciti/${list.invite_token ?? ''}`
 }
 
 /** Griglia delle card regalo: due colonne gia' sul telefono, come un catalogo. */
@@ -51,6 +62,7 @@ export function ListDetailPage() {
   const { data: list, isLoading, error } = useList(listId)
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
+  const [members, setMembers] = useState(false)
   const [wishForm, setWishForm] = useState<Wish | 'new' | null>(null)
 
   if (error instanceof ApiError && error.status === 404) return <Navigate to="/" replace />
@@ -98,6 +110,7 @@ export function ListDetailPage() {
           </button>
         </ListHero>
         <SurpriseCard list={list} />
+        <MembersCard list={list} onManage={() => setMembers(true)} />
         <WishGrid
           list={list}
           onEdit={(wish) => setWishForm(wish)}
@@ -114,11 +127,14 @@ export function ListDetailPage() {
         />
       )}
       {sharing && <ShareModal list={list} onClose={() => setSharing(false)} />}
+      {members && <MembersModal list={list} onClose={() => setMembers(false)} />}
       {editing && (
         <ListFormModal
           list={list}
           onClose={() => setEditing(false)}
-          footer={<DeleteListButton list={list} onDeleted={() => setEditing(false)} />}
+          footer={
+            list.is_owner && <DeleteListButton list={list} onDeleted={() => setEditing(false)} />
+          }
         />
       )}
     </Page>
@@ -495,31 +511,33 @@ function ShareModal({ list, onClose }: { list: WishList; onClose: () => void }) 
             {gettext('Vedi come gli altri')}
           </a>
         </div>
-        <div className="border-t border-outline-variant pt-4">
-          <p className="text-body-medium">{gettext('Il link è finito nelle mani sbagliate?')}</p>
-          <button
-            type="button"
-            className="btn-text btn-sm -ml-3 mt-1"
-            disabled={regenerate.isPending}
-            onClick={async () => {
-              const ok = await confirm({
-                title: gettext('Creare un link nuovo?'),
-                message: gettext(
-                  'Il link di adesso smette di funzionare: dovrai rimandare quello nuovo a chi vuoi che veda la lista. Le spunte restano.',
-                ),
-                confirmLabel: gettext('Crea link nuovo'),
-                icon: 'link_off',
-              })
-              if (ok) {
-                regenerate.mutate()
-                setCopied(false)
-              }
-            }}
-          >
-            <Icon name="autorenew" size={18} />
-            {gettext('Crea un link nuovo')}
-          </button>
-        </div>
+        {list.is_owner && (
+          <div className="border-t border-outline-variant pt-4">
+            <p className="text-body-medium">{gettext('Il link è finito nelle mani sbagliate?')}</p>
+            <button
+              type="button"
+              className="btn-text btn-sm -ml-3 mt-1"
+              disabled={regenerate.isPending}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: gettext('Creare un link nuovo?'),
+                  message: gettext(
+                    'Il link di adesso smette di funzionare: dovrai rimandare quello nuovo a chi vuoi che veda la lista. Le spunte restano.',
+                  ),
+                  confirmLabel: gettext('Crea link nuovo'),
+                  icon: 'link_off',
+                })
+                if (ok) {
+                  regenerate.mutate()
+                  setCopied(false)
+                }
+              }}
+            >
+              <Icon name="autorenew" size={18} />
+              {gettext('Crea un link nuovo')}
+            </button>
+          </div>
+        )}
       </div>
     </Modal>
   )
@@ -556,6 +574,235 @@ function DeleteListButton({ list, onDeleted }: { list: WishList; onDeleted: () =
         <Icon name="delete" size={18} />
         {gettext('Elimina lista')}
       </button>
+    </div>
+  )
+}
+
+/* ------------------------------------------------ scrivere la lista insieme -- */
+
+/** Chi scrive la lista oltre a chi guarda: per "Con Anna e Luca" / "Di Giulia". */
+function companions(list: WishList, me: UUID | undefined): Person[] {
+  const people = list.is_owner ? list.members : [list.owner, ...list.members]
+  return people.filter((person) => person.id !== me)
+}
+
+/**
+ * Sotto la sorpresa: chi scrive la lista, e il bottone per invitare o
+ * gestire. Anche da soli: e' qui che si scopre che si puo' scriverla in due.
+ */
+function MembersCard({ list, onManage }: { list: WishList; onManage: () => void }) {
+  const { user } = useAuth()
+  const others = companions(list, user?.id)
+  const alone = others.length === 0
+
+  return (
+    <div className="flex items-center gap-4 rounded-card bg-surface-container-low px-4 py-3">
+      {alone ? (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-secondary-container text-on-secondary-container">
+          <Icon name="group" size={22} />
+        </span>
+      ) : (
+        <AvatarStack people={others.map((p) => ({ name: p.display_name }))} size={36} />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-body-large">
+          {alone
+            ? gettext('La scrivi solo tu')
+            : list.is_owner
+              ? interpolate(gettext('La scrivi con %s'), [
+                  joinNames(others.map((p) => p.display_name)),
+                ])
+              : interpolate(gettext('Lista di %s'), [list.owner.display_name])}
+        </p>
+        <p className="text-body-small text-on-surface-variant">
+          {alone
+            ? gettext('Invita qualcuno a scriverla con te: aggiunge e modifica i regali come te.')
+            : list.is_owner || others.length === 1
+              ? gettext('Chi è dentro aggiunge e modifica i regali, e non vede chi li ha presi.')
+              : interpolate(gettext('La scrivete in %s.'), [others.length + 1])}
+        </p>
+      </div>
+      <button type="button" className="btn-tonal btn-sm shrink-0" onClick={onManage}>
+        <Icon name={alone ? 'person_add' : 'manage_accounts'} size={18} />
+        {alone ? gettext('Invita') : gettext('Gestisci')}
+      </button>
+    </div>
+  )
+}
+
+/** Chi c'e', il link d'invito, uscire. Togliere gli altri: solo il proprietario. */
+function MembersModal({ list, onClose }: { list: WishList; onClose: () => void }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const invite = useInviteLink(list.id)
+  const remove = useRemoveMember(list.id)
+  const confirm = useConfirm()
+  const [copied, setCopied] = useState(false)
+  const url = inviteUrl(list)
+  const canShare = typeof navigator.share === 'function'
+
+  const leave = async () => {
+    const ok = await confirm({
+      title: gettext('Uscire dalla lista?'),
+      message: interpolate(
+        gettext('«%s» sparisce dalle tue liste. Per tornarci ti serve un nuovo invito.'),
+        [list.title],
+      ),
+      confirmLabel: gettext('Esci dalla lista'),
+      destructive: true,
+    })
+    if (!ok || !user) return
+    await remove.mutateAsync(user.id).catch(() => null)
+    onClose()
+    navigate('/', { replace: true })
+  }
+
+  return (
+    <Modal open onClose={onClose} title={gettext('Chi scrive la lista')}>
+      <div className="grid gap-4">
+        <div className="grid gap-1">
+          <PersonRow person={list.owner} caption={gettext('Ha creato la lista')} me={user?.id} />
+          {list.members.map((member) => (
+            <PersonRow
+              key={member.id}
+              person={member}
+              me={user?.id}
+              action={
+                list.is_owner ? (
+                  <IconButton
+                    icon="person_remove"
+                    label={interpolate(gettext('Togli %s'), [member.display_name])}
+                    disabled={remove.isPending}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: interpolate(gettext('Togliere %s?'), [member.display_name]),
+                        message: gettext(
+                          'Non vedrà più la lista. Puoi mandare di nuovo l’invito quando vuoi.',
+                        ),
+                        confirmLabel: gettext('Togli'),
+                        destructive: true,
+                      })
+                      if (ok) remove.mutate(member.id)
+                    }}
+                  />
+                ) : member.id === user?.id ? (
+                  <button type="button" className="btn-text btn-sm text-error" onClick={leave}>
+                    {gettext('Esci dalla lista')}
+                  </button>
+                ) : undefined
+              }
+            />
+          ))}
+        </div>
+        <ErrorBanner error={invite.error ?? remove.error} />
+
+        <div className="grid gap-3 border-t border-outline-variant pt-4">
+          <p className="text-body-medium text-on-surface-variant">
+            {gettext(
+              'Chi apre il link d’invito con un account entra nella lista: aggiunge e modifica i regali come te. Non è il link da mandare a chi deve farti i regali.',
+            )}
+          </p>
+          {list.invite_token ? (
+            <>
+              <div className="flex items-center gap-2 rounded-row bg-surface-container px-4 py-3">
+                <Icon name="group_add" size={20} className="text-on-surface-variant" />
+                <span className="min-w-0 flex-1 truncate text-body-medium">{url}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-filled flex-1"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(url).catch(() => undefined)
+                    setCopied(true)
+                  }}
+                >
+                  <Icon name={copied ? 'check' : 'content_copy'} size={20} />
+                  {copied ? gettext('Link copiato') : gettext('Copia link')}
+                </button>
+                {canShare && (
+                  <button
+                    type="button"
+                    className="btn-tonal flex-1"
+                    onClick={() =>
+                      navigator
+                        .share({
+                          title: list.title,
+                          text: interpolate(gettext('Scrivi con me la lista dei regali: %s'), [
+                            list.title,
+                          ]),
+                          url,
+                        })
+                        .catch(() => undefined)
+                    }
+                  >
+                    <Icon name="ios_share" size={20} />
+                    {gettext('Invia…')}
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn-text btn-sm -ml-3 justify-self-start"
+                disabled={invite.isPending}
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: gettext('Spegnere il link d’invito?'),
+                    message: gettext(
+                      'Chi lo ha non può più entrare. Chi è già dentro resta. Potrai crearne uno nuovo.',
+                    ),
+                    confirmLabel: gettext('Spegni'),
+                    icon: 'link_off',
+                  })
+                  if (ok) {
+                    invite.mutate(false)
+                    setCopied(false)
+                  }
+                }}
+              >
+                <Icon name="link_off" size={18} />
+                {gettext('Spegni il link d’invito')}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn-tonal justify-self-start"
+              disabled={invite.isPending}
+              onClick={() => invite.mutate(true)}
+            >
+              <Icon name="group_add" size={20} />
+              {gettext('Crea il link d’invito')}
+            </button>
+          )}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function PersonRow({
+  person,
+  caption,
+  me,
+  action,
+}: {
+  person: Person
+  caption?: string
+  me: UUID | undefined
+  action?: ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-row bg-surface-container-low px-3 py-2">
+      <Avatar name={person.display_name} size={36} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-body-large">
+          {person.display_name}
+          {person.id === me && <span className="text-on-surface-variant"> · {gettext('tu')}</span>}
+        </p>
+        {caption && <p className="text-body-small text-on-surface-variant">{caption}</p>}
+      </div>
+      {action}
     </div>
   )
 }
