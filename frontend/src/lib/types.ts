@@ -12,6 +12,30 @@ export interface User {
   email_verified_at?: string | null
   /** Lingua dell'interfaccia e delle mail ('it' | 'en'). */
   language?: string
+  /** Dove arrivano gli avvisi (prezzo sceso): nell'app, per email o entrambi. */
+  notify_by?: NotifyBy
+}
+
+export type NotifyBy = 'app' | 'email' | 'both'
+
+/** Un prezzo visto sul link in una data (ADR 0011). */
+export interface PricePoint {
+  at: string
+  price: Money
+}
+
+export interface Notification {
+  id: UUID
+  title: string
+  body: string
+  url: string
+  read_at: string | null
+  created_at: string
+}
+
+export interface NotificationList {
+  unread: number
+  items: Notification[]
 }
 
 export interface ListRef {
@@ -70,6 +94,9 @@ export interface Wish {
   /** "Va con" un altro regalo della lista: si spunta solo dopo quello (ADR 0009). */
   requires_id: UUID | null
   requires_title: string
+  price_history: PricePoint[]
+  /** Chi guarda ha messo la campanella. */
+  watching: boolean
   /** `null` quando la lista nasconde le spunte al proprietario. */
   gifted: boolean | null
   gifted_by_name: string
@@ -97,11 +124,16 @@ export interface GiftIdea {
   brand: string
   occasion: string
   status: IdeaStatus
+  price_history: PricePoint[]
+  watching: boolean
   created_at: string
   updated_at: string
 }
 
-export type GiftIdeaPayload = Omit<GiftIdea, 'id' | 'image' | 'created_at' | 'updated_at'> & {
+export type GiftIdeaPayload = Omit<
+  GiftIdea,
+  'id' | 'image' | 'price_history' | 'watching' | 'created_at' | 'updated_at'
+> & {
   image_id?: UUID | null
 }
 
@@ -177,6 +209,8 @@ export interface SharedWish {
   brand: string
   /** Il regalo con cui va (stessa lista): "Lo regalo io" solo dopo quello. */
   requires_id: UUID | null
+  price_history: PricePoint[]
+  watching: boolean
   gifted: boolean | null
   gifted_by_name: string
   /** Spuntato dall'utente loggato che guarda: puo' togliere la spunta. */

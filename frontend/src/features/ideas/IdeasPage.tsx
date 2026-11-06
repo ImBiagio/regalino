@@ -1,9 +1,16 @@
 import clsx from 'clsx'
 import { useMemo, useState } from 'react'
 
-import { useDeleteIdea, useIdeas, useSaveIdea } from '../../api/hooks'
+import { useDeleteIdea, useIdeas, useSaveIdea, useWatchIdea } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta, GiftThumb, ImagePicker, WhereToBuy, useLinkFill } from '../../components/gift'
+import {
+  GiftMeta,
+  GiftThumb,
+  ImagePicker,
+  PriceTrend,
+  WhereToBuy,
+  useLinkFill,
+} from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
 import { Page, PageHeader } from '../../components/Layout'
 import {
@@ -180,6 +187,7 @@ function RecipientGroup({
 }) {
   const save = useSaveIdea()
   const remove = useDeleteIdea()
+  const watch = useWatchIdea()
   const confirm = useConfirm()
   const total = ideas.reduce((sum, idea) => sum + Number(idea.price ?? 0), 0)
 
@@ -214,7 +222,7 @@ function RecipientGroup({
           className="bg-primary-container text-on-primary-container"
         />
       </div>
-      <ErrorBanner error={save.error ?? remove.error} />
+      <ErrorBanner error={save.error ?? remove.error ?? watch.error} />
       <div className="grid gap-1">
         {ideas.map((idea) => (
           <div
@@ -241,6 +249,7 @@ function RecipientGroup({
                 <p className="text-body-small text-on-surface-variant">{idea.occasion}</p>
               )}
               <GiftMeta price={idea.price} url={idea.url} />
+              <PriceTrend history={idea.price_history} />
               <div
                 className="mt-2 flex flex-wrap items-center gap-2"
                 onClick={(event) => event.stopPropagation()}
@@ -265,7 +274,20 @@ function RecipientGroup({
                 <WhereToBuy item={idea} />
               </div>
             </div>
-            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex shrink-0 flex-col" onClick={(e) => e.stopPropagation()}>
+              {idea.url && (
+                <IconButton
+                  icon={idea.watching ? 'notifications_active' : 'notifications'}
+                  label={
+                    idea.watching
+                      ? gettext('Togli la campanella')
+                      : gettext('Avvisami se il prezzo scende')
+                  }
+                  disabled={watch.isPending}
+                  className={clsx(idea.watching && 'text-primary')}
+                  onClick={() => watch.mutate({ id: idea.id, watch: !idea.watching })}
+                />
+              )}
               <IconButton
                 icon="delete"
                 label={gettext('Elimina idea')}

@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import GiftIdea, GiftImage, Wish, WishList, WishListMember
+from .models import GiftIdea, GiftImage, Notification, Wish, WishList, WishListMember
 
 
 def validate_price(value: Decimal | None) -> Decimal | None:
@@ -57,6 +57,44 @@ class ImageFieldsMixin(serializers.Serializer):
 
     def get_image(self, obj) -> str | None:
         return image_url(obj.image)
+
+
+class PricePointSerializer(serializers.Serializer):
+    at = serializers.DateTimeField(source="seen_at", read_only=True)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+
+class PriceMixin(serializers.Serializer):
+    """Andamento del prezzo e campanella di chi guarda (ADR 0011).
+
+    ``price_points`` e ``watches`` sono prefetchati dalle viste: niente query
+    per card. Chi guarda e' ``request.user`` o, sul link, ``viewer_id``.
+    """
+
+    price_history = serializers.SerializerMethodField()
+    watching = serializers.SerializerMethodField()
+
+    @extend_schema_field(PricePointSerializer(many=True))
+    def get_price_history(self, obj):
+        points = list(obj.price_points.all())[-60:]
+        return PricePointSerializer(points, many=True).data
+
+    def _viewer_id(self):
+        if "viewer_id" in self.context:
+            return self.context["viewer_id"]
+        request = self.context.get("request")
+        return request.user.pk if request is not None and request.user.is_authenticated else None
+
+    def get_watching(self, obj) -> bool:
+        viewer = self._viewer_id()
+        return viewer is not None and any(w.user_id == viewer for w in obj.watches.all())
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "title", "body", "url", "read_at", "created_at"]
+        read_only_fields = fields
 
 
 class ImageUploadSerializer(serializers.Serializer):
@@ -129,7 +167,7 @@ class LinkDescribeSerializer(serializers.Serializer):
     describe_id = serializers.CharField(max_length=64)
 
 
-class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
+class WishSerializer(ImageFieldsMixin, PriceMixin, serializers.ModelSerializer):
     """Un regalo visto dal proprietario della lista.
 
     Lo stato "regalato" esce solo se la lista ha ``show_gifted``: altrimenti
@@ -159,6 +197,8 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
             "brand",
             "requires_id",
             "requires_title",
+            "price_history",
+            "watching",
             "gifted",
             "gifted_by_name",
             "created_at",
@@ -363,7 +403,7 @@ def invite_data(wish_list: WishList, user) -> dict:
     }
 
 
-class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):
+class GiftIdeaSerializer(ImageFieldsMixin, PriceMixin, serializers.ModelSerializer):
     class Meta:
         model = GiftIdea
         fields = [
@@ -379,6 +419,8 @@ class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):
             "brand",
             "occasion",
             "status",
+            "price_history",
+            "watching",
             "created_at",
             "updated_at",
         ]
@@ -397,7 +439,7 @@ class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):
 # --------------------------------------------------------- lista condivisa --
 
 
-class SharedWishSerializer(serializers.ModelSerializer):
+class SharedWishSerializer(PriceMixin, serializers.ModelSerializer):
     """Un regalo visto da chi ha il link: niente chiavi, niente id utente."""
 
     gifted = serializers.SerializerMethodField()
@@ -421,6 +463,8 @@ class SharedWishSerializer(serializers.ModelSerializer):
             "gtin",
             "brand",
             "requires_id",
+            "price_history",
+            "watching",
             "gifted",
             "gifted_by_name",
             "mine",
@@ -483,7 +527,9 @@ class SharedWishListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(SharedWishSerializer(many=True))
     def get_items(self, obj: WishList):
-        items = obj.items.select_related("image", "requires")
+        items = obj.items.select_related("image", "requires").prefetch_related(
+            "price_points", "watches"
+        )
         return SharedWishSerializer(items, many=True, context=self.context).data
 
     @extend_schema_field(SharedSectionSerializer(many=True))
@@ -492,7 +538,9 @@ class SharedWishListSerializer(serializers.ModelSerializer):
         context_of = self.context["context_of"]
         sections = []
         for child in alive_children(obj):
-            items = child.items.select_related("image", "requires")
+            items = child.items.select_related("image", "requires").prefetch_related(
+                "price_points", "watches"
+            )
             sections.append(
                 {
                     "id": child.id,

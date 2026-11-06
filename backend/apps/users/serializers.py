@@ -21,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
             "avatar",
             "email_verified_at",
             "language",
+            "notify_by",
         ]
         read_only_fields = ["id", "email", "email_verified_at"]
 

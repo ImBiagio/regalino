@@ -11,7 +11,7 @@ from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -29,7 +29,17 @@ from .links import (
     recall_page,
     remember_page,
 )
-from .models import GiftIdea, GiftImage, Wish, WishList, WishListMember, new_share_token
+from .models import (
+    GiftIdea,
+    GiftImage,
+    Notification,
+    PriceWatch,
+    Wish,
+    WishList,
+    WishListMember,
+    new_share_token,
+    seed_price,
+)
 from .serializers import (
     GiftClaimSerializer,
     GiftIdeaSerializer,
@@ -42,6 +52,7 @@ from .serializers import (
     LinkDescriptionSerializer,
     LinkDetailsSerializer,
     LinkReadSerializer,
+    NotificationSerializer,
     SharedSuggestSerializer,
     SharedWishListSerializer,
     SharedWishSerializer,
@@ -157,11 +168,23 @@ class WishViewSet(viewsets.ModelViewSet):
         return (
             Wish.objects.filter(wish_list=self.get_wish_list())
             .select_related("wish_list", "image", "requires")
+            .prefetch_related("price_points", "watches")
             .order_by("created_at")
         )
 
     def perform_create(self, serializer):
-        serializer.save(wish_list=self.get_wish_list())
+        seed_price(serializer.save(wish_list=self.get_wish_list()))
+
+    def perform_update(self, serializer):
+        seed_price(serializer.save())
+
+    @extend_schema(request=None, responses={200: WishSerializer})
+    @action(detail=True, methods=["post", "delete"], url_path="watch")
+    def watch(self, request, list_pk=None, pk=None):
+        """La campanella sul regalo: POST la mette, DELETE la toglie."""
+        wish = self.get_object()
+        _toggle_watch(request, wish=wish)
+        return Response(self.get_serializer(self.get_object()).data)
 
     @extend_schema(request=None, responses={200: WishSerializer})
     @action(detail=True, methods=["delete"], url_path="gift")
@@ -255,10 +278,65 @@ class GiftIdeaViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return GiftIdea.objects.none()
-        return GiftIdea.objects.filter(owner=self.request.user).select_related("image")
+        return (
+            GiftIdea.objects.filter(owner=self.request.user)
+            .select_related("image")
+            .prefetch_related("price_points", "watches")
+        )
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        seed_price(serializer.save(owner=self.request.user))
+
+    def perform_update(self, serializer):
+        seed_price(serializer.save())
+
+    @extend_schema(request=None, responses={200: GiftIdeaSerializer})
+    @action(detail=True, methods=["post", "delete"], url_path="watch")
+    def watch(self, request, pk=None):
+        idea = self.get_object()
+        _toggle_watch(request, idea=idea)
+        return Response(self.get_serializer(self.get_object()).data)
+
+
+def _toggle_watch(request, **target) -> None:
+    """Mette (POST) o toglie (DELETE) la campanella dell'utente su un regalo o un'idea."""
+    if request.method == "POST":
+        PriceWatch.objects.get_or_create(user=request.user, **target)
+    else:
+        PriceWatch.objects.filter(user=request.user, **target).delete()
+
+
+class NotificationsView(APIView):
+    """Gli avvisi dell'utente: gli ultimi 50 e quanti non letti; POST li segna letti."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                "NotificationList",
+                {
+                    "unread": serializers.IntegerField(),
+                    "items": NotificationSerializer(many=True),
+                },
+            )
+        }
+    )
+    def get(self, request):
+        rows = Notification.objects.filter(user=request.user)
+        return Response(
+            {
+                "unread": rows.filter(read_at=None).count(),
+                "items": NotificationSerializer(rows[:50], many=True).data,
+            }
+        )
+
+    @extend_schema(request=None, responses={204: None})
+    def post(self, request):
+        Notification.objects.filter(user=request.user, read_at=None).update(
+            read_at=timezone.now()
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ------------------------------------------------------------------ foto --
@@ -445,6 +523,40 @@ class SharedSuggestView(APIView):
         titles = list(Wish.objects.filter(wish_list__in=lists).values_list("title", flat=True))
         data = {"occasion": wish_list.title, "exclude": serializer.validated_data["exclude"]}
         return _suggest(data, known_gifts=titles[:40], alternative_to=wish.title)
+
+
+class SharedWatchView(APIView):
+    """La campanella di chi ha il link: serve un account, l'avviso va a qualcuno."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "shared"
+
+    def _wish(self, token: str, item_id) -> tuple[WishList, Wish]:
+        wish_list = _shared_list(token)
+        mine = Q(wish_list=wish_list) | Q(wish_list__in=wish_list.included_lists.all())
+        wish = get_object_or_404(Wish.objects.select_related("wish_list").filter(mine), pk=item_id)
+        return wish.wish_list, wish
+
+    def _respond(self, request, wish_list: WishList, wish: Wish) -> Response:
+        fresh = (
+            Wish.objects.select_related("image", "requires")
+            .prefetch_related("price_points", "watches")
+            .get(pk=wish.pk)
+        )
+        context = _shared_context(request, wish_list)
+        return Response(SharedWishSerializer(fresh, context=context).data)
+
+    @extend_schema(request=None, responses={200: SharedWishSerializer})
+    def post(self, request, token: str, item_id):
+        wish_list, wish = self._wish(token, item_id)
+        _toggle_watch(request, wish=wish)
+        return self._respond(request, wish_list, wish)
+
+    @extend_schema(request=None, responses={200: SharedWishSerializer})
+    def delete(self, request, token: str, item_id):
+        wish_list, wish = self._wish(token, item_id)
+        _toggle_watch(request, wish=wish)
+        return self._respond(request, wish_list, wish)
 
 
 ClaimResponse = inline_serializer(

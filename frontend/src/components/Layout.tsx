@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { useNotifications } from '../api/hooks'
 import { gettext } from '../lib/i18n'
 import { Icon } from './ui'
 
@@ -16,10 +17,14 @@ interface Destination {
 const DESTINATIONS: Destination[] = [
   { to: '/', label: gettext('Le mie liste'), icon: 'redeem', end: true },
   { to: '/da-regalare', label: gettext('Da regalare'), icon: 'volunteer_activism' },
+  { to: '/avvisi', label: gettext('Avvisi'), icon: 'notifications' },
   { to: '/account', label: gettext('Account'), icon: 'account_circle' },
 ]
 
 export function AppLayout() {
+  // Il contatore degli avvisi non letti sulla voce "Avvisi".
+  const { data: notifications } = useNotifications(true)
+  const badges: Record<string, number> = { '/avvisi': notifications?.unread ?? 0 }
   return (
     <div className="flex min-h-screen bg-surface">
       {/* --- navigation rail (desktop) --- */}
@@ -30,7 +35,11 @@ export function AppLayout() {
         <img src="/logo-mark.svg" alt="Regalino" width={48} height={48} className="h-12 w-12" />
         <div className="mt-8 flex flex-col items-center gap-3.5">
           {DESTINATIONS.map((destination) => (
-            <NavItem key={destination.to} destination={destination} />
+            <NavItem
+              key={destination.to}
+              destination={destination}
+              badge={badges[destination.to]}
+            />
           ))}
         </div>
       </nav>
@@ -46,14 +55,28 @@ export function AppLayout() {
         className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around bg-surface-container-low px-2 pt-3 md:hidden"
       >
         {DESTINATIONS.map((destination) => (
-          <NavItem key={destination.to} destination={destination} grow />
+          <NavItem
+            key={destination.to}
+            destination={destination}
+            badge={badges[destination.to]}
+            grow
+          />
         ))}
       </nav>
     </div>
   )
 }
 
-function NavItem({ destination, grow }: { destination: Destination; grow?: boolean }) {
+function NavItem({
+  destination,
+  grow,
+  badge,
+}: {
+  destination: Destination
+  grow?: boolean
+  /** Quanti non letti: il pallino con il numero sull'icona. */
+  badge?: number
+}) {
   return (
     <NavLink
       to={destination.to}
@@ -64,7 +87,7 @@ function NavItem({ destination, grow }: { destination: Destination; grow?: boole
         <>
           <span
             className={clsx(
-              'state flex items-center justify-center transition-colors duration-200 ease-m3',
+              'state relative flex items-center justify-center transition-colors duration-200 ease-m3',
               isActive
                 ? 'bg-secondary-container text-on-secondary-container'
                 : 'text-on-surface-variant',
@@ -72,6 +95,11 @@ function NavItem({ destination, grow }: { destination: Destination; grow?: boole
             style={{ width: 56, height: 32, borderRadius: 16 }}
           >
             <Icon name={destination.icon} size={24} filled={isActive} />
+            {badge ? (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-pill bg-error px-1 text-[11px] font-medium leading-none text-white">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            ) : null}
           </span>
           <span
             className={clsx(

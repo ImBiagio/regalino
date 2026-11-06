@@ -48,6 +48,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Lingua dell'interfaccia e delle mail (settings.LANGUAGES).
     language = models.CharField(max_length=8, choices=settings.LANGUAGES, default="it")
 
+    class NotifyBy(models.TextChoices):
+        APP = "app", "Solo nell'app"
+        EMAIL = "email", "Solo per email"
+        BOTH = "both", "Nell'app e per email"
+
+    # Dove arrivano gli avvisi (es. prezzo sceso, ADR 0011).
+    notify_by = models.CharField(max_length=8, choices=NotifyBy.choices, default=NotifyBy.BOTH)
+
     objects = UserManager()
 
     USERNAME_FIELD = "email"

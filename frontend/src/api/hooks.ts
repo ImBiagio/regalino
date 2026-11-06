@@ -8,6 +8,7 @@ import type {
   GiftSuggestion,
   Invite,
   LinkDescription,
+  NotificationList,
   LinkDetails,
   SharedWish,
   SharedWishList,
@@ -25,6 +26,7 @@ export const keys = {
   ideas: ['ideas'] as const,
   shared: (token: string) => ['shared', token] as const,
   invite: (token: string) => ['invites', token] as const,
+  notifications: ['notifications'] as const,
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -156,6 +158,61 @@ export function useClearGift(listId: UUID) {
   return useMutation({
     mutationFn: (id: UUID) => api.delete<Wish>(`/api/lists/${listId}/items/${id}/gift`),
     onSuccess: invalidate,
+  })
+}
+
+/* --------------------------------------------------------- prezzi e avvisi -- */
+
+/** La campanella su un regalo della propria lista: `watch` vero la mette. */
+export function useWatchWish(listId: UUID) {
+  const invalidate = useListInvalidation()
+  return useMutation({
+    mutationFn: ({ id, watch }: { id: UUID; watch: boolean }) => {
+      const url = `/api/lists/${listId}/items/${id}/watch`
+      return watch ? api.post<Wish>(url) : api.delete<Wish>(url)
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useWatchIdea() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, watch }: { id: UUID; watch: boolean }) => {
+      const url = `/api/ideas/${id}/watch`
+      return watch ? api.post<GiftIdea>(url) : api.delete<GiftIdea>(url)
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.ideas }),
+  })
+}
+
+/** La campanella di chi ha il link (serve un account). */
+export function useWatchSharedWish(token: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, watch }: { id: UUID; watch: boolean }) => {
+      const url = `/api/shared/${token}/items/${id}/watch`
+      return watch ? api.post<SharedWish>(url) : api.delete<SharedWish>(url)
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.shared(token) }),
+  })
+}
+
+/** Gli avvisi dell'utente; si rileggono da soli ogni minuto per il contatore. */
+export function useNotifications(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.notifications,
+    queryFn: () => api.get<NotificationList>('/api/notifications'),
+    enabled,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useMarkNotificationsRead() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<void>('/api/notifications'),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.notifications }),
   })
 }
 

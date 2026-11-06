@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:21+0100\n"
+"POT-Creation-Date: 2026-11-06 11:30+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/images.py:63 apps/gifts/views.py:292
+#: apps/gifts/images.py:63 apps/gifts/views.py:370
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
@@ -99,93 +99,116 @@ msgid ""
 "telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
 
-#: apps/gifts/models.py:232
+#: apps/gifts/models.py:235
 msgid "Idea"
 msgstr "Idea"
 
-#: apps/gifts/models.py:233
+#: apps/gifts/models.py:236
 msgid "Comprato"
 msgstr "Bought"
 
-#: apps/gifts/models.py:234
+#: apps/gifts/models.py:237
 msgid "Regalato"
 msgstr "Given"
+
+#: apps/gifts/prices.py:91
+#, python-format
+msgid "È sceso: %(title)s"
+msgstr "Price drop: %(title)s"
+
+#: apps/gifts/prices.py:92
+#, python-format
+msgid "Da %(before)s a %(after)s (-%(drop)s%%)"
+msgstr "From %(before)s to %(after)s (-%(drop)s%%)"
+
+#: apps/gifts/prices.py:105
+#, python-format
+msgid "Avevi messo la campanella su «%(title)s»."
+msgstr "You put the bell on “%(title)s”."
+
+#: apps/gifts/prices.py:107
+msgid "Apri"
+msgstr "Open"
+
+#: apps/gifts/prices.py:109
+msgid "Prezzo letto dal link del negozio: puo' cambiare ancora."
+msgstr "Price read from the shop link: it may change again."
 
 #: apps/gifts/serializers.py:14
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:178
+#: apps/gifts/serializers.py:218
 msgid "Scegli un regalo di questa lista."
 msgstr "Pick a gift from this list."
 
-#: apps/gifts/serializers.py:181
+#: apps/gifts/serializers.py:221
 msgid "Un regalo non puo' andare con se stesso."
 msgstr "A gift can't go with itself."
 
-#: apps/gifts/serializers.py:188
+#: apps/gifts/serializers.py:228
 #, python-format
 msgid "«%(title)s» va gia' con questo regalo: sarebbe un giro."
 msgstr "“%(title)s” already goes with this gift: that would be a loop."
 
-#: apps/gifts/serializers.py:312
+#: apps/gifts/serializers.py:352
 msgid "Una lista non puo' includere se stessa."
 msgstr "A list can't include itself."
 
-#: apps/gifts/serializers.py:317
+#: apps/gifts/serializers.py:357
 msgid ""
 "Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
 msgstr ""
 "This list already sits inside another one: it can't include lists in turn."
 
-#: apps/gifts/serializers.py:322
+#: apps/gifts/serializers.py:362
 msgid "Una delle liste non esiste piu'."
 msgstr "One of the lists no longer exists."
 
-#: apps/gifts/serializers.py:325
+#: apps/gifts/serializers.py:365
 #, python-format
 msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
 msgstr ""
 "“%(title)s” already includes other lists: an included list can't include any."
 
-#: apps/gifts/serializers.py:390
+#: apps/gifts/serializers.py:432
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
-#: apps/gifts/views.py:82
+#: apps/gifts/views.py:93
 msgid "Solo chi ha creato la lista puo' farlo."
 msgstr "Only whoever created the list can do that."
 
-#: apps/gifts/views.py:173
+#: apps/gifts/views.py:196
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:211
+#: apps/gifts/views.py:234
 msgid "I suggerimenti non sono attivi su questo server."
 msgstr "Suggestions are not enabled on this server."
 
-#: apps/gifts/views.py:230
+#: apps/gifts/views.py:253
 msgid "Adesso non riesco a trovare idee: riprova tra un momento."
 msgstr "I can't find ideas right now: try again in a moment."
 
-#: apps/gifts/views.py:345
+#: apps/gifts/views.py:423
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:486
+#: apps/gifts/views.py:598
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:491
+#: apps/gifts/views.py:603
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:497
+#: apps/gifts/views.py:609
 #, python-format
 msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
 msgstr "It goes with “%(title)s”: someone needs to give that one first."
 
-#: apps/gifts/views.py:541
+#: apps/gifts/views.py:653
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 
@@ -236,7 +259,7 @@ msgstr ""
 "The link is valid for 2 hours and can be used once. If you didn't request "
 "it, just ignore this email: your password stays the same."
 
-#: apps/users/serializers.py:45
+#: apps/users/serializers.py:46
 msgid "Esiste gia' un account con questa email."
 msgstr "An account with this email already exists."
 

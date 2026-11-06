@@ -10,8 +10,8 @@ import { useDescribeLink, useImageFromUrl, useReadLink, useUploadImage } from '.
 import { ApiError, mediaUrl } from '../lib/api'
 import { daysUntil, formatDate, formatPrice, hostOf, priceInput } from '../lib/format'
 import { gettext, interpolate, ngettext } from '../lib/i18n'
-import type { LinkDescription, Money, UUID } from '../lib/types'
-import { Field, Icon, Modal } from './ui'
+import type { LinkDescription, Money, PricePoint, UUID } from '../lib/types'
+import { Field, Icon, IconButton, Modal } from './ui'
 
 /** Prezzo e link del regalo, sotto il titolo di una riga. */
 export function GiftMeta({ price, url }: { price: Money | null; url: string }) {
@@ -200,6 +200,8 @@ export function GiftCard({
   onClick,
   onImage,
   detail,
+  trend,
+  corner,
   footer,
 }: {
   /** L'id del regalo: sceglie la carta del pacco se manca la foto. */
@@ -219,6 +221,10 @@ export function GiftCard({
   onImage?: () => void
   /** Una riga sotto prezzo e negozio (es. "Va con «Cuffie»"). */
   detail?: ReactNode
+  /** L'andamento del prezzo, sotto il resto. */
+  trend?: ReactNode
+  /** In alto a destra sulla foto (la campanella). */
+  corner?: ReactNode
   footer?: ReactNode
 }) {
   const media = (
@@ -238,6 +244,7 @@ export function GiftCard({
         />
       )}
       {badge && <span className="absolute left-2 top-2 max-w-[calc(100%-16px)]">{badge}</span>}
+      {corner && <span className="absolute right-2 top-2">{corner}</span>}
     </span>
   )
   return (
@@ -293,6 +300,7 @@ export function GiftCard({
             {notes}
           </p>
         )}
+        {trend}
         {footer && <div className="mt-auto pt-3">{footer}</div>}
       </div>
     </article>
@@ -850,5 +858,92 @@ export function WhereToBuyModal({ item, onClose }: { item: Findable; onClose: ()
         </div>
       </div>
     </Modal>
+  )
+}
+
+/* ------------------------------------------------------- prezzi e campanella -- */
+
+/**
+ * L'andamento del prezzo letto dal link (ADR 0011): una linea e quanto e'
+ * cambiato dal primo punto. Niente se c'e' un punto solo: non c'e' andamento.
+ */
+export function PriceTrend({ history }: { history: PricePoint[] }) {
+  if (history.length < 2) return null
+  const values = history.map((point) => Number(point.price))
+  const first = values[0]
+  const last = values[values.length - 1]
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const change = first > 0 ? Math.round(((last - first) / first) * 100) : 0
+  const width = 72
+  const height = 20
+  const span = max - min || 1
+  const line = values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * (width - 2) + 1
+      const y = height - 2 - ((value - min) / span) * (height - 4)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+  const tone = change < 0 ? 'text-success' : change > 0 ? 'text-error' : 'text-on-surface-variant'
+  return (
+    <p
+      className={clsx('mt-1 flex items-center gap-2 text-body-small', tone)}
+      title={interpolate(gettext('Minimo %s, massimo %s'), [
+        formatPrice(min.toFixed(2)),
+        formatPrice(max.toFixed(2)),
+      ])}
+    >
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
+        <polyline
+          points={line}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="truncate">
+        {change < 0
+          ? interpolate(gettext('−%s%% da quando è in lista'), [Math.abs(change)])
+          : change > 0
+            ? interpolate(gettext('+%s%% da quando è in lista'), [change])
+            : gettext('Prezzo stabile')}
+      </span>
+    </p>
+  )
+}
+
+/** La campanella: "avvisami se il prezzo scende". Piena quando e' messa. */
+export function WatchBell({
+  watching,
+  pending,
+  onToggle,
+  className,
+}: {
+  watching: boolean
+  pending?: boolean
+  onToggle: () => void
+  className?: string
+}) {
+  return (
+    <span
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+      className={className}
+    >
+      <IconButton
+        icon={watching ? 'notifications_active' : 'notifications'}
+        label={watching ? gettext('Togli la campanella') : gettext('Avvisami se il prezzo scende')}
+        onClick={onToggle}
+        disabled={pending}
+        inheritColor
+        className={clsx(
+          'shadow-fab',
+          watching ? 'bg-primary text-on-primary' : 'bg-surface text-on-surface-variant',
+        )}
+      />
+    </span>
   )
 }

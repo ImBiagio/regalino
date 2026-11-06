@@ -6,6 +6,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
+from . import prices
 from .models import GiftIdea, GiftImage, Wish
 
 
@@ -26,3 +27,26 @@ def delete_orphan_images() -> int:
         image.delete()
         deleted += 1
     return deleted
+
+
+@shared_task
+def check_prices() -> int:
+    """Di notte: rilegge i prezzi dai link, pochi per volta e spalmati (ADR 0011).
+
+    Un tetto a notte (``PRICE_CHECKS_PER_NIGHT``) e un intervallo tra una
+    pagina e l'altra: lo scraper sul server ci mette anche 20 secondi, e i
+    negozi non vanno martellati.
+    """
+    due = prices.targets_due(settings.PRICE_CHECKS_PER_NIGHT)
+    for index, (kind, pk) in enumerate(due):
+        check_price_of.apply_async(args=[kind, pk], countdown=index * settings.PRICE_CHECK_GAP)
+    return len(due)
+
+
+@shared_task
+def check_price_of(kind: str, pk: str) -> str | None:
+    target = prices.load(kind, pk)
+    if target is None:
+        return None
+    price = prices.check_price(target)
+    return str(price) if price is not None else None

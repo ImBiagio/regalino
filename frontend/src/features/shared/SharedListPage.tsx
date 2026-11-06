@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import {
   readClaims,
@@ -8,6 +8,7 @@ import {
   useReleaseGift,
   useSharedList,
   useSharedSuggest,
+  useWatchSharedWish,
 } from '../../api/hooks'
 import {
   GiftBadge,
@@ -16,6 +17,8 @@ import {
   GiftThumb,
   ImageViewer,
   ListHero,
+  PriceTrend,
+  WatchBell,
   WhereToBuy,
 } from '../../components/gift'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
@@ -29,6 +32,7 @@ import {
   Progress,
   Skeleton,
 } from '../../components/ui'
+import { useConfirm } from '../../components/ConfirmDialog'
 import { GIFT_GRID } from '../lists/ListDetailPage'
 import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
@@ -117,6 +121,8 @@ function SharedCards({
   onView,
   onRelease,
   onAlternatives,
+  onWatch,
+  watching,
   releasing,
 }: {
   items: SharedWish[]
@@ -128,6 +134,9 @@ function SharedCards({
   onRelease: (item: SharedWish) => void
   /** Un regalo preso da altri: idee simili da Gemini (ADR 0010). */
   onAlternatives: (item: SharedWish) => void
+  /** La campanella (ADR 0011): da sloggati porta al login. */
+  onWatch: (item: SharedWish) => void
+  watching: boolean
   releasing: boolean
 }) {
   return (
@@ -146,6 +155,17 @@ function SharedCards({
             notes={item.notes}
             taken={Boolean(item.gifted) && !mine}
             detail={required && interpolate(gettext('Va con «%s»'), [required.title])}
+            trend={<PriceTrend history={item.price_history} />}
+            corner={
+              item.url &&
+              item.gifted !== true && (
+                <WatchBell
+                  watching={item.watching}
+                  pending={watching}
+                  onToggle={() => onWatch(item)}
+                />
+              )
+            }
             onImage={item.image ? () => onView(item) : undefined}
             badge={
               item.gifted && (
@@ -308,6 +328,26 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
   const [claiming, setClaiming] = useState<SharedWish | null>(null)
   const [viewing, setViewing] = useState<SharedWish | null>(null)
   const [alternatives, setAlternatives] = useState<SharedWish | null>(null)
+  const watch = useWatchSharedWish(token)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const confirm = useConfirm()
+  // La campanella avvisa qualcuno: senza account non si sa chi. Si propone il login.
+  const toggleWatch = async (item: SharedWish) => {
+    if (user) {
+      watch.mutate({ id: item.id, watch: !item.watching })
+      return
+    }
+    const ok = await confirm({
+      title: gettext('Ti avviso se il prezzo scende'),
+      message: gettext(
+        'Per mandarti l’avviso (nell’app o per email) serve un account: accedi o creane uno, poi torni qui.',
+      ),
+      confirmLabel: gettext('Accedi'),
+      icon: 'notifications',
+    })
+    if (ok) navigate(`/accedi?next=${encodeURIComponent(window.location.pathname)}`)
+  }
   const claim = useClaimGift(token)
   const release = useReleaseGift(token)
   const claims = readClaims()
@@ -384,7 +424,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
         )
       )}
 
-      <ErrorBanner error={claim.error ?? release.error} />
+      <ErrorBanner error={claim.error ?? release.error ?? watch.error} />
       {everything.length === 0 ? (
         <EmptyState
           icon="hourglass_empty"
@@ -417,6 +457,8 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
             onView={setViewing}
             onRelease={(item) => release.mutate(item.id)}
             onAlternatives={setAlternatives}
+            onWatch={toggleWatch}
+            watching={watch.isPending}
             releasing={release.isPending}
           />
           {sections.map((section) => (
@@ -429,6 +471,8 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                 onView={setViewing}
                 onRelease={(item) => release.mutate(item.id)}
                 onAlternatives={setAlternatives}
+                onWatch={toggleWatch}
+                watching={watch.isPending}
                 releasing={release.isPending}
               />
             </SharedSectionBlock>

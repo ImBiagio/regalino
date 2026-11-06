@@ -2,11 +2,11 @@ import { useState } from 'react'
 
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import { Page } from '../../components/Layout'
-import { Avatar, ErrorBanner, Field, Icon, PasswordInput } from '../../components/ui'
+import { Avatar, ErrorBanner, Field, Icon, PasswordInput, Segmented } from '../../components/ui'
 import { ApiError, api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { gettext, interpolate } from '../../lib/i18n'
-import type { User } from '../../lib/types'
+import type { NotifyBy, User } from '../../lib/types'
 import { NewPasswordFields, requestEmail } from '../auth/AuthPages'
 
 /** Profilo, stato dell'email, password e lingua. */
@@ -30,6 +30,7 @@ export function AccountPage() {
         <ProfileSection user={user} />
         <EmailSection user={user} />
         <PasswordSection user={user} />
+        <NotifySection user={user} />
         <LanguageSection />
       </div>
     </Page>
@@ -225,6 +226,39 @@ function PasswordSection({ user }: { user: User }) {
 }
 
 /** Lingua dell'interfaccia e delle mail, salvata sul profilo. */
+/** Dove arrivano gli avvisi (prezzo sceso): nell'app, per email o entrambi. */
+function NotifySection({ user }: { user: User }) {
+  const { setUser } = useAuth()
+  const [error, setError] = useState<unknown>(null)
+  const value: NotifyBy = user.notify_by ?? 'both'
+  return (
+    <section className="rounded-card bg-surface-container-low p-5">
+      <h2 className="text-body-large font-medium">{gettext('Avvisi')}</h2>
+      <p className="mt-1 text-body-small text-on-surface-variant">
+        {gettext('Quando scende il prezzo di un regalo con la campanella: dove vuoi saperlo?')}
+      </p>
+      <Segmented
+        className="mt-3"
+        value={value}
+        options={[
+          { value: 'app', label: gettext('Solo nell’app') },
+          { value: 'email', label: gettext('Solo per email') },
+          { value: 'both', label: gettext('Entrambi') },
+        ]}
+        onChange={async (notify_by) => {
+          setError(null)
+          try {
+            setUser(await api.patch<User>('/api/me', { notify_by }))
+          } catch (err) {
+            setError(err)
+          }
+        }}
+      />
+      <ErrorBanner error={error} />
+    </section>
+  )
+}
+
 function LanguageSection() {
   return (
     <section className="rounded-card bg-surface-container-low p-5">

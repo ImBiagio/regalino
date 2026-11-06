@@ -10,6 +10,16 @@ export function formatDate(isoDate: string): string {
   }).format(new Date(year, month - 1, day))
 }
 
+/** Data e ora di un istante ISO, per gli avvisi. */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat(intlLocale(), {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
+
 /** Giorni da oggi a una data YYYY-MM-DD (negativi se passata). */
 export function daysUntil(isoDate: string): number {
   const [year, month, day] = isoDate.split('-').map(Number)

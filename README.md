@@ -80,6 +80,14 @@ nei negozi. Sul link condiviso, un regalo già preso ha "Alternative", idee
 simili partendo dalla lista. Serve `GEMINI_API_KEY`; limite `THROTTLE_SUGGEST`
 (30/ora).
 
+**Andamento del prezzo e campanella** ([ADR 0011](docs/decisions/0011-andamento-prezzo-e-campanella.md)).
+Ogni regalo o idea con un link ha la storia dei prezzi: il primo è quello di
+quando entra in lista, poi un task notturno rilegge la pagina (con un tetto:
+`PRICE_CHECKS_PER_NIGHT`, `PRICE_CHECK_GAP`) e sulla card compare "−17% da
+quando è in lista". La campanella sul regalo (dalla lista, dal link con un
+account, dalle idee) avvisa quando il prezzo scende: nell'app ("Avvisi", col
+contatore), per email o entrambi, come si sceglie in Account.
+
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua
 area né aprendo il proprio link (e lì non può spuntare). Se preferisce saperlo
@@ -186,6 +194,8 @@ docs/decisions/          ADR
 | `GET /api/invites/{token}` · `POST /api/invites/{token}` | anteprima dell'invito ed entrata nella lista (serve il login) |
 | `GET/POST /api/lists/{id}/items`, `…/items/{id}` | i regali di una lista (`requires_id` per "va con") |
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
+| `POST/DELETE /api/lists/{id}/items/{id}/watch` · `…/ideas/{id}/watch` · `…/shared/{token}/items/{id}/watch` | campanella (sul link serve il login) |
+| `GET /api/notifications` · `POST /api/notifications` | avvisi (ultimi 50, non letti) · segna tutti letti |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
 | `POST /api/ideas/suggest` · `POST /api/shared/{token}/suggest` `{item_id}` | idee regalo da Gemini: wizard "Ispirami" e alternative a un regalo preso |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
@@ -283,7 +293,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-123 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+130 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -298,7 +308,11 @@ sparisce. Regali che vanno insieme: stessa lista, niente giri (anche a tre),
 409 finché l'altro non è preso, poi 201, regalo madre eliminato che libera
 l'altro. Ispirami: Gemini finto che propone idee (quelle senza titolo si
 scartano), prompt con interessi ed esclusioni, 503 senza chiave o con risposta
-strana, alternative dal link senza account e senza nomi nel prompt. Foto: WebP ridotto senza
+strana, alternative dal link senza account e senza nomi nel prompt. Prezzi:
+primo punto al salvataggio, punto nuovo solo se cambia, campanella sul link
+(401 da ospite), sulla lista e sulle idee, prezzo sceso che avvisa nell'app o
+per mail secondo `notify_by` (e non chi non ha la campanella), cosa si
+rilegge di notte, avvisi letti, preferenza nel profilo. Foto: WebP ridotto senza
 EXIF/GPS, file non immagine o troppo grandi rifiutati, foto altrui non
 collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
 non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta

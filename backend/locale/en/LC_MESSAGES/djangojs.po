@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:21+0100\n"
+"POT-Creation-Date: 2026-11-06 11:30+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,6 +29,9 @@ msgstr "My lists"
 
 msgid "Da regalare"
 msgstr "Gift ideas"
+
+msgid "Avvisi"
+msgstr "Alerts"
 
 msgid "Account"
 msgstr "Account"
@@ -116,6 +119,27 @@ msgstr "Look for the same product elsewhere (code %s):"
 msgid "Cerca lo stesso prodotto altrove:"
 msgstr "Look for the same product elsewhere:"
 
+#, javascript-format
+msgid "Minimo %s, massimo %s"
+msgstr "Lowest %s, highest %s"
+
+#, javascript-format
+msgid "−%s%% da quando è in lista"
+msgstr "−%s%% since it was listed"
+
+#, javascript-format
+msgid "+%s%% da quando è in lista"
+msgstr "+%s%% since it was listed"
+
+msgid "Prezzo stabile"
+msgstr "Price unchanged"
+
+msgid "Togli la campanella"
+msgstr "Remove the bell"
+
+msgid "Avvisami se il prezzo scende"
+msgstr "Alert me if the price drops"
+
 msgid "Nascondi password"
 msgstr "Hide password"
 
@@ -191,11 +215,37 @@ msgstr "Link sent, check your email"
 msgid "Mandami il link di reset"
 msgstr "Send me the reset link"
 
+msgid ""
+"Quando scende il prezzo di un regalo con la campanella: dove vuoi saperlo?"
+msgstr "When the price of a gift with the bell drops: where do you want to hear it?"
+
+msgid "Solo nell’app"
+msgstr "In the app only"
+
+msgid "Solo per email"
+msgstr "By email only"
+
+msgid "Entrambi"
+msgstr "Both"
+
 msgid "Lingua"
 msgstr "Language"
 
 msgid "Vale per l'app e per le mail che ti mandiamo."
 msgstr "Applies to the app and to the emails we send you."
+
+msgid ""
+"Quando scende il prezzo di un regalo con la campanella. Scegli come "
+"riceverli in Account."
+msgstr "When the price of a gift with the bell drops. Choose how to get them in Account."
+
+msgid "Nessun avviso, per ora"
+msgstr "No alerts yet"
+
+msgid ""
+"Metti la campanella su un regalo con il link al negozio: quando il prezzo "
+"scende te lo diciamo qui."
+msgstr "Put the bell on a gift with a shop link: when the price drops we tell you here."
 
 msgid "I regali giusti, senza doppioni."
 msgstr "The right gifts, no duplicates."
@@ -345,6 +395,7 @@ msgid_plural "%s idee"
 msgstr[0] "%s idea"
 msgstr[1] "%s ideas"
 
+#, javascript-format
 msgid "Idee per %s"
 msgstr "Ideas for %s"
 
@@ -1011,7 +1062,17 @@ msgstr "Alternatives"
 msgid ""
 "«%s» è già preso. Idee simili scritte da un’AI, partendo da questa lista: "
 "scegli tu."
-msgstr "“%s” is already taken. Similar ideas written by an AI from this list: you choose."
+msgstr ""
+"“%s” is already taken. Similar ideas written by an AI from this list: you "
+"choose."
+
+msgid "Ti avviso se il prezzo scende"
+msgstr "I’ll alert you if the price drops"
+
+msgid ""
+"Per mandarti l’avviso (nell’app o per email) serve un account: accedi o "
+"creane uno, poi torni qui."
+msgstr "To send you the alert (in the app or by email) you need an account: sign in or create one, then you come back here."
 
 #, javascript-format
 msgid "La lista di %s"

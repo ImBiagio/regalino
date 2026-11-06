@@ -14,6 +14,7 @@ import {
   useRemoveMember,
   useSaveList,
   useSaveWish,
+  useWatchWish,
   useWishes,
 } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
@@ -24,6 +25,8 @@ import {
   GiftCard,
   ImagePicker,
   ListHero,
+  PriceTrend,
+  WatchBell,
   useLinkFill,
 } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
@@ -291,11 +294,12 @@ function WishCards({
   onAdd: () => void
 }) {
   const clearGift = useClearGift(listId)
+  const watch = useWatchWish(listId)
   const confirm = useConfirm()
 
   return (
     <>
-      <ErrorBanner error={clearGift.error} />
+      <ErrorBanner error={clearGift.error ?? watch.error} />
       <div className={GIFT_GRID}>
         {wishes.map((wish) => (
           <GiftCard
@@ -309,6 +313,16 @@ function WishCards({
             taken={Boolean(wish.gifted)}
             detail={
               wish.requires_title && interpolate(gettext('Va con «%s»'), [wish.requires_title])
+            }
+            trend={<PriceTrend history={wish.price_history} />}
+            corner={
+              wish.url && (
+                <WatchBell
+                  watching={wish.watching}
+                  pending={watch.isPending}
+                  onToggle={() => watch.mutate({ id: wish.id, watch: !wish.watching })}
+                />
+              )
             }
             onClick={() => onEdit(wish)}
             badge={

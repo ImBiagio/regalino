@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppLayout } from './components/Layout'
 import { Skeleton } from './components/ui'
 import { AccountPage } from './features/account/AccountPage'
+import { NotificationsPage } from './features/account/NotificationsPage'
 import {
   ForgotPasswordPage,
   LoginPage,
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="liste/:listId" element={<ListDetailPage />} />
         <Route path="unisciti/:token" element={<JoinListPage />} />
         <Route path="da-regalare" element={<IdeasPage />} />
+        <Route path="avvisi" element={<NotificationsPage />} />
         <Route path="account" element={<AccountPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

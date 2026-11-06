@@ -20,6 +20,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
@@ -172,6 +173,8 @@ class Wish(BaseModel):
     requires = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="dependents"
     )
+    # Quando il task notturno ha riletto il prezzo dal link l'ultima volta (ADR 0011).
+    price_checked_at = models.DateTimeField(null=True, blank=True)
 
     # Spuntato da chi ha il link. ``claim_key_hash`` e' l'hash della chiave data
     # a chi ha spuntato: solo lui (o l'utente loggato che l'ha fatto) puo'
@@ -249,6 +252,7 @@ class GiftIdea(BaseModel):
     gtin = models.CharField(max_length=20, blank=True)
     brand = models.CharField(max_length=80, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.IDEA)
+    price_checked_at = models.DateTimeField(null=True, blank=True)
 
     history = HistoricalRecords()
 
@@ -257,3 +261,100 @@ class GiftIdea(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.title} → {self.recipient}"
+
+
+# ------------------------------------------------------------- prezzi --
+
+
+ONE_TARGET = models.Q(wish__isnull=False, idea__isnull=True) | models.Q(
+    wish__isnull=True, idea__isnull=False
+)
+
+
+class PricePoint(models.Model):
+    """Un prezzo visto sul link di un regalo o di un'idea, in una data (ADR 0011).
+
+    Il primo punto e' il prezzo con cui il regalo e' stato messo in lista; gli
+    altri li scrive il task notturno, solo quando il prezzo cambia.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    wish = models.ForeignKey(
+        Wish, on_delete=models.CASCADE, null=True, blank=True, related_name="price_points"
+    )
+    idea = models.ForeignKey(
+        GiftIdea, on_delete=models.CASCADE, null=True, blank=True, related_name="price_points"
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    seen_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["seen_at"]
+        constraints = [models.CheckConstraint(condition=ONE_TARGET, name="price_point_one_target")]
+
+    def __str__(self) -> str:
+        return f"{self.price} @ {self.seen_at:%Y-%m-%d}"
+
+
+class PriceWatch(models.Model):
+    """La campanella: l'utente vuole sapere quando il prezzo scende (ADR 0011)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="price_watches"
+    )
+    wish = models.ForeignKey(
+        Wish, on_delete=models.CASCADE, null=True, blank=True, related_name="watches"
+    )
+    idea = models.ForeignKey(
+        GiftIdea, on_delete=models.CASCADE, null=True, blank=True, related_name="watches"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=ONE_TARGET, name="price_watch_one_target"),
+            models.UniqueConstraint(fields=["user", "wish"], name="unique_wish_watch"),
+            models.UniqueConstraint(fields=["user", "idea"], name="unique_idea_watch"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} ⚲ {self.wish or self.idea}"
+
+
+class Notification(models.Model):
+    """Un avviso nell'app (il prezzo e' sceso): titolo, due righe e dove andare."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
+    )
+    title = models.CharField(max_length=160)
+    body = models.CharField(max_length=300, blank=True)
+    # Percorso nell'app (``/liste/<id>``, ``/l/<token>``, ``/da-regalare``).
+    url = models.CharField(max_length=300, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+def record_price(target: Wish | GiftIdea, price, seen_at=None) -> PricePoint | None:
+    """Aggiunge un punto se il prezzo e' cambiato rispetto all'ultimo; torna il punto nuovo."""
+    last = target.price_points.order_by("-seen_at").first()
+    if last is not None and last.price == price:
+        return None
+    field = "wish" if isinstance(target, Wish) else "idea"
+    return PricePoint.objects.create(
+        **{field: target}, price=price, seen_at=seen_at or timezone.now()
+    )
+
+
+def seed_price(target: Wish | GiftIdea) -> None:
+    """Il primo punto: il prezzo indicativo con cui il regalo entra in lista, se c'e'."""
+    if target.price is not None and not target.price_points.exists():
+        record_price(target, target.price)

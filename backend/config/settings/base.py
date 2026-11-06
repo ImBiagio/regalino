@@ -216,7 +216,16 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.gifts.tasks.delete_orphan_images",
         "schedule": crontab(hour=4, minute=30),
     },
+    # Prezzi riletti dai link, avvisi a chi ha la campanella (ADR 0011).
+    "check-prices": {
+        "task": "apps.gifts.tasks.check_prices",
+        "schedule": crontab(hour=2, minute=30),
+    },
 }
+
+# Quante pagine rileggere a notte e quanti secondi tra una e l'altra.
+PRICE_CHECKS_PER_NIGHT = int(env("PRICE_CHECKS_PER_NIGHT", "80"))
+PRICE_CHECK_GAP = int(env("PRICE_CHECK_GAP", "90"))
 
 CACHES = {
     "default": {
