@@ -173,7 +173,8 @@ backend/
     ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
     ├── users/           User custom + auth JWT + mail dell'account
     └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa,
-                         images.py (foto, rete), links.py (pagina del link), ai.py (Gemini)
+                         images.py (foto, rete), links.py (pagina del link), ai.py (Gemini),
+                         prices.py (andamento prezzo e avvisi)
 scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape {url}, guard.py
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
