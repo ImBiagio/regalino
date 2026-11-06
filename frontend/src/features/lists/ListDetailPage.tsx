@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { NavLink, Navigate, useNavigate, useParams } from 'react-router-dom'
@@ -8,6 +9,7 @@ import {
   useDeleteWish,
   useInviteLink,
   useList,
+  useLists,
   useRegenerateLink,
   useRemoveMember,
   useSaveList,
@@ -41,9 +43,9 @@ import {
 } from '../../components/ui'
 import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { formatPrice, joinNames, parsePrice, priceInput } from '../../lib/format'
+import { formatDate, formatPrice, joinNames, parsePrice, priceInput } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
-import type { Person, UUID, Wish, WishList } from '../../lib/types'
+import type { IncludedList, Person, UUID, Wish, WishList } from '../../lib/types'
 import { ListFormModal } from './ListsPage'
 
 export function shareUrl(list: Pick<WishList, 'share_token'>): string {
@@ -63,7 +65,9 @@ export function ListDetailPage() {
   const [editing, setEditing] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [members, setMembers] = useState(false)
-  const [wishForm, setWishForm] = useState<Wish | 'new' | null>(null)
+  const [including, setIncluding] = useState(false)
+  // Il form di un regalo: di questa lista o di una inclusa (``listId`` dice quale).
+  const [wishForm, setWishForm] = useState<{ listId: UUID; wish?: Wish } | null>(null)
 
   if (error instanceof ApiError && error.status === 404) return <Navigate to="/" replace />
   if (isLoading || !list) {
@@ -113,19 +117,30 @@ export function ListDetailPage() {
         <MembersCard list={list} onManage={() => setMembers(true)} />
         <WishGrid
           list={list}
-          onEdit={(wish) => setWishForm(wish)}
-          onAdd={() => setWishForm('new')}
+          onEdit={(wish) => setWishForm({ listId: list.id, wish })}
+          onAdd={() => setWishForm({ listId: list.id })}
+        />
+        <IncludedSections
+          list={list}
+          onEdit={(listId, wish) => setWishForm({ listId, wish })}
+          onAdd={(listId) => setWishForm({ listId })}
+          onInclude={() => setIncluding(true)}
         />
       </div>
 
-      <Fab icon="add" label={gettext('Aggiungi regalo')} onClick={() => setWishForm('new')} />
+      <Fab
+        icon="add"
+        label={gettext('Aggiungi regalo')}
+        onClick={() => setWishForm({ listId: list.id })}
+      />
       {wishForm && (
         <WishFormModal
-          listId={list.id}
-          wish={wishForm === 'new' ? undefined : wishForm}
+          listId={wishForm.listId}
+          wish={wishForm.wish}
           onClose={() => setWishForm(null)}
         />
       )}
+      {including && <IncludeListsModal list={list} onClose={() => setIncluding(false)} />}
       {sharing && <ShareModal list={list} onClose={() => setSharing(false)} />}
       {members && <MembersModal list={list} onClose={() => setMembers(false)} />}
       {editing && (
@@ -211,8 +226,6 @@ function WishGrid({
   onAdd: () => void
 }) {
   const { data: wishes, isLoading, error } = useWishes(list.id)
-  const clearGift = useClearGift(list.id)
-  const confirm = useConfirm()
 
   if (isLoading) {
     return (
@@ -259,7 +272,30 @@ function WishGrid({
           </p>
         )}
       </div>
-      <ErrorBanner error={error ?? clearGift.error} />
+      <ErrorBanner error={error} />
+      <WishCards listId={list.id} wishes={wishes} onEdit={onEdit} onAdd={onAdd} />
+    </section>
+  )
+}
+
+/** Le card dei regali di una lista (questa o una inclusa) con il riquadro "Aggiungi". */
+function WishCards({
+  listId,
+  wishes,
+  onEdit,
+  onAdd,
+}: {
+  listId: UUID
+  wishes: Wish[]
+  onEdit: (wish: Wish) => void
+  onAdd: () => void
+}) {
+  const clearGift = useClearGift(listId)
+  const confirm = useConfirm()
+
+  return (
+    <>
+      <ErrorBanner error={clearGift.error} />
       <div className={GIFT_GRID}>
         {wishes.map((wish) => (
           <GiftCard
@@ -308,7 +344,198 @@ function WishGrid({
         ))}
         <AddTile label={gettext('Aggiungi regalo')} onClick={onAdd} />
       </div>
+    </>
+  )
+}
+
+/* ------------------------------------------------------------ liste incluse -- */
+
+/**
+ * Le liste incluse, una sezione ciascuna con i suoi regali (ADR 0008), e il
+ * bottone per includerne. Una lista gia' dentro un'altra non include: mostra
+ * dove sta.
+ */
+function IncludedSections({
+  list,
+  onEdit,
+  onAdd,
+  onInclude,
+}: {
+  list: WishList
+  onEdit: (listId: UUID, wish: Wish) => void
+  onAdd: (listId: UUID) => void
+  onInclude: () => void
+}) {
+  if (list.included_in.length > 0) {
+    return (
+      <p className="flex items-center gap-2 px-1 text-body-medium text-on-surface-variant">
+        <Icon name="folder_open" size={20} />
+        <span>
+          {gettext('Questa lista sta dentro')}{' '}
+          {list.included_in.map((parent, index) => (
+            <span key={parent.id}>
+              {index > 0 && ', '}
+              <NavLink to={`/liste/${parent.id}`} className="font-medium text-primary">
+                {parent.title}
+              </NavLink>
+            </span>
+          ))}
+          {gettext(': i suoi regali si vedono anche lì.')}
+        </span>
+      </p>
+    )
+  }
+
+  return (
+    <>
+      {list.included_lists.map((sub) => (
+        <IncludedSection
+          key={sub.id}
+          sub={sub}
+          onEdit={(wish) => onEdit(sub.id, wish)}
+          onAdd={() => onAdd(sub.id)}
+        />
+      ))}
+      <div className="grid gap-1 px-1">
+        <button
+          type="button"
+          className="btn-text btn-sm -ml-3 justify-self-start"
+          onClick={onInclude}
+        >
+          <Icon name="create_new_folder" size={18} />
+          {list.included_lists.length > 0
+            ? gettext('Scegli le liste incluse')
+            : gettext('Includi un’altra lista')}
+        </button>
+        {list.included_lists.length === 0 && (
+          <p className="text-body-small text-on-surface-variant">
+            {gettext(
+              'I regali di una lista inclusa compaiono anche qui e nel link di questa, in una sezione a parte.',
+            )}
+          </p>
+        )}
+      </div>
+    </>
+  )
+}
+
+function IncludedSection({
+  sub,
+  onEdit,
+  onAdd,
+}: {
+  sub: IncludedList
+  onEdit: (wish: Wish) => void
+  onAdd: () => void
+}) {
+  const { data: wishes, isLoading, error } = useWishes(sub.id)
+
+  return (
+    <section className="grid gap-3 border-t border-outline-variant pt-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+        <Icon name="folder_open" size={22} className="text-on-surface-variant" />
+        <h2 className="text-title-medium">{sub.title}</h2>
+        <span className="text-body-medium text-on-surface-variant">
+          {interpolate(ngettext('%s regalo', '%s regali', sub.item_count), [sub.item_count])}
+          {sub.event_date && ` · ${formatDate(sub.event_date)}`}
+        </span>
+        <NavLink to={`/liste/${sub.id}`} className="btn-text btn-sm ml-auto">
+          {gettext('Apri la lista')}
+          <Icon name="arrow_forward" size={18} />
+        </NavLink>
+      </div>
+      <ErrorBanner error={error} />
+      {isLoading ? (
+        <div className={GIFT_GRID}>
+          {[0, 1].map((index) => (
+            <Skeleton key={index} className="aspect-[3/4] rounded-card" />
+          ))}
+        </div>
+      ) : (
+        <WishCards listId={sub.id} wishes={wishes ?? []} onEdit={onEdit} onAdd={onAdd} />
+      )}
     </section>
+  )
+}
+
+/** Quali liste includere: tutte le altre proprie, tranne quelle che includono gia'. */
+function IncludeListsModal({ list, onClose }: { list: WishList; onClose: () => void }) {
+  const { data: lists } = useLists()
+  const save = useSaveList()
+  const [chosen, setChosen] = useState<Set<UUID>>(
+    () => new Set(list.included_lists.map((sub) => sub.id)),
+  )
+  const candidates = (lists ?? []).filter((other) => other.id !== list.id)
+
+  return (
+    <Modal open onClose={onClose} title={gettext('Liste incluse')}>
+      <form
+        className="grid gap-3"
+        onSubmit={async (event) => {
+          event.preventDefault()
+          const saved = await save
+            .mutateAsync({ id: list.id, included_list_ids: [...chosen] })
+            .catch(() => null)
+          if (saved) onClose()
+        }}
+      >
+        <p className="text-body-medium text-on-surface-variant">
+          {gettext(
+            'I regali delle liste scelte compaiono qui sotto e nel link di questa lista, ognuna nella sua sezione. Le liste restano anche da sole, con il loro link.',
+          )}
+        </p>
+        <ErrorBanner error={save.error} />
+        {candidates.length === 0 ? (
+          <p className="text-body-medium">{gettext('Non hai altre liste da includere.')}</p>
+        ) : (
+          <div className="grid gap-1">
+            {candidates.map((other) => {
+              const nested = other.included_lists.length > 0
+              return (
+                <label
+                  key={other.id}
+                  className={clsx(
+                    'flex items-center gap-3 rounded-row bg-surface-container-low px-4 py-3',
+                    nested ? 'opacity-60' : 'state cursor-pointer',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5 accent-[var(--primary)]"
+                    disabled={nested}
+                    checked={chosen.has(other.id)}
+                    onChange={(event) => {
+                      const next = new Set(chosen)
+                      if (event.target.checked) next.add(other.id)
+                      else next.delete(other.id)
+                      setChosen(next)
+                    }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-body-large">{other.title}</span>
+                    <span className="block text-body-small text-on-surface-variant">
+                      {nested
+                        ? gettext('Include già altre liste: non si può includere.')
+                        : interpolate(ngettext('%s regalo', '%s regali', other.item_count), [
+                            other.item_count,
+                          ])}
+                    </span>
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+        )}
+        <div className="mt-2 flex flex-wrap justify-end gap-2">
+          <button type="button" className="btn-text" onClick={onClose}>
+            {gettext('Annulla')}
+          </button>
+          <button className="btn-filled" disabled={save.isPending}>
+            {save.isPending ? gettext('Salvo…') : gettext('Salva')}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

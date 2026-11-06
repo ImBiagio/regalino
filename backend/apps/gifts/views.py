@@ -350,6 +350,8 @@ def _shared_context(request, wish_list: WishList) -> dict:
         "is_owner": is_owner,
         "hide_gifted": is_owner and not wish_list.show_gifted,
         "viewer_id": request.user.pk if request.user.is_authenticated else None,
+        # Per le sezioni (liste incluse): ognuna ha i suoi "proprietari".
+        "context_of": lambda child: _shared_context(request, child),
     }
 
 
@@ -379,12 +381,19 @@ class SharedGiftView(APIView):
     throttle_scope = "shared"
 
     def _wish(self, token: str, item_id) -> tuple[WishList, Wish]:
+        """Il regalo: della lista del link o di una che quella include (ADR 0008).
+
+        Torna la lista *del regalo*, non quella del link: e' lei che dice chi
+        la scrive (e quindi non spunta) e se nasconde le spunte.
+        """
         wish_list = _shared_list(token)
+        mine = Q(wish_list=wish_list) | Q(wish_list__in=wish_list.included_lists.all())
         # select_for_update: due persone che spuntano insieme non vincono entrambe.
         wish = get_object_or_404(
-            Wish.objects.select_for_update().filter(wish_list=wish_list), pk=item_id
+            Wish.objects.select_for_update(of=("self",)).select_related("wish_list").filter(mine),
+            pk=item_id,
         )
-        return wish_list, wish
+        return wish.wish_list, wish
 
     @extend_schema(request=GiftClaimSerializer, responses={201: ClaimResponse})
     def post(self, request, token: str, item_id):

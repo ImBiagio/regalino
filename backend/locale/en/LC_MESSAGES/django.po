@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 10:20+0100\n"
+"POT-Creation-Date: 2026-11-06 10:27+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -99,15 +99,15 @@ msgid ""
 "telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
 
-#: apps/gifts/models.py:182
+#: apps/gifts/models.py:212
 msgid "Idea"
 msgstr "Idea"
 
-#: apps/gifts/models.py:183
+#: apps/gifts/models.py:213
 msgid "Comprato"
 msgstr "Bought"
 
-#: apps/gifts/models.py:184
+#: apps/gifts/models.py:214
 msgid "Regalato"
 msgstr "Given"
 
@@ -115,7 +115,25 @@ msgstr "Given"
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:229
+#: apps/gifts/serializers.py:233
+msgid "Una lista non puo' includere se stessa."
+msgstr "A list can't include itself."
+
+#: apps/gifts/serializers.py:238
+msgid ""
+"Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
+msgstr "This list already sits inside another one: it can't include lists in turn."
+
+#: apps/gifts/serializers.py:243
+msgid "Una delle liste non esiste piu'."
+msgstr "One of the lists no longer exists."
+
+#: apps/gifts/serializers.py:246
+#, python-format
+msgid "«%(title)s» include gia' altre liste: una lista inclusa non ne include."
+msgstr "“%(title)s” already includes other lists: an included list can't include any."
+
+#: apps/gifts/serializers.py:309
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
@@ -131,15 +149,15 @@ msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:396
+#: apps/gifts/views.py:405
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:401
+#: apps/gifts/views.py:410
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:443
+#: apps/gifts/views.py:452
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 

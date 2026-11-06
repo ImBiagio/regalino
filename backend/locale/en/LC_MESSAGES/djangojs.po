@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 10:21+0100\n"
+"POT-Creation-Date: 2026-11-06 10:27+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -386,7 +386,9 @@ msgstr "Invalid invite"
 msgid ""
 "Il link non è giusto oppure è stato spento: chiedi a chi te l’ha mandato "
 "quello nuovo."
-msgstr "The link is wrong or has been turned off: ask whoever sent it for the new one."
+msgstr ""
+"The link is wrong or has been turned off: ask whoever sent it for the new "
+"one."
 
 #, javascript-format
 msgid "%s ti invita a scrivere la sua lista"
@@ -395,7 +397,9 @@ msgstr "%s invites you to write their list"
 msgid ""
 "Se entri, la lista compare tra le tue: aggiungi e modifichi i regali come "
 "chi l’ha creata, e come loro non vedi chi li ha presi."
-msgstr "If you join, the list appears among yours: you add and edit gifts like whoever created it, and like them you don’t see who took them."
+msgstr ""
+"If you join, the list appears among yours: you add and edit gifts like "
+"whoever created it, and like them you don’t see who took them."
 
 #, javascript-format
 msgid "La scrive già con %s altra persona."
@@ -494,6 +498,40 @@ msgstr ""
 msgid "Togli la spunta"
 msgstr "Untick"
 
+msgid "Questa lista sta dentro"
+msgstr "This list sits inside"
+
+msgid ": i suoi regali si vedono anche lì."
+msgstr ": its gifts show up there too."
+
+msgid "Scegli le liste incluse"
+msgstr "Choose the included lists"
+
+msgid "Includi un’altra lista"
+msgstr "Include another list"
+
+msgid ""
+"I regali di una lista inclusa compaiono anche qui e nel link di questa, in "
+"una sezione a parte."
+msgstr "The gifts of an included list show up here too, and in this list’s link, in a section of their own."
+
+msgid "Apri la lista"
+msgstr "Open the list"
+
+msgid "Liste incluse"
+msgstr "Included lists"
+
+msgid ""
+"I regali delle liste scelte compaiono qui sotto e nel link di questa lista, "
+"ognuna nella sua sezione. Le liste restano anche da sole, con il loro link."
+msgstr "The gifts of the chosen lists show up below and in this list’s link, each in its own section. The lists also keep living on their own, with their own link."
+
+msgid "Non hai altre liste da includere."
+msgstr "You have no other lists to include."
+
+msgid "Include già altre liste: non si può includere."
+msgstr "It already includes other lists: it can’t be included."
+
 msgid "Modifica regalo"
 msgstr "Edit gift"
 
@@ -582,12 +620,14 @@ msgstr "Only you write it"
 msgid "La scrivi con %s"
 msgstr "You write it with %s"
 
+#, javascript-format
 msgid "Lista di %s"
 msgstr "%s’s list"
 
 msgid ""
 "Invita qualcuno a scriverla con te: aggiunge e modifica i regali come te."
-msgstr "Invite someone to write it with you: they add and edit gifts just like you."
+msgstr ""
+"Invite someone to write it with you: they add and edit gifts just like you."
 
 msgid "Chi è dentro aggiunge e modifica i regali, e non vede chi li ha presi."
 msgstr "Whoever is in adds and edits gifts, and doesn’t see who took them."
@@ -618,21 +658,29 @@ msgstr "Who writes the list"
 msgid "Ha creato la lista"
 msgstr "Created the list"
 
+#, javascript-format
 msgid "Togli %s"
 msgstr "Remove %s"
 
+#, javascript-format
 msgid "Togliere %s?"
 msgstr "Remove %s?"
 
 msgid "Non vedrà più la lista. Puoi mandare di nuovo l’invito quando vuoi."
-msgstr "They won’t see the list anymore. You can send the invite again whenever you want."
+msgstr ""
+"They won’t see the list anymore. You can send the invite again whenever you "
+"want."
 
 msgid ""
 "Chi apre il link d’invito con un account entra nella lista: aggiunge e "
 "modifica i regali come te. Non è il link da mandare a chi deve farti i "
 "regali."
-msgstr "Whoever opens the invite link with an account joins the list: they add and edit gifts just like you. It’s not the link to send to the people buying your gifts."
+msgstr ""
+"Whoever opens the invite link with an account joins the list: they add and "
+"edit gifts just like you. It’s not the link to send to the people buying "
+"your gifts."
 
+#, javascript-format
 msgid "Scrivi con me la lista dei regali: %s"
 msgstr "Write the gift list with me: %s"
 
@@ -642,7 +690,9 @@ msgstr "Turn off the invite link?"
 msgid ""
 "Chi lo ha non può più entrare. Chi è già dentro resta. Potrai crearne uno "
 "nuovo."
-msgstr "Whoever has it can no longer join. Whoever is already in stays. You can create a new one later."
+msgstr ""
+"Whoever has it can no longer join. Whoever is already in stays. You can "
+"create a new one later."
 
 msgid "Spegni"
 msgstr "Turn off"
@@ -676,6 +726,10 @@ msgstr "Create your first list"
 
 msgid "Nuova lista"
 msgstr "New list"
+
+#, javascript-format
+msgid "Include %s"
+msgstr "Includes %s"
 
 #, javascript-format
 msgid "Con %s"
@@ -731,6 +785,19 @@ msgstr ""
 msgid "Fai anche tu la tua lista con Regalino"
 msgstr "Make your own list with Regalino"
 
+msgid "Lo regali tu"
+msgstr "You're giving it"
+
+#, javascript-format
+msgid "Lo regala %s"
+msgstr "%s is giving it"
+
+msgid "Già preso"
+msgstr "Taken"
+
+msgid "Lo regalo io"
+msgstr "I'll give it"
+
 #, javascript-format
 msgid "La lista di %s"
 msgstr "%s's list"
@@ -771,19 +838,6 @@ msgstr "Still available · %s"
 #, javascript-format
 msgid "Tutti · %s"
 msgstr "All · %s"
-
-msgid "Lo regali tu"
-msgstr "You're giving it"
-
-#, javascript-format
-msgid "Lo regala %s"
-msgstr "%s is giving it"
-
-msgid "Già preso"
-msgstr "Taken"
-
-msgid "Lo regalo io"
-msgstr "I'll give it"
 
 msgid "Lo regali tu?"
 msgstr "Are you giving it?"

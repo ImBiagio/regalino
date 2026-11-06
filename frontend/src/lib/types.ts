@@ -14,6 +14,16 @@ export interface User {
   language?: string
 }
 
+export interface ListRef {
+  id: UUID
+  title: string
+}
+
+export interface IncludedList extends ListRef {
+  event_date: string | null
+  item_count: number
+}
+
 /** Chi e' (proprietario o membro di una lista): solo id e nome. */
 export interface Person {
   id: UUID
@@ -35,6 +45,11 @@ export interface WishList {
   members: Person[]
   /** Chi guarda e' il proprietario (puo' eliminare, rigenerare il link, togliere gli altri). */
   is_owner: boolean
+  /** Le liste incluse: i loro regali si vedono anche qui e nel link di questa. */
+  included_lists: IncludedList[]
+  /** Le liste che includono questa (allora non puo' includerne altre). */
+  included_in: ListRef[]
+  /** Regali di questa lista, senza quelli delle incluse. */
   item_count: number
   /** `null` finche' `show_gifted` e' spento: la sorpresa resta. */
   gifted_count: number | null
@@ -130,6 +145,14 @@ export interface SharedWish {
   mine: boolean
 }
 
+/** Una lista inclusa, come la vede chi ha il link di quella che la include. */
+export interface SharedSection {
+  id: UUID
+  title: string
+  event_date: string | null
+  items: SharedWish[]
+}
+
 export interface SharedWishList {
   title: string
   description: string
@@ -137,4 +160,5 @@ export interface SharedWishList {
   owner_name: string
   is_owner: boolean
   items: SharedWish[]
+  sections: SharedSection[]
 }

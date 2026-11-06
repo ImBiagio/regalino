@@ -140,12 +140,41 @@ class PersonSerializer(serializers.Serializer):
     display_name = serializers.CharField(read_only=True)
 
 
+class IncludedListSerializer(serializers.Serializer):
+    """Una lista vista da quella che la include: quanto basta per la sezione."""
+
+    id = serializers.UUIDField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    event_date = serializers.DateField(read_only=True, allow_null=True)
+    item_count = serializers.SerializerMethodField()
+
+    def get_item_count(self, obj: WishList) -> int:
+        return obj.items.count()
+
+
+class ListRefSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    title = serializers.CharField(read_only=True)
+
+
+def alive_children(wish_list: WishList) -> list[WishList]:
+    """Le liste incluse ancora vive, nell'ordine in cui sono state incluse."""
+    links = wish_list.inclusions.filter(child__deleted_at__isnull=True).select_related("child")
+    return [link.child for link in links]
+
+
 class WishListSerializer(serializers.ModelSerializer):
     item_count = serializers.IntegerField(read_only=True, default=0)
     gifted_count = serializers.SerializerMethodField()
     owner = PersonSerializer(read_only=True)
     members = serializers.SerializerMethodField()
     is_owner = serializers.SerializerMethodField()
+    included_lists = serializers.SerializerMethodField()
+    included_in = serializers.SerializerMethodField()
+    # In scrittura: gli id delle liste da includere (tutte, non la differenza).
+    included_list_ids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True, required=False
+    )
 
     class Meta:
         model = WishList
@@ -160,6 +189,9 @@ class WishListSerializer(serializers.ModelSerializer):
             "owner",
             "members",
             "is_owner",
+            "included_lists",
+            "included_in",
+            "included_list_ids",
             "item_count",
             "gifted_count",
             "created_at",
@@ -180,6 +212,54 @@ class WishListSerializer(serializers.ModelSerializer):
     def get_is_owner(self, obj: WishList) -> bool:
         request = self.context.get("request")
         return request is not None and request.user.pk == obj.owner_id
+
+    @extend_schema_field(IncludedListSerializer(many=True))
+    def get_included_lists(self, obj: WishList):
+        return IncludedListSerializer(alive_children(obj), many=True).data
+
+    @extend_schema_field(ListRefSerializer(many=True))
+    def get_included_in(self, obj: WishList):
+        parents = obj.inclusion_links.filter(parent__deleted_at__isnull=True).select_related(
+            "parent"
+        )
+        return ListRefSerializer([link.parent for link in parents], many=True).data
+
+    def validate_included_list_ids(self, ids: list) -> list[WishList]:
+        """Le liste da includere: proprie, vive, non questa, e un solo livello (ADR 0008)."""
+        ids = list(dict.fromkeys(ids))
+        if not ids:
+            return []
+        if self.instance is not None and self.instance.pk in ids:
+            raise serializers.ValidationError(_("Una lista non puo' includere se stessa."))
+        if self.instance is not None and self.instance.inclusion_links.filter(
+            parent__deleted_at__isnull=True
+        ).exists():
+            raise serializers.ValidationError(
+                _("Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta.")
+            )
+        user = self.context["request"].user
+        found = {wl.pk: wl for wl in WishList.for_user(user).filter(pk__in=ids)}
+        if len(found) != len(ids):
+            raise serializers.ValidationError(_("Una delle liste non esiste piu'."))
+        for wl in found.values():
+            if wl.inclusions.filter(child__deleted_at__isnull=True).exists():
+                message = _("«%(title)s» include gia' altre liste: una lista inclusa non ne include.")
+                raise serializers.ValidationError(message % {"title": wl.title})
+        return [found[pk] for pk in ids]
+
+    def create(self, validated_data):
+        children = validated_data.pop("included_list_ids", None)
+        wish_list = super().create(validated_data)
+        if children:
+            wish_list.included_lists.set(children)
+        return wish_list
+
+    def update(self, instance, validated_data):
+        children = validated_data.pop("included_list_ids", None)
+        wish_list = super().update(instance, validated_data)
+        if children is not None:
+            wish_list.included_lists.set(children)
+        return wish_list
 
 
 class InviteSerializer(serializers.Serializer):
@@ -280,14 +360,32 @@ class SharedWishSerializer(serializers.ModelSerializer):
         return viewer is not None and obj.is_gifted and obj.gifted_by_id == viewer
 
 
+class SharedSectionSerializer(serializers.Serializer):
+    """Una lista inclusa, vista dal link di quella che la include."""
+
+    id = serializers.UUIDField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    event_date = serializers.DateField(read_only=True, allow_null=True)
+    items = SharedWishSerializer(many=True, read_only=True)
+
+
 class SharedWishListSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(source="owner.display_name", read_only=True)
     is_owner = serializers.SerializerMethodField()
     items = serializers.SerializerMethodField()
+    sections = serializers.SerializerMethodField()
 
     class Meta:
         model = WishList
-        fields = ["title", "description", "event_date", "owner_name", "is_owner", "items"]
+        fields = [
+            "title",
+            "description",
+            "event_date",
+            "owner_name",
+            "is_owner",
+            "items",
+            "sections",
+        ]
         read_only_fields = fields
 
     def get_is_owner(self, obj: WishList) -> bool:
@@ -297,6 +395,24 @@ class SharedWishListSerializer(serializers.ModelSerializer):
     def get_items(self, obj: WishList):
         items = obj.items.select_related("image")
         return SharedWishSerializer(items, many=True, context=self.context).data
+
+    @extend_schema_field(SharedSectionSerializer(many=True))
+    def get_sections(self, obj: WishList):
+        """Le liste incluse, ognuna col contesto suo: chi scrive *quella* non ne vede le spunte."""
+        context_of = self.context["context_of"]
+        sections = []
+        for child in alive_children(obj):
+            items = child.items.select_related("image")
+            sections.append(
+                {
+                    "id": child.id,
+                    "title": child.title,
+                    "event_date": child.event_date,
+                    "items": SharedWishSerializer(items, many=True, context=context_of(child)).data,
+                }
+            )
+        # Gia' dizionari: ripassarli dal serializer li romperebbe.
+        return sections
 
 
 class GiftClaimSerializer(serializers.Serializer):

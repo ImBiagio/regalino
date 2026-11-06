@@ -56,6 +56,12 @@ lui, non spunta e non vede le spunte). Solo il proprietario elimina la lista,
 rigenera il link pubblico e toglie gli altri; un membro può uscire. Il link
 d'invito si spegne e si rinnova.
 
+**Una lista dentro un'altra** ([ADR 0008](docs/decisions/0008-liste-incluse.md)).
+Da "Includi un'altra lista" si scelgono liste proprie da mettere dentro questa:
+i loro regali compaiono qui e nel link pubblico, in una sezione per lista, e la
+spunta vale una volta sola. Un solo livello: una lista inclusa non ne include
+altre, ma può stare in più liste. Le liste incluse restano liste normali.
+
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua
 area né aprendo il proprio link (e lì non può spuntare). Se preferisce saperlo
@@ -155,7 +161,7 @@ docs/decisions/          ADR
 
 | | |
 |---|---|
-| `GET/POST /api/lists`, `GET/PATCH/DELETE /api/lists/{id}` | le mie liste |
+| `GET/POST /api/lists`, `GET/PATCH/DELETE /api/lists/{id}` | le mie liste (`included_list_ids` in scrittura, `included_lists` / `included_in` in lettura) |
 | `POST /api/lists/{id}/regenerate-link` | link nuovo, il vecchio muore (solo il proprietario) |
 | `POST/DELETE /api/lists/{id}/invite-link` | crea/rinnova o spegne il link d'invito |
 | `DELETE /api/lists/{id}/members/{user_id}` | toglie un membro (proprietario) o se stessi |
@@ -166,8 +172,8 @@ docs/decisions/          ADR
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
 | `POST /api/links/read` `{url, image}` | nome, prezzo e foto dichiarati dalla pagina, subito, più `describe_id` |
 | `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
-| `GET /api/shared/{token}` | lista condivisa, pubblica |
-| `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta |
+| `GET /api/shared/{token}` | lista condivisa, pubblica (`items` più `sections` delle liste incluse) |
+| `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta (anche i regali delle liste incluse) |
 
 ---
 
@@ -258,14 +264,18 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-110 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+115 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
 spengono il link, regali eliminati che spariscono. Liste scritte insieme:
 invito col link (serve il login, due volte non fa due membri, link spento o
 rinnovato → 404), il membro scrive e invita ma non elimina, non rigenera e non
-toglie gli altri, esce da solo, sul link pubblico è come il proprietario. Foto: WebP ridotto senza
+toglie gli altri, esce da solo, sul link pubblico è come il proprietario. Liste
+incluse: sezioni sul link, spunta dal link della madre che vale anche su quello
+della inclusa, un solo livello, solo liste proprie, chi scrive la lista inclusa
+non ne spunta i regali dal link della madre, lista inclusa eliminata che
+sparisce. Foto: WebP ridotto senza
 EXIF/GPS, file non immagine o troppo grandi rifiutati, foto altrui non
 collegabili, `og:image` e JSON-LD, connessione all'IP verificato, indirizzi
 non pubblici e redirect verso la LAN rifiutati (rete finta, nessuna richiesta

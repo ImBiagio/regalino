@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { readClaims, useClaimGift, useReleaseGift, useSharedList } from '../../api/hooks'
@@ -24,8 +25,9 @@ import {
 import { GIFT_GRID } from '../lists/ListDetailPage'
 import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { formatDate } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
-import type { SharedWish, SharedWishList } from '../../lib/types'
+import type { SharedSection, SharedWish, SharedWishList } from '../../lib/types'
 
 const NAME_KEY = 'regalino.name'
 
@@ -94,6 +96,107 @@ export function SharedListPage() {
   )
 }
 
+/**
+ * Le card di chi ha il link. "Lo regalo io" solo sui regali davvero liberi
+ * (`gifted === false`): per chi scrive la lista, o una lista inclusa, lo
+ * stato arriva `null` e il bottone non c'e'.
+ */
+function SharedCards({
+  items,
+  isMine,
+  onClaim,
+  onView,
+  onRelease,
+  releasing,
+}: {
+  items: SharedWish[]
+  isMine: (item: SharedWish) => boolean
+  onClaim: (item: SharedWish) => void
+  onView: (item: SharedWish) => void
+  onRelease: (item: SharedWish) => void
+  releasing: boolean
+}) {
+  return (
+    <div className={GIFT_GRID}>
+      {items.map((item) => {
+        const mine = isMine(item)
+        return (
+          <GiftCard
+            key={item.id}
+            seed={item.id}
+            image={item.image}
+            title={item.title}
+            price={item.price}
+            url={item.url}
+            notes={item.notes}
+            taken={Boolean(item.gifted) && !mine}
+            onImage={item.image ? () => onView(item) : undefined}
+            badge={
+              item.gifted && (
+                <GiftBadge icon={mine ? 'favorite' : 'check_circle'}>
+                  {mine
+                    ? gettext('Lo regali tu')
+                    : item.gifted_by_name
+                      ? interpolate(gettext('Lo regala %s'), [item.gifted_by_name])
+                      : gettext('Già preso')}
+                </GiftBadge>
+              )
+            }
+            footer={
+              item.gifted === false ? (
+                <button
+                  type="button"
+                  className="btn-primary-tonal btn-sm w-full"
+                  onClick={() => onClaim(item)}
+                >
+                  <Icon name="redeem" size={18} />
+                  {gettext('Lo regalo io')}
+                </button>
+              ) : (
+                mine && (
+                  <button
+                    type="button"
+                    className="btn-outlined btn-sm w-full"
+                    disabled={releasing}
+                    onClick={() => onRelease(item)}
+                  >
+                    <Icon name="undo" size={18} />
+                    {gettext('Annulla')}
+                  </button>
+                )
+              )
+            }
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+/** Una lista inclusa (ADR 0008): titolo e data, poi le sue card. */
+function SharedSectionBlock({
+  section,
+  children,
+}: {
+  section: SharedSection
+  children: ReactNode
+}) {
+  return (
+    <section className="grid gap-3 border-t border-outline-variant pt-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+        <Icon name="folder_open" size={22} className="text-on-surface-variant" />
+        <h2 className="text-title-medium">{section.title}</h2>
+        {section.event_date && (
+          <span className="text-body-medium text-on-surface-variant">
+            {formatDate(section.event_date)}
+          </span>
+        )}
+      </div>
+      {children}
+    </section>
+  )
+}
+
 type View = 'free' | 'all'
 
 function SharedList({ token, list }: { token: string; list: SharedWishList }) {
@@ -104,15 +207,22 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
   const claims = readClaims()
   const isMine = (item: SharedWish) =>
     item.gifted === true && (item.mine || Boolean(claims[item.id]))
-  const free = list.items.filter((item) => item.gifted === false).length
-  const taken = list.items.filter((item) => item.gifted === true).length
+  // Conteggi e filtri su tutto: anche i regali delle liste incluse (ADR 0008).
+  const everything = [...list.items, ...list.sections.flatMap((section) => section.items)]
+  const free = everything.filter((item) => item.gifted === false).length
+  const taken = everything.filter((item) => item.gifted === true).length
   // Di default si vede cosa resta da prendere (piu' i propri, per poterli
   // annullare); se e' tutto preso, si vede tutto.
   const [view, setView] = useState<View>(free > 0 ? 'free' : 'all')
   // Prima quelli ancora liberi: sono quelli che servono a chi regala.
-  const items = [...list.items]
-    .filter((item) => view === 'all' || !item.gifted || isMine(item))
-    .sort((a, b) => Number(Boolean(a.gifted)) - Number(Boolean(b.gifted)))
+  const visible = (all: SharedWish[]) =>
+    [...all]
+      .filter((item) => view === 'all' || !item.gifted || isMine(item))
+      .sort((a, b) => Number(Boolean(a.gifted)) - Number(Boolean(b.gifted)))
+  const items = visible(list.items)
+  const sections = list.sections
+    .map((section) => ({ ...section, items: visible(section.items) }))
+    .filter((section) => section.items.length > 0)
 
   return (
     <>
@@ -133,7 +243,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
           </span>
         </div>
       ) : (
-        list.items.length > 0 && (
+        everything.length > 0 && (
           <div className="grid gap-3 rounded-card bg-surface-container-low p-4">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-success-container text-on-success-container">
@@ -161,13 +271,13 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                 )}
               </div>
             </div>
-            <Progress value={taken} max={list.items.length} label={gettext('Regali già presi')} />
+            <Progress value={taken} max={everything.length} label={gettext('Regali già presi')} />
           </div>
         )
       )}
 
       <ErrorBanner error={claim.error ?? release.error} />
-      {list.items.length === 0 ? (
+      {everything.length === 0 ? (
         <EmptyState
           icon="hourglass_empty"
           title={gettext('Ancora nessun regalo')}
@@ -187,64 +297,30 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                 icon={view === 'all' ? 'check' : undefined}
                 selected={view === 'all'}
                 onClick={() => setView('all')}
-                label={interpolate(gettext('Tutti · %s'), [list.items.length])}
+                label={interpolate(gettext('Tutti · %s'), [everything.length])}
               />
             </div>
           )}
-          <div className={GIFT_GRID}>
-            {items.map((item) => {
-              const mine = isMine(item)
-              return (
-                <GiftCard
-                  key={item.id}
-                  seed={item.id}
-                  image={item.image}
-                  title={item.title}
-                  price={item.price}
-                  url={item.url}
-                  notes={item.notes}
-                  taken={Boolean(item.gifted) && !mine}
-                  onImage={item.image ? () => setViewing(item) : undefined}
-                  badge={
-                    item.gifted && (
-                      <GiftBadge icon={mine ? 'favorite' : 'check_circle'}>
-                        {mine
-                          ? gettext('Lo regali tu')
-                          : item.gifted_by_name
-                            ? interpolate(gettext('Lo regala %s'), [item.gifted_by_name])
-                            : gettext('Già preso')}
-                      </GiftBadge>
-                    )
-                  }
-                  footer={
-                    !list.is_owner &&
-                    (!item.gifted ? (
-                      <button
-                        type="button"
-                        className="btn-primary-tonal btn-sm w-full"
-                        onClick={() => setClaiming(item)}
-                      >
-                        <Icon name="redeem" size={18} />
-                        {gettext('Lo regalo io')}
-                      </button>
-                    ) : (
-                      mine && (
-                        <button
-                          type="button"
-                          className="btn-outlined btn-sm w-full"
-                          disabled={release.isPending}
-                          onClick={() => release.mutate(item.id)}
-                        >
-                          <Icon name="undo" size={18} />
-                          {gettext('Annulla')}
-                        </button>
-                      )
-                    ))
-                  }
-                />
-              )
-            })}
-          </div>
+          <SharedCards
+            items={items}
+            isMine={isMine}
+            onClaim={setClaiming}
+            onView={setViewing}
+            onRelease={(item) => release.mutate(item.id)}
+            releasing={release.isPending}
+          />
+          {sections.map((section) => (
+            <SharedSectionBlock key={section.id} section={section}>
+              <SharedCards
+                items={section.items}
+                isMine={isMine}
+                onClaim={setClaiming}
+                onView={setViewing}
+                onRelease={(item) => release.mutate(item.id)}
+                releasing={release.isPending}
+              />
+            </SharedSectionBlock>
+          ))}
         </section>
       )}
 

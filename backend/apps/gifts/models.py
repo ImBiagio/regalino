@@ -6,7 +6,9 @@ Due cose diverse, che non si toccano:
   condivide con un link segreto (``share_token``): chi lo ha vede i regali e
   puo' spuntarli come fatti, senza account. Una lista puo' essere scritta da
   piu' utenti (``WishListMember``, ADR 0007): chi entra col link d'invito
-  (``invite_token``) la vede e la modifica come il proprietario.
+  (``invite_token``) la vede e la modifica come il proprietario. E puo'
+  includerne altre (``WishListInclusion``, ADR 0008): i loro regali compaiono
+  anche sotto di lei, nel suo link pubblico.
 - ``GiftIdea``: i regali che ho in mente *per gli altri*. Privata, la vede solo
   chi l'ha scritta.
 """
@@ -79,6 +81,16 @@ class WishList(BaseModel):
     # chi lo apre da loggato diventa membro. Nullo finche' nessuno lo crea, e
     # di nuovo nullo quando lo si spegne.
     invite_token = models.CharField(max_length=40, unique=True, null=True, blank=True)
+    # Le liste incluse (ADR 0008): i loro regali si vedono anche qui e nel
+    # link pubblico di questa, come sezioni. Un solo livello: una lista
+    # inclusa non ne include altre, cosi' niente cicli e niente alberi.
+    included_lists = models.ManyToManyField(
+        "self",
+        symmetrical=False,
+        through="WishListInclusion",
+        related_name="included_in",
+        blank=True,
+    )
 
     history = HistoricalRecords()
 
@@ -98,6 +110,24 @@ class WishList(BaseModel):
         if user is None or not user.is_authenticated:
             return False
         return user.pk == self.owner_id or self.memberships.filter(user=user).exists()
+
+
+class WishListInclusion(models.Model):
+    """"La lista B sta dentro la lista A" (ADR 0008)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    parent = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name="inclusions")
+    child = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name="inclusion_links")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["parent", "child"], name="unique_list_inclusion")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.child} ⊂ {self.parent}"
 
 
 class WishListMember(models.Model):

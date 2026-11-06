@@ -42,7 +42,12 @@ export function useList(listId: UUID | undefined) {
   })
 }
 
-type ListPayload = Partial<Pick<WishList, 'title' | 'description' | 'event_date' | 'show_gifted'>>
+type ListPayload = Partial<
+  Pick<WishList, 'title' | 'description' | 'event_date' | 'show_gifted'> & {
+    /** Tutte le liste da includere, non la differenza. */
+    included_list_ids: UUID[]
+  }
+>
 
 /** PATCH se c'e' l'id, altrimenti POST: la stessa mutation crea e modifica. */
 export function useSaveList() {

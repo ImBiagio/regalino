@@ -143,6 +143,16 @@ function ListCard({ list }: { list: WishList }) {
             {list.description}
           </span>
         )}
+        {list.included_lists.length > 0 && (
+          <span className="flex items-center gap-1.5 text-body-small text-on-surface-variant">
+            <Icon name="folder_open" size={18} />
+            <span className="truncate">
+              {interpolate(gettext('Include %s'), [
+                joinNames(list.included_lists.map((sub) => sub.title)),
+              ])}
+            </span>
+          </span>
+        )}
         {others.length > 0 && (
           <span className="flex items-center gap-2 text-body-small text-on-surface-variant">
             <AvatarStack people={others.map((p) => ({ name: p.display_name }))} size={24} />
