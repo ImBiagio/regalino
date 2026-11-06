@@ -243,7 +243,7 @@ class WishListSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("Una delle liste non esiste piu'."))
         for wl in found.values():
             if wl.inclusions.filter(child__deleted_at__isnull=True).exists():
-                message = _("«%(title)s» include gia' altre liste: una lista inclusa non ne include.")
+                message = _("«%(title)s» include gia' altre liste: una inclusa non ne include.")
                 raise serializers.ValidationError(message % {"title": wl.title})
         return [found[pk] for pk in ids]
 

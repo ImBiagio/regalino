@@ -130,7 +130,7 @@ msgstr "One of the lists no longer exists."
 
 #: apps/gifts/serializers.py:246
 #, python-format
-msgid "«%(title)s» include gia' altre liste: una lista inclusa non ne include."
+msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
 msgstr "“%(title)s” already includes other lists: an included list can't include any."
 
 #: apps/gifts/serializers.py:309
