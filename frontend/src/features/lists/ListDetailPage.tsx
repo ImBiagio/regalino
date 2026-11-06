@@ -558,6 +558,8 @@ function WishFormModal({
   const [url, setUrl] = useState(wish?.url ?? '')
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
   const [notes, setNotes] = useState(wish?.notes ?? '')
+  const [gtin, setGtin] = useState(wish?.gtin ?? '')
+  const [brand, setBrand] = useState(wish?.brand ?? '')
   const [image, setImage] = useState<ImageChoice>(undefined)
   // "Va con": gli altri regali della lista, tranne quelli che gia' vanno con
   // questo (sarebbe un giro; il server lo rifiuta comunque).
@@ -574,8 +576,8 @@ function WishFormModal({
   })
   // Nome, prezzo e note dal link del negozio, solo nei campi ancora liberi.
   const fill = useLinkFill(
-    { title, price, notes },
-    { title: setTitle, price: setPrice, notes: setNotes },
+    { title, price, notes, gtin, brand },
+    { title: setTitle, price: setPrice, notes: setNotes, gtin: setGtin, brand: setBrand },
   )
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
   const priceInvalid = price.trim() !== '' && parsePrice(price) === null
@@ -598,6 +600,8 @@ function WishFormModal({
               url: url.trim(),
               price: parsePrice(price),
               notes: notes.trim(),
+              gtin,
+              brand,
               requires_id: requires || null,
               ...(image !== undefined && { image_id: image.id }),
             })

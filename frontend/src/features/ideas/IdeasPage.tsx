@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { useDeleteIdea, useIdeas, useSaveIdea } from '../../api/hooks'
 import { useConfirm } from '../../components/ConfirmDialog'
-import { GiftMeta, GiftThumb, ImagePicker, useLinkFill } from '../../components/gift'
+import { GiftMeta, GiftThumb, ImagePicker, WhereToBuy, useLinkFill } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
 import { Page, PageHeader } from '../../components/Layout'
 import {
@@ -216,7 +216,10 @@ function RecipientGroup({
                 <p className="text-body-small text-on-surface-variant">{idea.occasion}</p>
               )}
               <GiftMeta price={idea.price} url={idea.url} />
-              <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+              <div
+                className="mt-2 flex flex-wrap items-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+              >
                 <button
                   type="button"
                   className={clsx(
@@ -234,6 +237,7 @@ function RecipientGroup({
                   <Icon name={STATUS_ICON[idea.status]} size={16} />
                   {STATUS_LABEL[idea.status]}
                 </button>
+                <WhereToBuy item={idea} />
               </div>
             </div>
             <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -276,11 +280,13 @@ function IdeaFormModal({
   const [price, setPrice] = useState(priceInput(idea?.price ?? null))
   const [url, setUrl] = useState(idea?.url ?? '')
   const [notes, setNotes] = useState(idea?.notes ?? '')
+  const [gtin, setGtin] = useState(idea?.gtin ?? '')
+  const [brand, setBrand] = useState(idea?.brand ?? '')
   const [image, setImage] = useState<ImageChoice>(undefined)
   // Nome, prezzo e note dal link del negozio, solo nei campi ancora liberi.
   const fill = useLinkFill(
-    { title, price, notes },
-    { title: setTitle, price: setPrice, notes: setNotes },
+    { title, price, notes, gtin, brand },
+    { title: setTitle, price: setPrice, notes: setNotes, gtin: setGtin, brand: setBrand },
   )
   const [status, setStatus] = useState<IdeaStatus>(idea?.status ?? 'idea')
   const fields = save.error instanceof ApiError ? save.error.fieldErrors() : {}
@@ -302,6 +308,8 @@ function IdeaFormModal({
               price: parsePrice(price),
               url: url.trim(),
               notes: notes.trim(),
+              gtin,
+              brand,
               status,
               ...(image !== undefined && { image_id: image.id }),
             })

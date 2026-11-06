@@ -65,6 +65,8 @@ export interface Wish {
   price: Money | null
   /** Percorso della foto (`/media/...`), da passare a `mediaUrl`. */
   image: string | null
+  gtin: string
+  brand: string
   /** "Va con" un altro regalo della lista: si spunta solo dopo quello (ADR 0009). */
   requires_id: UUID | null
   requires_title: string
@@ -76,7 +78,7 @@ export interface Wish {
 }
 
 /** `image_id`: assente = foto invariata, `null` = toglila, id = quella caricata. */
-export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price'> & {
+export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price' | 'gtin' | 'brand'> & {
   image_id?: UUID | null
   requires_id?: UUID | null
 }
@@ -91,6 +93,8 @@ export interface GiftIdea {
   url: string
   price: Money | null
   image: string | null
+  gtin: string
+  brand: string
   occasion: string
   status: IdeaStatus
   created_at: string
@@ -115,6 +119,9 @@ export interface LinkDescription {
   title: string
   price: Money | null
   notes: string
+  /** Codice a barre (EAN/ISBN) e marca dichiarati: per "Dove trovarlo". */
+  gtin: string
+  brand: string
 }
 
 /** Quello che si legge subito dal link di un regalo: i dati della pagina. */
@@ -143,6 +150,8 @@ export interface SharedWish {
   url: string
   price: Money | null
   image: string | null
+  gtin: string
+  brand: string
   /** Il regalo con cui va (stessa lista): "Lo regalo io" solo dopo quello. */
   requires_id: UUID | null
   gifted: boolean | null

@@ -67,6 +67,12 @@ Nel form di un regalo si sceglie "Va con un altro regalo" (la custodia con le
 cuffie): sul link la card lo dice, e "Lo regalo io" si accende solo dopo che
 l'altro è stato preso (il server rifiuta con 409 prima). Stessa lista, niente giri.
 
+**Dove trovarlo.** Dal link il server legge anche codice a barre (EAN/ISBN) e
+marca, se la pagina li dichiara. Su ogni regalo del link condiviso e su ogni
+idea c'è "Dove trovarlo": il negozio indicato e la ricerca dello stesso
+prodotto (per codice, altrimenti marca e nome) su Google Shopping, Amazon,
+eBay e Trovaprezzi. Solo link di ricerca: nessuna API, nessuna pagina letta.
+
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua
 area né aprendo il proprio link (e lì non può spuntare). Se preferisce saperlo
@@ -175,7 +181,7 @@ docs/decisions/          ADR
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
-| `POST /api/links/read` `{url, image}` | nome, prezzo e foto dichiarati dalla pagina, subito, più `describe_id` |
+| `POST /api/links/read` `{url, image}` | nome, prezzo, codice a barre, marca e foto dichiarati dalla pagina, subito, più `describe_id` |
 | `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
 | `GET /api/shared/{token}` | lista condivisa, pubblica (`items` più `sections` delle liste incluse) |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta (anche i regali delle liste incluse; 409 se "va con" un regalo non ancora preso) |

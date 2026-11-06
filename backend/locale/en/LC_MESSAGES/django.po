@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 10:32+0100\n"
+"POT-Creation-Date: 2026-11-06 11:16+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,7 +55,7 @@ msgstr ""
 "The site blocks automatic reading: upload the photo, or paste the direct "
 "link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/images.py:163 apps/gifts/links.py:320
+#: apps/gifts/images.py:163 apps/gifts/links.py:355
 #, python-format
 msgid "Il sito ha risposto con un errore (%s)."
 msgstr "The site answered with an error (%s)."
@@ -76,15 +76,15 @@ msgstr "I can't read the link."
 msgid "Il link rimanda troppe volte altrove."
 msgstr "The link redirects too many times."
 
-#: apps/gifts/links.py:276
+#: apps/gifts/links.py:311
 msgid "Il link non e' ne' un'immagine ne' una pagina web."
 msgstr "The link is neither an image nor a web page."
 
-#: apps/gifts/links.py:298 apps/gifts/links.py:300 apps/gifts/links.py:303
+#: apps/gifts/links.py:333 apps/gifts/links.py:335 apps/gifts/links.py:338
 msgid "Non riesco ad aprire la pagina del link."
 msgstr "I can't open the link's page."
 
-#: apps/gifts/links.py:312
+#: apps/gifts/links.py:347
 msgid ""
 "Il sito chiede di dimostrare di non essere un robot: carica la foto, oppure "
 "incolla il link diretto dell'immagine (tasto destro sulla foto → Copia "
@@ -93,21 +93,21 @@ msgstr ""
 "The site asks to prove you're not a robot: upload the photo, or paste the "
 "direct link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/links.py:397
+#: apps/gifts/links.py:432
 msgid ""
 "In quella pagina non trovo un'immagine del prodotto: caricala tu dal "
 "telefono."
 msgstr "I can't find a product image on that page: upload one from your phone."
 
-#: apps/gifts/models.py:229
+#: apps/gifts/models.py:232
 msgid "Idea"
 msgstr "Idea"
 
-#: apps/gifts/models.py:230
+#: apps/gifts/models.py:233
 msgid "Comprato"
 msgstr "Bought"
 
-#: apps/gifts/models.py:231
+#: apps/gifts/models.py:234
 msgid "Regalato"
 msgstr "Given"
 
@@ -115,40 +115,40 @@ msgstr "Given"
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:139
+#: apps/gifts/serializers.py:143
 msgid "Scegli un regalo di questa lista."
 msgstr "Pick a gift from this list."
 
-#: apps/gifts/serializers.py:142
+#: apps/gifts/serializers.py:146
 msgid "Un regalo non puo' andare con se stesso."
 msgstr "A gift can't go with itself."
 
-#: apps/gifts/serializers.py:149
+#: apps/gifts/serializers.py:153
 #, python-format
 msgid "«%(title)s» va gia' con questo regalo: sarebbe un giro."
 msgstr "“%(title)s” already goes with this gift: that would be a loop."
 
-#: apps/gifts/serializers.py:273
+#: apps/gifts/serializers.py:277
 msgid "Una lista non puo' includere se stessa."
 msgstr "A list can't include itself."
 
-#: apps/gifts/serializers.py:278
+#: apps/gifts/serializers.py:282
 msgid ""
 "Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
 msgstr ""
 "This list already sits inside another one: it can't include lists in turn."
 
-#: apps/gifts/serializers.py:283
+#: apps/gifts/serializers.py:287
 msgid "Una delle liste non esiste piu'."
 msgstr "One of the lists no longer exists."
 
-#: apps/gifts/serializers.py:286
+#: apps/gifts/serializers.py:290
 #, python-format
 msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
 msgstr ""
 "“%(title)s” already includes other lists: an included list can't include any."
 
-#: apps/gifts/serializers.py:349
+#: apps/gifts/serializers.py:355
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
@@ -164,20 +164,20 @@ msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:407
+#: apps/gifts/views.py:415
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:412
+#: apps/gifts/views.py:420
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:418
+#: apps/gifts/views.py:426
 #, python-format
 msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
 msgstr "It goes with “%(title)s”: someone needs to give that one first."
 
-#: apps/gifts/views.py:462
+#: apps/gifts/views.py:470
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 

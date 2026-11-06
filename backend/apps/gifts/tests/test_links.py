@@ -18,6 +18,7 @@ PRODUCT_PAGE = b"""<html><head>
   <meta property="og:image" content="/wave.png">
   <script type="application/ld+json">{
     "@context": "https://schema.org", "@type": "Product", "name": "Cuffie Wave Pro",
+    "gtin13": "4548736141667", "brand": {"@type": "Brand", "name": "Wave"},
     "offers": {"@type": "Offer", "price": "129.90", "priceCurrency": "EUR"}
   }</script>
 </head><body><h1>Cuffie Wave Pro</h1><p>Colore blu notte</p></body></html>"""
@@ -69,6 +70,9 @@ def test_dati_dichiarati_dalla_pagina(user, api, shop):
     assert response.data["title"] == "Cuffie Wave Pro"
     assert response.data["price"] == "129.90"
     assert response.data["notes"] == ""
+    # Codice a barre e marca: per cercare lo stesso prodotto in altri negozi.
+    assert response.data["gtin"] == "4548736141667"
+    assert response.data["brand"] == "Wave"
     assert response.data["image"]["source_url"] == "https://www.negozio.it/wave.png"
     assert response.data["image_error"] is None
     assert response.data["describe_id"] is None  # senza chiave Gemini non si usa
@@ -165,6 +169,8 @@ def test_gemini_scrive_nome_e_note(user, api, dns, web, scraper, gemini):
         "title": "Echo Dot (5ª generazione)",
         "price": "64.99",
         "notes": "Colore antracite.",
+        "gtin": "",
+        "brand": "",
     }
     prompt = gemini.asked[0]
     assert "Colore: Antracite" in prompt["contents"][0]["parts"][0]["text"]

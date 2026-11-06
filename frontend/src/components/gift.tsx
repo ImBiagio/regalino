@@ -4,6 +4,7 @@
 import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { useDescribeLink, useImageFromUrl, useReadLink, useUploadImage } from '../api/hooks'
 import { ApiError, mediaUrl } from '../lib/api'
@@ -456,9 +457,19 @@ function readableLink(raw: string): string | null {
 /** Quanto aspettare dopo l'ultimo tasto prima di leggere il link da soli. */
 const AUTO_DELAY_MS = 700
 
-/** I campi del form che il link del negozio puo' compilare. */
-export type LinkFields = { title: string; price: string; notes: string }
-const LINK_FIELDS = ['title', 'price', 'notes'] as const
+/**
+ * I campi del form che il link del negozio puo' compilare. Codice a barre e
+ * marca non si vedono nel form: l'utente non li tocca mai, quindi sono sempre
+ * "liberi" e seguono il link (cambiano o spariscono con lui).
+ */
+export type LinkFields = {
+  title: string
+  price: string
+  notes: string
+  gtin: string
+  brand: string
+}
+const LINK_FIELDS = ['title', 'price', 'notes', 'gtin', 'brand'] as const
 
 /** Cosa serve a `ImagePicker` per compilare il form dal link. */
 export type LinkFill = ReturnType<typeof useLinkFill>
@@ -488,6 +499,8 @@ export function useLinkFill(
         title: details.title,
         price: priceInput(details.price),
         notes: details.notes,
+        gtin: details.gtin,
+        brand: details.brand,
       }
       const next: Partial<LinkFields> = {}
       for (const key of LINK_FIELDS) {
@@ -752,5 +765,90 @@ export function ImagePicker({
         }}
       />
     </div>
+  )
+}
+
+/* ------------------------------------------------------------ dove trovarlo -- */
+
+/** Quello che serve per cercare un regalo in altri negozi. */
+export type Findable = { title: string; url: string; gtin: string; brand: string }
+
+/**
+ * Link di ricerca nei negozi e nei comparatori, per codice a barre se c'e'
+ * (trova esattamente quel prodotto) o per marca e nome. Nessuna API, nessuna
+ * lettura di pagine: chi regala confronta da se' con un tocco.
+ */
+export function shopLinks(item: Findable): { name: string; url: string }[] {
+  const query = encodeURIComponent(item.gtin || [item.brand, item.title].filter(Boolean).join(' '))
+  return [
+    { name: 'Google Shopping', url: `https://www.google.com/search?tbm=shop&q=${query}` },
+    { name: 'Amazon', url: `https://www.amazon.it/s?k=${query}` },
+    { name: 'eBay', url: `https://www.ebay.it/sch/i.html?_nkw=${query}` },
+    { name: 'Trovaprezzi', url: `https://www.trovaprezzi.it/categoria.aspx?libera=${query}` },
+  ]
+}
+
+/** Il bottone "Dove trovarlo" con il suo dialog. */
+export function WhereToBuy({ item, className }: { item: Findable; className?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        className={clsx('btn-text btn-sm', className)}
+        onClick={(event) => {
+          event.stopPropagation()
+          setOpen(true)
+        }}
+      >
+        <Icon name="storefront" size={18} />
+        {gettext('Dove trovarlo')}
+      </button>
+      {/* Nel body: dentro una riga con ``isolation: isolate`` il dialog resterebbe sotto le righe dopo. */}
+      {open &&
+        createPortal(<WhereToBuyModal item={item} onClose={() => setOpen(false)} />, document.body)}
+    </>
+  )
+}
+
+export function WhereToBuyModal({ item, onClose }: { item: Findable; onClose: () => void }) {
+  return (
+    <Modal open onClose={onClose} title={gettext('Dove trovarlo')}>
+      <div className="grid gap-3" onClick={(event) => event.stopPropagation()}>
+        <p className="text-body-large font-medium">{item.title}</p>
+        {item.url && (
+          <a href={item.url} target="_blank" rel="noopener noreferrer nofollow" className="row-m3">
+            <Icon name="link" size={22} className="text-on-surface-variant" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-body-large">{hostOf(item.url)}</span>
+              <span className="block text-body-small text-on-surface-variant">
+                {gettext('Il negozio indicato nella lista')}
+              </span>
+            </span>
+            <Icon name="open_in_new" size={20} className="text-on-surface-variant" />
+          </a>
+        )}
+        <p className="mt-1 text-body-small text-on-surface-variant">
+          {item.gtin
+            ? interpolate(gettext('Cerca lo stesso prodotto altrove (codice %s):'), [item.gtin])
+            : gettext('Cerca lo stesso prodotto altrove:')}
+        </p>
+        <div className="grid gap-1">
+          {shopLinks(item).map((shop) => (
+            <a
+              key={shop.name}
+              href={shop.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="row-m3"
+            >
+              <Icon name="storefront" size={22} className="text-on-surface-variant" />
+              <span className="min-w-0 flex-1 text-body-large">{shop.name}</span>
+              <Icon name="open_in_new" size={20} className="text-on-surface-variant" />
+            </a>
+          ))}
+        </div>
+      </div>
+    </Modal>
   )
 }

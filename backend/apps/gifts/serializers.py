@@ -79,6 +79,8 @@ class LinkDescriptionSerializer(serializers.Serializer):
     title = serializers.CharField(allow_blank=True)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
     notes = serializers.CharField(allow_blank=True)
+    gtin = serializers.CharField(allow_blank=True)
+    brand = serializers.CharField(allow_blank=True)
 
 
 class LinkDetailsSerializer(LinkDescriptionSerializer):
@@ -118,6 +120,8 @@ class WishSerializer(ImageFieldsMixin, serializers.ModelSerializer):
             "price",
             "image",
             "image_id",
+            "gtin",
+            "brand",
             "requires_id",
             "requires_title",
             "gifted",
@@ -336,6 +340,8 @@ class GiftIdeaSerializer(ImageFieldsMixin, serializers.ModelSerializer):
             "price",
             "image",
             "image_id",
+            "gtin",
+            "brand",
             "occasion",
             "status",
             "created_at",
@@ -377,6 +383,8 @@ class SharedWishSerializer(serializers.ModelSerializer):
             "url",
             "price",
             "image",
+            "gtin",
+            "brand",
             "requires_id",
             "gifted",
             "gifted_by_name",

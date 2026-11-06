@@ -303,6 +303,8 @@ class LinkReadView(APIView):
             "title": details.title,
             "price": details.price,
             "notes": details.notes,
+            "gtin": details.gtin,
+            "brand": details.brand,
             "image": image,
             "image_error": image_error,
             "describe_id": remember_page(page, request.user.pk) if can_describe(page) else None,
@@ -328,7 +330,13 @@ class LinkDescribeView(APIView):
         if page is None:
             raise NotFound()
         details = details_of(page, (get_language() or "it")[:2])
-        data = {"title": details.title, "price": details.price, "notes": details.notes}
+        data = {
+            "title": details.title,
+            "price": details.price,
+            "notes": details.notes,
+            "gtin": details.gtin,
+            "brand": details.brand,
+        }
         return Response(LinkDescriptionSerializer(data).data)
 
 

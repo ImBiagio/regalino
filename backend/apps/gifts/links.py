@@ -54,17 +54,23 @@ class Page:
     currency: str = ""
     text: str = ""
     images: list[str] = field(default_factory=list)
+    # Codice a barre (EAN/GTIN/ISBN) e marca dichiarati: servono a cercare lo
+    # stesso prodotto in altri negozi ("Dove trovarlo"), non al form.
+    gtin: str = ""
+    brand: str = ""
     # Il link era direttamente un'immagine: eccola gia' elaborata.
     image: ContentFile | None = None
 
 
 @dataclass
 class Details:
-    """Nome, prezzo e note da proporre nel form."""
+    """Nome, prezzo e note da proporre nel form, piu' codice e marca."""
 
     title: str = ""
     price: Decimal | None = None
     notes: str = ""
+    gtin: str = ""
+    brand: str = ""
 
 
 # ------------------------------------------------------ lettura diretta --
@@ -105,11 +111,11 @@ class _PageParser(HTMLParser):
                 self.meta.setdefault(key, content)
             if values.get("itemprop") and content:
                 self.itemprop.setdefault(values["itemprop"].lower(), content)
-        elif values.get("itemprop") in ("price", "image"):
+        elif values.get("itemprop") in ("price", "image", *GTIN_KEYS, "brand"):
             # <span itemprop="price" content="29.90"> o <img itemprop="image" src=...>
             value = values.get("content") or values.get("src") or values.get("href")
             if value:
-                self.itemprop.setdefault(values["itemprop"], value.strip())
+                self.itemprop.setdefault(values["itemprop"].lower(), value.strip())
         if tag == "link" and values.get("rel", "").lower() == "image_src" and values.get("href"):
             self.others.append(values["href"])
         elif tag == "script" and values.get("type", "").lower() == "application/ld+json":
@@ -192,6 +198,25 @@ def _text(value) -> str:
     return " ".join(str(value).split()) if isinstance(value, (str, int, float)) else ""
 
 
+GTIN_KEYS = ("gtin13", "gtin", "gtin14", "gtin12", "gtin8", "isbn", "ean")
+
+
+def _gtin(*candidates) -> str:
+    """Il primo codice che sembra un codice a barre: solo cifre, 8-14."""
+    for candidate in candidates:
+        digits = re.sub(r"[^0-9]", "", _text(candidate))
+        if 8 <= len(digits) <= 14:
+            return digits
+    return ""
+
+
+def _brand(value) -> str:
+    # In JSON-LD la marca e' spesso ``{"@type": "Brand", "name": "..."}``.
+    if isinstance(value, dict):
+        value = value.get("name")
+    return _text(value)[:80]
+
+
 def page_from_html(html: str, base_url: str) -> Page:
     parser = _PageParser()
     try:
@@ -246,6 +271,16 @@ def page_from_html(html: str, base_url: str) -> Page:
         ),
         text=parser.text,
         images=images,
+        gtin=_gtin(
+            *[(product or {}).get(key) for key in GTIN_KEYS],
+            *[parser.itemprop.get(key) for key in GTIN_KEYS],
+            meta.get("product:ean"),
+        ),
+        brand=_brand(
+            (product or {}).get("brand")
+            or meta.get("product:brand")
+            or parser.itemprop.get("brand")
+        ),
     )
 
 
@@ -465,7 +500,12 @@ def clean_title(title: str) -> str:
 
 def declared_details(page: Page) -> Details:
     """Nome e prezzo che la pagina dichiara: subito, senza Gemini."""
-    return Details(title=clean_title(page.title), price=parse_price(page.price, page.currency))
+    return Details(
+        title=clean_title(page.title),
+        price=parse_price(page.price, page.currency),
+        gtin=page.gtin,
+        brand=page.brand,
+    )
 
 
 def can_describe(page: Page) -> bool:

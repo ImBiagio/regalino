@@ -164,6 +164,9 @@ class Wish(BaseModel):
     image = models.ForeignKey(
         GiftImage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    # Codice a barre e marca letti dal link: per cercarlo in altri negozi.
+    gtin = models.CharField(max_length=20, blank=True)
+    brand = models.CharField(max_length=80, blank=True)
     # "Va con" un altro regalo della stessa lista (ADR 0009): la custodia va
     # con le cuffie. Si puo' spuntare solo quando quello e' gia' preso.
     requires = models.ForeignKey(
@@ -243,6 +246,8 @@ class GiftIdea(BaseModel):
     image = models.ForeignKey(
         GiftImage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    gtin = models.CharField(max_length=20, blank=True)
+    brand = models.CharField(max_length=80, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.IDEA)
 
     history = HistoricalRecords()

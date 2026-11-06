@@ -10,6 +10,7 @@ import {
   GiftThumb,
   ImageViewer,
   ListHero,
+  WhereToBuy,
 } from '../../components/gift'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
 import {
@@ -148,42 +149,45 @@ function SharedCards({
               )
             }
             footer={
-              item.gifted === false ? (
-                required && required.gifted !== true ? (
-                  <button
-                    type="button"
-                    className="btn-outlined btn-sm w-full"
-                    disabled
-                    title={interpolate(gettext('Prima serve che qualcuno prenda «%s».'), [
-                      required.title,
-                    ])}
-                  >
-                    <Icon name="hourglass_top" size={18} />
-                    {interpolate(gettext('Prima «%s»'), [required.title])}
-                  </button>
+              <div className="grid gap-1">
+                {item.gifted === false ? (
+                  required && required.gifted !== true ? (
+                    <button
+                      type="button"
+                      className="btn-outlined btn-sm w-full"
+                      disabled
+                      title={interpolate(gettext('Prima serve che qualcuno prenda «%s».'), [
+                        required.title,
+                      ])}
+                    >
+                      <Icon name="hourglass_top" size={18} />
+                      {interpolate(gettext('Prima «%s»'), [required.title])}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-primary-tonal btn-sm w-full"
+                      onClick={() => onClaim(item)}
+                    >
+                      <Icon name="redeem" size={18} />
+                      {gettext('Lo regalo io')}
+                    </button>
+                  )
                 ) : (
-                  <button
-                    type="button"
-                    className="btn-primary-tonal btn-sm w-full"
-                    onClick={() => onClaim(item)}
-                  >
-                    <Icon name="redeem" size={18} />
-                    {gettext('Lo regalo io')}
-                  </button>
-                )
-              ) : (
-                mine && (
-                  <button
-                    type="button"
-                    className="btn-outlined btn-sm w-full"
-                    disabled={releasing}
-                    onClick={() => onRelease(item)}
-                  >
-                    <Icon name="undo" size={18} />
-                    {gettext('Annulla')}
-                  </button>
-                )
-              )
+                  mine && (
+                    <button
+                      type="button"
+                      className="btn-outlined btn-sm w-full"
+                      disabled={releasing}
+                      onClick={() => onRelease(item)}
+                    >
+                      <Icon name="undo" size={18} />
+                      {gettext('Annulla')}
+                    </button>
+                  )
+                )}
+                <WhereToBuy item={item} className="-ml-2 justify-self-start" />
+              </div>
             }
           />
         )
