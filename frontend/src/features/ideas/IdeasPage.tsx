@@ -9,6 +9,7 @@ import {
   ImagePicker,
   PriceTrend,
   WhereToBuy,
+  useAskForLink,
   useLinkFill,
 } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
@@ -189,6 +190,7 @@ function RecipientGroup({
   const remove = useDeleteIdea()
   const watch = useWatchIdea()
   const confirm = useConfirm()
+  const askForLink = useAskForLink()
   const total = ideas.reduce((sum, idea) => sum + Number(idea.price ?? 0), 0)
 
   return (
@@ -249,7 +251,11 @@ function RecipientGroup({
                 <p className="text-body-small text-on-surface-variant">{idea.occasion}</p>
               )}
               <GiftMeta price={idea.price} url={idea.url} />
-              <PriceTrend history={idea.price_history} />
+              <PriceTrend
+                history={idea.price_history}
+                title={idea.title}
+                tracked={Boolean(idea.url)}
+              />
               <div
                 className="mt-2 flex flex-wrap items-center gap-2"
                 onClick={(event) => event.stopPropagation()}
@@ -275,19 +281,24 @@ function RecipientGroup({
               </div>
             </div>
             <div className="flex shrink-0 flex-col" onClick={(e) => e.stopPropagation()}>
-              {idea.url && (
-                <IconButton
-                  icon={idea.watching ? 'notifications_active' : 'notifications'}
-                  label={
-                    idea.watching
-                      ? gettext('Togli la campanella')
-                      : gettext('Avvisami se il prezzo scende')
+              {/* Sempre visibile: senza link spiega che serve e apre il form. */}
+              <IconButton
+                icon={idea.watching ? 'notifications_active' : 'notifications'}
+                label={
+                  idea.watching
+                    ? gettext('Togli la campanella')
+                    : gettext('Avvisami se il prezzo scende')
+                }
+                disabled={watch.isPending}
+                className={clsx(idea.watching && 'text-primary')}
+                onClick={async () => {
+                  if (idea.url || idea.watching) {
+                    watch.mutate({ id: idea.id, watch: !idea.watching })
+                  } else if (await askForLink()) {
+                    onEdit(idea)
                   }
-                  disabled={watch.isPending}
-                  className={clsx(idea.watching && 'text-primary')}
-                  onClick={() => watch.mutate({ id: idea.id, watch: !idea.watching })}
-                />
-              )}
+                }}
+              />
               <IconButton
                 icon="delete"
                 label={gettext('Elimina idea')}

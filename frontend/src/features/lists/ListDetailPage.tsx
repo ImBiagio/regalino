@@ -27,6 +27,7 @@ import {
   ListHero,
   PriceTrend,
   WatchBell,
+  useAskForLink,
   useLinkFill,
 } from '../../components/gift'
 import type { ImageChoice } from '../../components/gift'
@@ -296,6 +297,7 @@ function WishCards({
   const clearGift = useClearGift(listId)
   const watch = useWatchWish(listId)
   const confirm = useConfirm()
+  const askForLink = useAskForLink()
 
   return (
     <>
@@ -314,15 +316,25 @@ function WishCards({
             detail={
               wish.requires_title && interpolate(gettext('Va con «%s»'), [wish.requires_title])
             }
-            trend={<PriceTrend history={wish.price_history} />}
+            trend={
+              <PriceTrend
+                history={wish.price_history}
+                title={wish.title}
+                tracked={Boolean(wish.url)}
+              />
+            }
             corner={
-              wish.url && (
-                <WatchBell
-                  watching={wish.watching}
-                  pending={watch.isPending}
-                  onToggle={() => watch.mutate({ id: wish.id, watch: !wish.watching })}
-                />
-              )
+              <WatchBell
+                watching={wish.watching}
+                pending={watch.isPending}
+                onToggle={async () => {
+                  if (wish.url || wish.watching) {
+                    watch.mutate({ id: wish.id, watch: !wish.watching })
+                  } else if (await askForLink()) {
+                    onEdit(wish)
+                  }
+                }}
+              />
             }
             onClick={() => onEdit(wish)}
             badge={

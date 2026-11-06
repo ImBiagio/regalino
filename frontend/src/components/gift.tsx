@@ -9,8 +9,9 @@ import { createPortal } from 'react-dom'
 import { useDescribeLink, useImageFromUrl, useReadLink, useUploadImage } from '../api/hooks'
 import { ApiError, mediaUrl } from '../lib/api'
 import { daysUntil, formatDate, formatPrice, hostOf, priceInput } from '../lib/format'
-import { gettext, interpolate, ngettext } from '../lib/i18n'
+import { gettext, interpolate, intlLocale, ngettext } from '../lib/i18n'
 import type { LinkDescription, Money, PricePoint, UUID } from '../lib/types'
+import { useConfirm } from './ConfirmDialog'
 import { Field, Icon, IconButton, Modal } from './ui'
 
 /** Prezzo e link del regalo, sotto il titolo di una riga. */
@@ -864,20 +865,77 @@ export function WhereToBuyModal({ item, onClose }: { item: Findable; onClose: ()
 /* ------------------------------------------------------- prezzi e campanella -- */
 
 /**
- * L'andamento del prezzo letto dal link (ADR 0011): una linea e quanto e'
- * cambiato dal primo punto. Niente se c'e' un punto solo: non c'e' andamento.
+ * L'andamento del prezzo sulla card (ADR 0011): una linea e quanto e'
+ * cambiato dal primo punto. Un tocco apre il grafico intero. Con un punto
+ * solo resta il bottone "Andamento del prezzo": il grafico si riempie quando
+ * il task notturno trova un prezzo diverso.
  */
-export function PriceTrend({ history }: { history: PricePoint[] }) {
-  if (history.length < 2) return null
+export function PriceTrend({
+  history,
+  title,
+  tracked,
+}: {
+  history: PricePoint[]
+  /** Il nome del regalo, per il titolo del grafico. */
+  title: string
+  /** Ha un link da cui rileggere il prezzo. */
+  tracked: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  if (history.length < 2 && !tracked) return null
   const values = history.map((point) => Number(point.price))
-  const first = values[0]
-  const last = values[values.length - 1]
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const change = first > 0 ? Math.round(((last - first) / first) * 100) : 0
+  const first = values[0] ?? 0
+  const last = values[values.length - 1] ?? 0
+  const change = history.length > 1 && first > 0 ? Math.round(((last - first) / first) * 100) : 0
+  const tone =
+    history.length < 2
+      ? 'text-on-surface-variant'
+      : change < 0
+        ? 'text-success'
+        : change > 0
+          ? 'text-error'
+          : 'text-on-surface-variant'
+  return (
+    <>
+      <button
+        type="button"
+        className={clsx(
+          'state -mx-1 mt-1 flex max-w-full items-center gap-2 rounded-nested px-1 py-0.5 text-left text-body-small',
+          tone,
+        )}
+        aria-label={gettext('Vedi l’andamento del prezzo')}
+        onClick={(event) => {
+          event.stopPropagation()
+          setOpen(true)
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        {history.length > 1 ? <Sparkline values={values} /> : <Icon name="show_chart" size={18} />}
+        <span className="truncate">
+          {history.length < 2
+            ? gettext('Andamento del prezzo')
+            : change < 0
+              ? interpolate(gettext('−%s da quando è in lista'), [`${Math.abs(change)}%`])
+              : change > 0
+                ? interpolate(gettext('+%s da quando è in lista'), [`${change}%`])
+                : gettext('Prezzo stabile')}
+        </span>
+      </button>
+      {/* Nel body: le righe e le card hanno ``isolation: isolate``. */}
+      {open &&
+        createPortal(
+          <PriceChartModal history={history} title={title} onClose={() => setOpen(false)} />,
+          document.body,
+        )}
+    </>
+  )
+}
+
+function Sparkline({ values }: { values: number[] }) {
   const width = 72
   const height = 20
-  const span = max - min || 1
+  const min = Math.min(...values)
+  const span = Math.max(...values) - min || 1
   const line = values
     .map((value, index) => {
       const x = (index / (values.length - 1)) * (width - 2) + 1
@@ -885,34 +943,337 @@ export function PriceTrend({ history }: { history: PricePoint[] }) {
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
-  const tone = change < 0 ? 'text-success' : change > 0 ? 'text-error' : 'text-on-surface-variant'
   return (
-    <p
-      className={clsx('mt-1 flex items-center gap-2 text-body-small', tone)}
-      title={interpolate(gettext('Minimo %s, massimo %s'), [
-        formatPrice(min.toFixed(2)),
-        formatPrice(max.toFixed(2)),
-      ])}
-    >
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
-        <polyline
-          points={line}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="truncate">
-        {change < 0
-          ? interpolate(gettext('−%s%% da quando è in lista'), [Math.abs(change)])
-          : change > 0
-            ? interpolate(gettext('+%s%% da quando è in lista'), [change])
-            : gettext('Prezzo stabile')}
-      </span>
-    </p>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
+      <polyline
+        points={line}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
   )
+}
+
+/** Tacche "pulite" per l'asse dei prezzi: 1, 2, 2,5 o 5 per una potenza di dieci. */
+function niceTicks(min: number, max: number, count = 4): number[] {
+  if (min === max) {
+    const pad = Math.max(1, Math.abs(min) * 0.1)
+    min -= pad
+    max += pad
+  }
+  const raw = (max - min) / count
+  const power = 10 ** Math.floor(Math.log10(raw))
+  const step = ([1, 2, 2.5, 5, 10].find((n) => n * power >= raw) ?? 10) * power
+  const ticks: number[] = []
+  for (let tick = Math.floor(min / step) * step; tick <= max + step * 0.001; tick += step) {
+    ticks.push(Math.round(tick * 100) / 100)
+  }
+  if (ticks[ticks.length - 1] < max) ticks.push(ticks[ticks.length - 1] + step)
+  return ticks
+}
+
+function shortDate(iso: string): string {
+  return new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'short' }).format(
+    new Date(iso),
+  )
+}
+
+/**
+ * Il grafico dell'andamento: prezzo nel tempo come linea a gradini (un prezzo
+ * vale finche' non ne arriva un altro), fino a oggi. Crosshair che si aggancia
+ * al punto piu' vicino, con data e prezzo; sotto, attuale/minimo/massimo e
+ * l'elenco di tutti i prezzi visti.
+ */
+export function PriceChartModal({
+  history,
+  title,
+  onClose,
+}: {
+  history: PricePoint[]
+  title: string
+  onClose: () => void
+}) {
+  const [active, setActive] = useState<number | null>(null)
+  // La larghezza vera del grafico: un'unita' del viewBox e' un pixel, cosi'
+  // testi e margini restano leggibili anche sul telefono.
+  const frame = useRef<HTMLDivElement>(null)
+  const [frameWidth, setFrameWidth] = useState(560)
+  useEffect(() => {
+    const element = frame.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => setFrameWidth(entry.contentRect.width))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  const points = history.map((point) => ({
+    at: new Date(point.at).getTime(),
+    price: Number(point.price),
+  }))
+  const prices = points.map((point) => point.price)
+  const current = prices[prices.length - 1]
+  const first = prices[0]
+  const lowest = prices.length ? Math.min(...prices) : 0
+  const highest = prices.length ? Math.max(...prices) : 0
+
+  // Geometria in unita' del viewBox: l'SVG si allarga con il dialog.
+  const W = Math.max(280, Math.round(frameWidth))
+  const H = W < 420 ? 200 : 240
+  const pad = { top: 16, right: 76, bottom: 28, left: 52 }
+  const now = Date.now()
+  const start = points[0]?.at ?? now
+  const end = Math.max(now, points[points.length - 1]?.at ?? now, start + 86_400_000)
+  const ticks = niceTicks(lowest, highest)
+  const yMin = ticks[0]
+  const yMax = ticks[ticks.length - 1]
+  const x = (at: number) => pad.left + ((at - start) / (end - start)) * (W - pad.left - pad.right)
+  const y = (price: number) =>
+    pad.top + (1 - (price - yMin) / (yMax - yMin || 1)) * (H - pad.top - pad.bottom)
+
+  // Gradini: orizzontale fino al punto dopo, poi su o giu'; l'ultimo prezzo fino a oggi.
+  const step = points
+    .map((point, index) => {
+      const next = points[index + 1]?.at ?? end
+      return `${index === 0 ? 'M' : 'L'}${x(point.at).toFixed(1)},${y(point.price).toFixed(1)} L${x(next).toFixed(1)},${y(point.price).toFixed(1)}`
+    })
+    .join(' ')
+  const area = points.length
+    ? `${step} L${x(end).toFixed(1)},${(H - pad.bottom).toFixed(1)} L${x(start).toFixed(1)},${(H - pad.bottom).toFixed(1)} Z`
+    : ''
+
+  const nearest = (clientX: number, box: DOMRect) => {
+    const at =
+      start +
+      ((((clientX - box.left) / box.width) * W - pad.left) / (W - pad.left - pad.right)) *
+        (end - start)
+    let best = 0
+    points.forEach((point, index) => {
+      if (Math.abs(point.at - at) < Math.abs(points[best].at - at)) best = index
+    })
+    return best
+  }
+  const shown = active !== null ? points[active] : null
+  const change = first > 0 ? Math.round(((current - first) / first) * 100) : 0
+
+  return (
+    <Modal open onClose={onClose} title={gettext('Andamento del prezzo')} wide>
+      <div className="grid gap-4" onClick={(event) => event.stopPropagation()}>
+        <p className="text-body-large font-medium">{title}</p>
+        {points.length === 0 ? (
+          <p className="text-body-medium text-on-surface-variant">
+            {gettext(
+              'Ancora nessun prezzo: lo leggiamo dal link del negozio ogni notte e qui comparirà l’andamento.',
+            )}
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: gettext('Adesso'), value: current },
+                { label: gettext('Minimo'), value: lowest },
+                { label: gettext('Massimo'), value: highest },
+              ].map((tile) => (
+                <div key={tile.label} className="rounded-row bg-surface-container-low px-3 py-2">
+                  <p className="text-label-small text-on-surface-variant">{tile.label}</p>
+                  <p className="amount text-body-large font-semibold">
+                    {formatPrice(tile.value.toFixed(2))}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {points.length > 1 && (
+              <p className="text-body-medium text-on-surface-variant">
+                {change === 0
+                  ? interpolate(gettext('Uguale a quando è entrato in lista, il %s.'), [
+                      shortDate(history[0].at),
+                    ])
+                  : interpolate(
+                      change < 0
+                        ? gettext('%s in meno di quando è entrato in lista, il %s.')
+                        : gettext('%s in più di quando è entrato in lista, il %s.'),
+                      [`${Math.abs(change)}%`, shortDate(history[0].at)],
+                    )}
+              </p>
+            )}
+            <div className="relative" ref={frame}>
+              <svg
+                viewBox={`0 0 ${W} ${H}`}
+                className="block h-auto w-full touch-none select-none"
+                role="img"
+                aria-label={interpolate(gettext('Prezzo da %s a oggi: adesso %s'), [
+                  shortDate(history[0].at),
+                  formatPrice(current.toFixed(2)),
+                ])}
+                tabIndex={0}
+                onPointerMove={(event) =>
+                  setActive(nearest(event.clientX, event.currentTarget.getBoundingClientRect()))
+                }
+                onPointerDown={(event) =>
+                  setActive(nearest(event.clientX, event.currentTarget.getBoundingClientRect()))
+                }
+                onPointerLeave={() => setActive(null)}
+                onKeyDown={(event) => {
+                  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+                    event.preventDefault()
+                    const delta = event.key === 'ArrowRight' ? 1 : -1
+                    setActive((index) =>
+                      Math.min(
+                        points.length - 1,
+                        Math.max(0, (index ?? points.length - 1) + delta),
+                      ),
+                    )
+                  }
+                }}
+                onBlur={() => setActive(null)}
+              >
+                {/* Griglia e assi: linee sottili, un tono sopra la superficie. */}
+                {ticks.map((tick) => (
+                  <g key={tick}>
+                    <line
+                      x1={pad.left}
+                      x2={W - pad.right}
+                      y1={y(tick)}
+                      y2={y(tick)}
+                      stroke="var(--surface-container-highest)"
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={pad.left - 8}
+                      y={y(tick)}
+                      textAnchor="end"
+                      dominantBaseline="middle"
+                      className="amount"
+                      fontSize={12}
+                      fill="var(--on-surface-variant)"
+                    >
+                      {formatPrice(tick.toFixed(2)).replace(/[.,]00(?=\D*$)/, '')}
+                    </text>
+                  </g>
+                ))}
+                {[start, end].map((at, index) => (
+                  <text
+                    key={at}
+                    x={x(at)}
+                    y={H - 8}
+                    textAnchor={index === 0 ? 'start' : 'end'}
+                    fontSize={12}
+                    fill="var(--on-surface-variant)"
+                  >
+                    {index === 0 ? shortDate(history[0].at) : gettext('Oggi')}
+                  </text>
+                ))}
+                <path d={area} fill="var(--primary)" opacity={0.1} />
+                <path
+                  d={step}
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                {points.map((point, index) => (
+                  <circle
+                    key={point.at}
+                    cx={x(point.at)}
+                    cy={y(point.price)}
+                    r={active === index ? 6 : 4}
+                    fill="var(--primary)"
+                    stroke="var(--surface)"
+                    strokeWidth={2}
+                  />
+                ))}
+                {/* Il prezzo di adesso, scritto in fondo alla linea. */}
+                <text
+                  x={x(end) + 8}
+                  y={y(current)}
+                  dominantBaseline="middle"
+                  className="amount"
+                  fontSize={13}
+                  fontWeight={600}
+                  fill="var(--on-surface)"
+                >
+                  {formatPrice(current.toFixed(2))}
+                </text>
+                {shown && (
+                  <line
+                    x1={x(shown.at)}
+                    x2={x(shown.at)}
+                    y1={pad.top}
+                    y2={H - pad.bottom}
+                    stroke="var(--on-surface-variant)"
+                    strokeWidth={1}
+                  />
+                )}
+              </svg>
+              {shown && active !== null && (
+                <div
+                  className="pointer-events-none absolute top-0 -translate-x-1/2 whitespace-nowrap rounded-row bg-surface px-3 py-1.5 text-body-small shadow-sheet"
+                  style={{
+                    left: `${Math.min(85, Math.max(15, (x(shown.at) / W) * 100))}%`,
+                  }}
+                >
+                  <span className="text-on-surface-variant">{shortDate(history[active].at)}</span>{' '}
+                  <span className="amount font-semibold text-on-surface">
+                    {formatPrice(shown.price.toFixed(2))}
+                  </span>
+                </div>
+              )}
+            </div>
+            {points.length === 1 && (
+              <p className="text-body-small text-on-surface-variant">
+                {gettext(
+                  'Per ora un solo prezzo: ogni notte lo rileggiamo dal link del negozio, e quando cambia la linea si muove.',
+                )}
+              </p>
+            )}
+            {/* La stessa informazione senza grafico: tutti i prezzi visti. */}
+            <details className="rounded-row bg-surface-container-low px-4 py-2">
+              <summary className="cursor-pointer text-body-medium">
+                {interpolate(gettext('Tutti i prezzi (%s)'), [points.length])}
+              </summary>
+              <table className="mt-2 w-full text-body-medium">
+                <tbody>
+                  {[...history].reverse().map((point) => (
+                    <tr key={point.at} className="border-t border-outline-variant first:border-0">
+                      <td className="py-1.5 text-on-surface-variant">
+                        {new Intl.DateTimeFormat(intlLocale(), {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        }).format(new Date(point.at))}
+                      </td>
+                      <td className="amount py-1.5 text-right font-medium">
+                        {formatPrice(point.price)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+/**
+ * La campanella senza link del negozio non ha un prezzo da seguire: lo si
+ * spiega e, se si vuole, si apre il form per aggiungerlo. Torna vero se si'.
+ */
+export function useAskForLink() {
+  const confirm = useConfirm()
+  return () =>
+    confirm({
+      title: gettext('Serve il link del negozio'),
+      message: gettext(
+        'Il prezzo lo leggiamo ogni notte dalla pagina del negozio: aggiungi il link e poi metti la campanella, ti avvisiamo quando scende.',
+      ),
+      confirmLabel: gettext('Aggiungi il link'),
+      icon: 'notifications',
+    })
 }
 
 /** La campanella: "avvisami se il prezzo scende". Piena quando e' messa. */

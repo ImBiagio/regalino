@@ -155,7 +155,13 @@ function SharedCards({
             notes={item.notes}
             taken={Boolean(item.gifted) && !mine}
             detail={required && interpolate(gettext('Va con «%s»'), [required.title])}
-            trend={<PriceTrend history={item.price_history} />}
+            trend={
+              <PriceTrend
+                history={item.price_history}
+                title={item.title}
+                tracked={Boolean(item.url)}
+              />
+            }
             corner={
               item.url &&
               item.gifted !== true && (

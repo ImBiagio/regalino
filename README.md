@@ -84,7 +84,8 @@ simili partendo dalla lista. Serve `GEMINI_API_KEY`; limite `THROTTLE_SUGGEST`
 Ogni regalo o idea con un link ha la storia dei prezzi: il primo è quello di
 quando entra in lista, poi un task notturno rilegge la pagina (con un tetto:
 `PRICE_CHECKS_PER_NIGHT`, `PRICE_CHECK_GAP`) e sulla card compare "−17% da
-quando è in lista". La campanella sul regalo (dalla lista, dal link con un
+quando è in lista"; un tocco apre il grafico (attuale, minimo, massimo,
+linea nel tempo e tabella). La campanella sul regalo (dalla lista, dal link con un
 account, dalle idee) avvisa quando il prezzo scende: nell'app ("Avvisi", col
 contatore), per email o entrambi, come si sceglie in Account.
 

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:30+0100\n"
+"POT-Creation-Date: 2026-11-06 12:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -119,20 +119,66 @@ msgstr "Look for the same product elsewhere (code %s):"
 msgid "Cerca lo stesso prodotto altrove:"
 msgstr "Look for the same product elsewhere:"
 
-#, javascript-format
-msgid "Minimo %s, massimo %s"
-msgstr "Lowest %s, highest %s"
+msgid "Vedi l’andamento del prezzo"
+msgstr "See the price history"
 
-#, javascript-format
-msgid "−%s%% da quando è in lista"
-msgstr "−%s%% since it was listed"
+msgid "Andamento del prezzo"
+msgstr "Price history"
 
-#, javascript-format
-msgid "+%s%% da quando è in lista"
-msgstr "+%s%% since it was listed"
+msgid "−%s da quando è in lista"
+msgstr "−%s since it was listed"
+
+msgid "+%s da quando è in lista"
+msgstr "+%s since it was listed"
 
 msgid "Prezzo stabile"
 msgstr "Price unchanged"
+
+msgid ""
+"Ancora nessun prezzo: lo leggiamo dal link del negozio ogni notte e qui "
+"comparirà l’andamento."
+msgstr "No price yet: we read it from the shop link every night and the history will show up here."
+
+msgid "Adesso"
+msgstr "Now"
+
+msgid "Minimo"
+msgstr "Lowest"
+
+msgid "Massimo"
+msgstr "Highest"
+
+msgid "Uguale a quando è entrato in lista, il %s."
+msgstr "Same as when it was listed, on %s."
+
+msgid "%s in meno di quando è entrato in lista, il %s."
+msgstr "%s less than when it was listed, on %s."
+
+msgid "%s in più di quando è entrato in lista, il %s."
+msgstr "%s more than when it was listed, on %s."
+
+#, javascript-format
+msgid "Prezzo da %s a oggi: adesso %s"
+msgstr "Price from %s to today: now %s"
+
+msgid ""
+"Per ora un solo prezzo: ogni notte lo rileggiamo dal link del negozio, e "
+"quando cambia la linea si muove."
+msgstr "Only one price so far: we re-read it from the shop link every night, and the line moves when it changes."
+
+msgid "Tutti i prezzi (%s)"
+msgstr "All prices (%s)"
+
+msgid "Serve il link del negozio"
+msgstr "The shop link is needed"
+
+msgid ""
+"Il prezzo lo leggiamo ogni notte dalla pagina del negozio: aggiungi il link "
+"e poi metti la campanella, ti avvisiamo quando scende."
+msgstr "We read the price from the shop page every night: add the link, then put the bell on and we’ll alert you when it drops."
+
+msgid "Aggiungi il link"
+msgstr "Add the link"
 
 msgid "Togli la campanella"
 msgstr "Remove the bell"
@@ -217,7 +263,8 @@ msgstr "Send me the reset link"
 
 msgid ""
 "Quando scende il prezzo di un regalo con la campanella: dove vuoi saperlo?"
-msgstr "When the price of a gift with the bell drops: where do you want to hear it?"
+msgstr ""
+"When the price of a gift with the bell drops: where do you want to hear it?"
 
 msgid "Solo nell’app"
 msgstr "In the app only"
@@ -237,7 +284,9 @@ msgstr "Applies to the app and to the emails we send you."
 msgid ""
 "Quando scende il prezzo di un regalo con la campanella. Scegli come "
 "riceverli in Account."
-msgstr "When the price of a gift with the bell drops. Choose how to get them in Account."
+msgstr ""
+"When the price of a gift with the bell drops. Choose how to get them in "
+"Account."
 
 msgid "Nessun avviso, per ora"
 msgstr "No alerts yet"
@@ -245,7 +294,9 @@ msgstr "No alerts yet"
 msgid ""
 "Metti la campanella su un regalo con il link al negozio: quando il prezzo "
 "scende te lo diciamo qui."
-msgstr "Put the bell on a gift with a shop link: when the price drops we tell you here."
+msgstr ""
+"Put the bell on a gift with a shop link: when the price drops we tell you "
+"here."
 
 msgid "I regali giusti, senza doppioni."
 msgstr "The right gifts, no duplicates."
@@ -1072,7 +1123,9 @@ msgstr "I’ll alert you if the price drops"
 msgid ""
 "Per mandarti l’avviso (nell’app o per email) serve un account: accedi o "
 "creane uno, poi torni qui."
-msgstr "To send you the alert (in the app or by email) you need an account: sign in or create one, then you come back here."
+msgstr ""
+"To send you the alert (in the app or by email) you need an account: sign in "
+"or create one, then you come back here."
 
 #, javascript-format
 msgid "La lista di %s"
