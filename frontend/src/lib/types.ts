@@ -143,6 +143,29 @@ export interface Invite {
   already_member: boolean
 }
 
+/** Un'idea regalo scritta da Gemini (ADR 0010). */
+export interface GiftSuggestion {
+  title: string
+  why: string
+  /** Prezzo indicativo, solo il numero, o vuoto. */
+  price: string
+  /** Parole per cercarlo in un negozio. */
+  query: string
+}
+
+/** Cosa il wizard "Ispirami" sa della persona. Tutto facoltativo. */
+export interface SuggestPayload {
+  recipient: string
+  relation: string
+  age: string
+  interests: string[]
+  avoid: string
+  occasion: string
+  budget_min: string
+  budget_max: string
+  exclude?: string[]
+}
+
 export interface SharedWish {
   id: UUID
   title: string

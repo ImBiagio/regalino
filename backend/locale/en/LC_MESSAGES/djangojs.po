@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:16+0100\n"
+"POT-Creation-Date: 2026-11-06 11:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -317,6 +317,9 @@ msgid "Le idee per gli altri, e per chi. Le vedi solo tu."
 msgstr ""
 "Gift ideas for other people, and who they're for. Only you can see them."
 
+msgid "Ispirami"
+msgstr "Inspire me"
+
 msgid "Nessuna idea, per ora"
 msgstr "No ideas yet"
 
@@ -341,6 +344,9 @@ msgid "%s idea"
 msgid_plural "%s idee"
 msgstr[0] "%s idea"
 msgstr[1] "%s ideas"
+
+msgid "Idee per %s"
+msgstr "Ideas for %s"
 
 #, javascript-format
 msgid "Nuova idea per %s"
@@ -392,6 +398,167 @@ msgstr "Link (optional)"
 
 msgid "Note"
 msgstr "Notes"
+
+msgid "Partner"
+msgstr "Partner"
+
+msgid "Mamma"
+msgstr "Mum"
+
+msgid "Papà"
+msgstr "Dad"
+
+msgid "Figlio/a"
+msgstr "Son/daughter"
+
+msgid "Fratello/sorella"
+msgstr "Brother/sister"
+
+msgid "Amico/a"
+msgstr "Friend"
+
+msgid "Collega"
+msgstr "Colleague"
+
+msgid "Nonno/a"
+msgstr "Grandparent"
+
+msgid "Non importa"
+msgstr "Doesn’t matter"
+
+msgid "0–5 anni"
+msgstr "0–5 years"
+
+msgid "6–12 anni"
+msgstr "6–12 years"
+
+msgid "13–17 anni"
+msgstr "13–17 years"
+
+msgid "18–30 anni"
+msgstr "18–30 years"
+
+msgid "30–50 anni"
+msgstr "30–50 years"
+
+msgid "50–70 anni"
+msgstr "50–70 years"
+
+msgid "Più di 70"
+msgstr "Over 70"
+
+msgid "Cucina"
+msgstr "Cooking"
+
+msgid "Libri"
+msgstr "Books"
+
+msgid "Viaggi"
+msgstr "Travel"
+
+msgid "Sport"
+msgstr "Sport"
+
+msgid "Tecnologia"
+msgstr "Tech"
+
+msgid "Musica"
+msgstr "Music"
+
+msgid "Giardino"
+msgstr "Gardening"
+
+msgid "Casa"
+msgstr "Home"
+
+msgid "Moda"
+msgstr "Fashion"
+
+msgid "Giochi"
+msgstr "Games"
+
+msgid "Arte"
+msgstr "Art"
+
+msgid "Benessere"
+msgstr "Wellness"
+
+msgid "Natura"
+msgstr "Nature"
+
+msgid "Cinema e serie"
+msgstr "Films and series"
+
+msgid "Per chi?"
+msgstr "For whom?"
+
+msgid "Gusti e budget"
+msgstr "Tastes and budget"
+
+#, javascript-format
+msgid "Ispirami · %s"
+msgstr "Inspire me · %s"
+
+msgid "Chi è per te"
+msgstr "Who they are to you"
+
+msgid "Oppure scrivilo: la vicina, il mio capo…"
+msgstr "Or write it: my neighbour, my boss…"
+
+msgid "Età"
+msgstr "Age"
+
+msgid "Avanti"
+msgstr "Next"
+
+msgid "Cosa le/gli piace"
+msgstr "What they like"
+
+msgid "Altro: pesca, fumetti, cani…"
+msgstr "Other: fishing, comics, dogs…"
+
+msgid "Da evitare (facoltativo)"
+msgstr "Things to avoid (optional)"
+
+msgid "Profumi, cose da cucina, già ha tutto per…"
+msgstr "Perfume, kitchen stuff, already has everything for…"
+
+msgid "Occasione"
+msgstr "Occasion"
+
+msgid "Budget da (€)"
+msgstr "Budget from (€)"
+
+msgid "Budget fino a (€)"
+msgstr "Budget up to (€)"
+
+msgid "Indietro"
+msgstr "Back"
+
+msgid "Trova idee"
+msgstr "Find ideas"
+
+msgid "Idee scritte da un’AI partendo da quello che hai detto: scegli tu."
+msgstr "Ideas written by an AI from what you said: you choose."
+
+msgid "Cambia risposte"
+msgstr "Change answers"
+
+msgid "Altre idee"
+msgstr "More ideas"
+
+#, javascript-format
+msgid "~%s"
+msgstr "~%s"
+
+msgid "Qualcuno"
+msgstr "Someone"
+
+msgid "Aggiunta"
+msgstr "Added"
+
+msgid "Aggiungi a Da regalare"
+msgstr "Add to Gift ideas"
 
 msgid "Invito non valido"
 msgstr "Invalid invite"
@@ -836,6 +1003,15 @@ msgstr "“%s” first"
 
 msgid "Lo regalo io"
 msgstr "I'll give it"
+
+msgid "Alternative"
+msgstr "Alternatives"
+
+#, javascript-format
+msgid ""
+"«%s» è già preso. Idee simili scritte da un’AI, partendo da questa lista: "
+"scegli tu."
+msgstr "“%s” is already taken. Similar ideas written by an AI from this list: you choose."
 
 #, javascript-format
 msgid "La lista di %s"

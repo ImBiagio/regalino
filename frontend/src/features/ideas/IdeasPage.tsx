@@ -23,6 +23,7 @@ import { ApiError } from '../../lib/api'
 import { formatPrice, parsePrice, priceInput } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { GiftIdea, IdeaStatus } from '../../lib/types'
+import { InspireWizard } from './InspireWizard'
 
 const STATUS_LABEL: Record<IdeaStatus, string> = {
   idea: gettext('Idea'),
@@ -50,6 +51,8 @@ export function IdeasPage() {
   const { data: ideas, isLoading, error } = useIdeas()
   const [filter, setFilter] = useState<Filter>('open')
   const [form, setForm] = useState<GiftIdea | { recipient: string } | null>(null)
+  // Il wizard "Ispirami": aperto con la persona (o vuoto).
+  const [inspire, setInspire] = useState<string | null>(null)
 
   const recipients = useMemo(
     () =>
@@ -84,6 +87,12 @@ export function IdeasPage() {
       <PageHeader
         title={gettext('Da regalare')}
         subtitle={gettext('Le idee per gli altri, e per chi. Le vedi solo tu.')}
+        actions={
+          <button type="button" className="btn-tonal btn-sm" onClick={() => setInspire('')}>
+            <Icon name="auto_awesome" size={18} />
+            {gettext('Ispirami')}
+          </button>
+        }
       />
       <div className="grid gap-4 px-5 md:px-8">
         <ErrorBanner error={error} />
@@ -131,11 +140,19 @@ export function IdeasPage() {
             ideas={items}
             onEdit={(idea) => setForm(idea)}
             onAdd={() => setForm({ recipient })}
+            onInspire={() => setInspire(recipient)}
           />
         ))}
       </div>
 
       <Fab icon="add" label={gettext('Nuova idea')} onClick={() => setForm({ recipient: '' })} />
+      {inspire !== null && (
+        <InspireWizard
+          recipient={inspire}
+          recipients={recipients}
+          onClose={() => setInspire(null)}
+        />
+      )}
       {form && (
         <IdeaFormModal
           idea={'id' in form ? form : undefined}
@@ -153,11 +170,13 @@ function RecipientGroup({
   ideas,
   onEdit,
   onAdd,
+  onInspire,
 }: {
   recipient: string
   ideas: GiftIdea[]
   onEdit: (idea: GiftIdea) => void
   onAdd: () => void
+  onInspire: () => void
 }) {
   const save = useSaveIdea()
   const remove = useDeleteIdea()
@@ -180,6 +199,12 @@ function RecipientGroup({
             )}
           </p>
         </div>
+        <IconButton
+          icon="auto_awesome"
+          label={interpolate(gettext('Idee per %s'), [recipient])}
+          onClick={onInspire}
+          size="md"
+        />
         <IconButton
           icon="add"
           label={interpolate(gettext('Nuova idea per %s'), [recipient])}

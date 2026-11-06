@@ -154,6 +154,8 @@ REST_FRAMEWORK = {
         "images": env("THROTTLE_IMAGES", "60/hour"),
         # Richieste a Gemini (ADR 0006): costano quota della chiave.
         "links": env("THROTTLE_LINKS", "60/hour"),
+        # "Ispirami" e le alternative: ogni chiamata consuma la quota di Gemini.
+        "suggest": env("THROTTLE_SUGGEST", "30/hour"),
     },
 }
 

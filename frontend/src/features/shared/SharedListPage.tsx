@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
-import { readClaims, useClaimGift, useReleaseGift, useSharedList } from '../../api/hooks'
+import {
+  readClaims,
+  useClaimGift,
+  useReleaseGift,
+  useSharedList,
+  useSharedSuggest,
+} from '../../api/hooks'
 import {
   GiftBadge,
   GiftCard,
@@ -28,7 +34,8 @@ import { ApiError } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { formatDate } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
-import type { SharedSection, SharedWish, SharedWishList } from '../../lib/types'
+import type { GiftSuggestion, SharedSection, SharedWish, SharedWishList } from '../../lib/types'
+import { SuggestionRow } from '../ideas/InspireWizard'
 
 const NAME_KEY = 'regalino.name'
 
@@ -109,6 +116,7 @@ function SharedCards({
   onClaim,
   onView,
   onRelease,
+  onAlternatives,
   releasing,
 }: {
   items: SharedWish[]
@@ -118,6 +126,8 @@ function SharedCards({
   onClaim: (item: SharedWish) => void
   onView: (item: SharedWish) => void
   onRelease: (item: SharedWish) => void
+  /** Un regalo preso da altri: idee simili da Gemini (ADR 0010). */
+  onAlternatives: (item: SharedWish) => void
   releasing: boolean
 }) {
   return (
@@ -173,18 +183,25 @@ function SharedCards({
                       {gettext('Lo regalo io')}
                     </button>
                   )
+                ) : mine ? (
+                  <button
+                    type="button"
+                    className="btn-outlined btn-sm w-full"
+                    disabled={releasing}
+                    onClick={() => onRelease(item)}
+                  >
+                    <Icon name="undo" size={18} />
+                    {gettext('Annulla')}
+                  </button>
                 ) : (
-                  mine && (
-                    <button
-                      type="button"
-                      className="btn-outlined btn-sm w-full"
-                      disabled={releasing}
-                      onClick={() => onRelease(item)}
-                    >
-                      <Icon name="undo" size={18} />
-                      {gettext('Annulla')}
-                    </button>
-                  )
+                  <button
+                    type="button"
+                    className="btn-text btn-sm w-full"
+                    onClick={() => onAlternatives(item)}
+                  >
+                    <Icon name="auto_awesome" size={18} />
+                    {gettext('Alternative')}
+                  </button>
                 )}
                 <WhereToBuy item={item} className="-ml-2 justify-self-start" />
               </div>
@@ -220,11 +237,77 @@ function SharedSectionBlock({
   )
 }
 
+/**
+ * "Alternative": un regalo e' gia' preso, Gemini propone idee simili partendo
+ * dai regali della lista (pubblici per chi ha il link) e da quello preso.
+ */
+function AlternativesModal({
+  token,
+  item,
+  onClose,
+}: {
+  token: string
+  item: SharedWish
+  onClose: () => void
+}) {
+  const suggest = useSharedSuggest(token)
+  const [shown, setShown] = useState<GiftSuggestion[]>([])
+  const ask = async (more: boolean) => {
+    const ideas = await suggest
+      .mutateAsync({ item_id: item.id, exclude: more ? shown.map((s) => s.title) : [] })
+      .catch(() => null)
+    if (ideas) setShown(more ? [...shown, ...ideas] : ideas)
+  }
+  useEffect(() => {
+    void ask(false)
+    // Solo all'apertura: il regalo non cambia finche' il dialog e' aperto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id])
+
+  return (
+    <Modal open onClose={onClose} title={gettext('Alternative')}>
+      <div className="grid gap-3">
+        <p className="text-body-small text-on-surface-variant">
+          {interpolate(
+            gettext(
+              '«%s» è già preso. Idee simili scritte da un’AI, partendo da questa lista: scegli tu.',
+            ),
+            [item.title],
+          )}
+        </p>
+        <ErrorBanner error={suggest.error} />
+        {shown.map((idea) => (
+          <SuggestionRow key={idea.title} idea={idea} />
+        ))}
+        {suggest.isPending && (
+          <div className="grid gap-2">
+            {[0, 1, 2].map((index) => (
+              <Skeleton key={index} className="h-[84px]" />
+            ))}
+          </div>
+        )}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="btn-tonal"
+            disabled={suggest.isPending}
+            onClick={() => void ask(true)}
+          >
+            <Icon name="refresh" size={20} />
+            {gettext('Altre idee')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 type View = 'free' | 'all'
 
 function SharedList({ token, list }: { token: string; list: SharedWishList }) {
   const [claiming, setClaiming] = useState<SharedWish | null>(null)
   const [viewing, setViewing] = useState<SharedWish | null>(null)
+  const [alternatives, setAlternatives] = useState<SharedWish | null>(null)
   const claim = useClaimGift(token)
   const release = useReleaseGift(token)
   const claims = readClaims()
@@ -333,6 +416,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
             onClaim={setClaiming}
             onView={setViewing}
             onRelease={(item) => release.mutate(item.id)}
+            onAlternatives={setAlternatives}
             releasing={release.isPending}
           />
           {sections.map((section) => (
@@ -344,6 +428,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                 onClaim={setClaiming}
                 onView={setViewing}
                 onRelease={(item) => release.mutate(item.id)}
+                onAlternatives={setAlternatives}
                 releasing={release.isPending}
               />
             </SharedSectionBlock>
@@ -351,6 +436,13 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
         </section>
       )}
 
+      {alternatives && (
+        <AlternativesModal
+          token={token}
+          item={alternatives}
+          onClose={() => setAlternatives(null)}
+        />
+      )}
       {viewing?.image && (
         <ImageViewer image={viewing.image} title={viewing.title} onClose={() => setViewing(null)} />
       )}

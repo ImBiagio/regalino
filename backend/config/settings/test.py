@@ -20,6 +20,7 @@ REST_FRAMEWORK = {
         "shared": "10000/min",
         "images": "10000/min",
         "links": "10000/min",
+        "suggest": "10000/min",
     },
 }
 STORAGES = {

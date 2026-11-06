@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 
 from apps.core.methods import hash_secret, random_token
 
+from . import ai
 from .images import ImageError, process_image
 from .links import (
     can_describe,
@@ -41,8 +42,11 @@ from .serializers import (
     LinkDescriptionSerializer,
     LinkDetailsSerializer,
     LinkReadSerializer,
+    SharedSuggestSerializer,
     SharedWishListSerializer,
     SharedWishSerializer,
+    SuggestionSerializer,
+    SuggestSerializer,
     WishListSerializer,
     WishSerializer,
     invite_data,
@@ -198,6 +202,47 @@ class InviteView(APIView):
             lists_of(request.user).get(pk=wish_list.pk), context={"request": request}
         ).data
         return Response(data)
+
+
+def _suggest(data: dict, *, known_gifts: list[str] = (), alternative_to: str = "") -> Response:
+    """Le idee di Gemini, o 503 se non si puo' (chiave assente, errore, quota)."""
+    if not ai.enabled():
+        return Response(
+            {"detail": _("I suggerimenti non sono attivi su questo server.")},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    suggestions = ai.suggest_gifts(
+        recipient=data.get("recipient", ""),
+        relation=data.get("relation", ""),
+        age=data.get("age", ""),
+        interests=data.get("interests", []),
+        avoid=data.get("avoid", ""),
+        occasion=data.get("occasion", ""),
+        budget_min=data.get("budget_min", ""),
+        budget_max=data.get("budget_max", ""),
+        known_gifts=list(known_gifts),
+        alternative_to=alternative_to,
+        exclude=data.get("exclude", []),
+        language=(get_language() or "it")[:2],
+    )
+    if suggestions is None:
+        return Response(
+            {"detail": _("Adesso non riesco a trovare idee: riprova tra un momento.")},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    return Response(SuggestionSerializer(suggestions, many=True).data)
+
+
+class SuggestView(APIView):
+    """"Ispirami": idee regalo per una persona, da Gemini (ADR 0010)."""
+
+    throttle_scope = "suggest"
+
+    @extend_schema(request=SuggestSerializer, responses={200: SuggestionSerializer(many=True)})
+    def post(self, request):
+        serializer = SuggestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return _suggest(serializer.validated_data)
 
 
 class GiftIdeaViewSet(viewsets.ModelViewSet):
@@ -374,6 +419,32 @@ class SharedListView(APIView):
         wish_list = _shared_list(token)
         context = _shared_context(request, wish_list)
         return Response(SharedWishListSerializer(wish_list, context=context).data)
+
+
+class SharedSuggestView(APIView):
+    """Alternative a un regalo gia' preso, per chi ha il link (anche senza account).
+
+    A Gemini vanno i titoli dei regali della lista (pubblici per chi ha il
+    link) e quello da sostituire: niente nomi, niente dati di chi guarda.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_scope = "suggest"
+
+    @extend_schema(
+        request=SharedSuggestSerializer, responses={200: SuggestionSerializer(many=True)}
+    )
+    def post(self, request, token: str):
+        serializer = SharedSuggestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        wish_list = _shared_list(token)
+        lists = [wish_list, *wish_list.included_lists.all()]
+        wish = get_object_or_404(
+            Wish.objects.filter(wish_list__in=lists), pk=serializer.validated_data["item_id"]
+        )
+        titles = list(Wish.objects.filter(wish_list__in=lists).values_list("title", flat=True))
+        data = {"occasion": wish_list.title, "exclude": serializer.validated_data["exclude"]}
+        return _suggest(data, known_gifts=titles[:40], alternative_to=wish.title)
 
 
 ClaimResponse = inline_serializer(

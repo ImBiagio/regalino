@@ -5,11 +5,13 @@ import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
+  GiftSuggestion,
   Invite,
   LinkDescription,
   LinkDetails,
   SharedWish,
   SharedWishList,
+  SuggestPayload,
   UUID,
   Wish,
   WishList,
@@ -216,6 +218,21 @@ export function useDeleteIdea() {
   return useMutation({
     mutationFn: (id: UUID) => api.delete<void>(`/api/ideas/${id}`),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.ideas }),
+  })
+}
+
+/** "Ispirami": idee regalo da Gemini per una persona. */
+export function useSuggestGifts() {
+  return useMutation({
+    mutationFn: (body: SuggestPayload) => api.post<GiftSuggestion[]>('/api/ideas/suggest', body),
+  })
+}
+
+/** Alternative a un regalo gia' preso, dal link condiviso. */
+export function useSharedSuggest(token: string) {
+  return useMutation({
+    mutationFn: (body: { item_id: UUID; exclude?: string[] }) =>
+      api.post<GiftSuggestion[]>(`/api/shared/${token}/suggest`, body),
   })
 }
 

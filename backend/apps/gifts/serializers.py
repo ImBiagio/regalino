@@ -90,6 +90,41 @@ class LinkDetailsSerializer(LinkDescriptionSerializer):
     describe_id = serializers.CharField(allow_null=True)
 
 
+class SuggestSerializer(serializers.Serializer):
+    """Cosa sa il wizard "Ispirami" della persona (ADR 0010). Tutto facoltativo."""
+
+    recipient = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    relation = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    age = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
+    interests = serializers.ListField(
+        child=serializers.CharField(max_length=60), required=False, default=list, max_length=20
+    )
+    avoid = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    occasion = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
+    budget_min = serializers.CharField(max_length=12, required=False, allow_blank=True, default="")
+    budget_max = serializers.CharField(max_length=12, required=False, allow_blank=True, default="")
+    # Titoli gia' proposti, per "altre idee".
+    exclude = serializers.ListField(
+        child=serializers.CharField(max_length=160), required=False, default=list, max_length=40
+    )
+
+
+class SharedSuggestSerializer(serializers.Serializer):
+    """Alternative a un regalo gia' preso, dal link condiviso."""
+
+    item_id = serializers.UUIDField()
+    exclude = serializers.ListField(
+        child=serializers.CharField(max_length=160), required=False, default=list, max_length=40
+    )
+
+
+class SuggestionSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    why = serializers.CharField(allow_blank=True)
+    price = serializers.CharField(allow_blank=True)
+    query = serializers.CharField(allow_blank=True)
+
+
 class LinkDescribeSerializer(serializers.Serializer):
     describe_id = serializers.CharField(max_length=64)
 
