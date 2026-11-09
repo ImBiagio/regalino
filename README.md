@@ -40,8 +40,12 @@ dopo nuove migrazioni ricostruisci l'immagine: `docker compose build backend`.
 **Le mie liste** (`/`, `/liste/:id`). Una lista ha nome, data facoltativa
 (mostra quanto manca; le liste sono in ordine di data, la prossima in cima) e
 due righe per chi la apre. I regali hanno titolo, link al negozio, prezzo
-indicativo e note: si vedono come card in griglia, un tocco apre il form (dove
-c'è anche "Elimina"), e in testa c'è il totale indicativo. Il link si salva
+indicativo, quanti ne servono e note: si vedono come card in griglia, un tocco
+apre il form (dove c'è anche "Elimina"), e in testa c'è il totale indicativo.
+Quanti ne servono ([ADR 0012](docs/decisions/0012-quantita-di-un-regalo.md)):
+un contatore accanto al prezzo ("6 bicchieri", da 1 a 99); il prezzo è quello
+del pezzo, la card e il totale mostrano `prezzo × quantità` ("3 × 18,90 €"),
+anche sul link condiviso. La spunta resta una sola, per tutto l'insieme. Il link si salva
 ripulito dal tracciamento (`utm_*`, `fbclid`, `gclid`…; su Amazon resta solo
 `/dp/<codice>`) e può arrivare a 2000 caratteri.
 
@@ -196,7 +200,7 @@ docs/decisions/          ADR
 | `POST/DELETE /api/lists/{id}/invite-link` | crea/rinnova o spegne il link d'invito |
 | `DELETE /api/lists/{id}/members/{user_id}` | toglie un membro (proprietario) o se stessi |
 | `GET /api/invites/{token}` · `POST /api/invites/{token}` | anteprima dell'invito ed entrata nella lista (serve il login) |
-| `GET/POST /api/lists/{id}/items`, `…/items/{id}` | i regali di una lista (`requires_id` per "va con") |
+| `GET/POST /api/lists/{id}/items`, `…/items/{id}` | i regali di una lista (`quantity` 1–99, `requires_id` per "va con") |
 | `DELETE /api/lists/{id}/items/{id}/gift` | togli spunta (solo con `show_gifted`) |
 | `POST/DELETE /api/lists/{id}/items/{id}/watch` · `…/ideas/{id}/watch` · `…/shared/{token}/items/{id}/watch` | campanella (sul link serve il login) |
 | `GET /api/notifications` · `POST /api/notifications` | avvisi (ultimi 50, non letti) · segna tutti letti |
@@ -297,7 +301,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-130 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+140 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -310,7 +314,8 @@ della inclusa, un solo livello, solo liste proprie, chi scrive la lista inclusa
 non ne spunta i regali dal link della madre, lista inclusa eliminata che
 sparisce. Regali che vanno insieme: stessa lista, niente giri (anche a tre),
 409 finché l'altro non è preso, poi 201, regalo madre eliminato che libera
-l'altro. Ispirami: Gemini finto che propone idee (quelle senza titolo si
+l'altro. Quantità: default 1, 0 e 100 rifiutati, visibile sul link. Link lunghi
+salvati puliti (Amazon → `/dp/ASIN`, via `utm_*`), fino a 2000 caratteri. Ispirami: Gemini finto che propone idee (quelle senza titolo si
 scartano), prompt con interessi ed esclusioni, 503 senza chiave o con risposta
 strana, alternative dal link senza account e senza nomi nel prompt. Prezzi:
 primo punto al salvataggio, punto nuovo solo se cambia, campanella sul link

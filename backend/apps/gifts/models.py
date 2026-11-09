@@ -18,6 +18,7 @@ from __future__ import annotations
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -26,6 +27,9 @@ from simple_history.models import HistoricalRecords
 
 from apps.core.methods import random_token
 from apps.core.models import BaseModel
+
+# Oltre non e' piu' una lista dei regali: chi vuole 100 pezzi scrive un regalo a parte.
+MAX_QUANTITY = 99
 
 
 def new_share_token() -> str:
@@ -161,7 +165,13 @@ class Wish(BaseModel):
     title = models.CharField(max_length=160)
     notes = models.TextField(blank=True)
     url = models.URLField(max_length=2000, blank=True)
+    # Prezzo del singolo pezzo: il totale e' ``price * quantity``.
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # Quanti ne servono ("6 bicchieri"): la spunta resta una sola, per tutto
+    # l'insieme (ADR 0012); conta solo per il totale e per chi compra.
+    quantity = models.PositiveSmallIntegerField(
+        default=1, validators=[MinValueValidator(1), MaxValueValidator(MAX_QUANTITY)]
+    )
     image = models.ForeignKey(
         GiftImage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )

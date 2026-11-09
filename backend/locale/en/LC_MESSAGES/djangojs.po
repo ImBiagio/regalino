@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 12:00+0100\n"
+"POT-Creation-Date: 2026-11-09 12:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,6 +38,14 @@ msgstr "Account"
 
 msgid "Sezioni"
 msgstr "Sections"
+
+#, javascript-format
+msgid "%s × %s"
+msgstr "%s × %s"
+
+#, javascript-format
+msgid "× %s"
+msgstr "× %s"
 
 msgid "Oggi"
 msgstr "Today"
@@ -125,9 +133,11 @@ msgstr "See the price history"
 msgid "Andamento del prezzo"
 msgstr "Price history"
 
+#, javascript-format
 msgid "−%s da quando è in lista"
 msgstr "−%s since it was listed"
 
+#, javascript-format
 msgid "+%s da quando è in lista"
 msgstr "+%s since it was listed"
 
@@ -137,7 +147,9 @@ msgstr "Price unchanged"
 msgid ""
 "Ancora nessun prezzo: lo leggiamo dal link del negozio ogni notte e qui "
 "comparirà l’andamento."
-msgstr "No price yet: we read it from the shop link every night and the history will show up here."
+msgstr ""
+"No price yet: we read it from the shop link every night and the history will "
+"show up here."
 
 msgid "Adesso"
 msgstr "Now"
@@ -148,12 +160,15 @@ msgstr "Lowest"
 msgid "Massimo"
 msgstr "Highest"
 
+#, javascript-format
 msgid "Uguale a quando è entrato in lista, il %s."
 msgstr "Same as when it was listed, on %s."
 
+#, javascript-format
 msgid "%s in meno di quando è entrato in lista, il %s."
 msgstr "%s less than when it was listed, on %s."
 
+#, javascript-format
 msgid "%s in più di quando è entrato in lista, il %s."
 msgstr "%s more than when it was listed, on %s."
 
@@ -164,8 +179,11 @@ msgstr "Price from %s to today: now %s"
 msgid ""
 "Per ora un solo prezzo: ogni notte lo rileggiamo dal link del negozio, e "
 "quando cambia la linea si muove."
-msgstr "Only one price so far: we re-read it from the shop link every night, and the line moves when it changes."
+msgstr ""
+"Only one price so far: we re-read it from the shop link every night, and the "
+"line moves when it changes."
 
+#, javascript-format
 msgid "Tutti i prezzi (%s)"
 msgstr "All prices (%s)"
 
@@ -175,7 +193,9 @@ msgstr "The shop link is needed"
 msgid ""
 "Il prezzo lo leggiamo ogni notte dalla pagina del negozio: aggiungi il link "
 "e poi metti la campanella, ti avvisiamo quando scende."
-msgstr "We read the price from the shop page every night: add the link, then put the bell on and we’ll alert you when it drops."
+msgstr ""
+"We read the price from the shop page every night: add the link, then put the "
+"bell on and we’ll alert you when it drops."
 
 msgid "Aggiungi il link"
 msgstr "Add the link"
@@ -838,6 +858,10 @@ msgstr "Headphones, a book, a dinner out…"
 msgid "Prezzo indicativo (facoltativo)"
 msgstr "Approximate price (optional)"
 
+#, javascript-format
+msgid "In tutto %s"
+msgstr "%s in total"
+
 msgid "Va con un altro regalo (facoltativo)"
 msgstr "Goes with another gift (optional)"
 
@@ -856,6 +880,15 @@ msgstr "Delete this gift?"
 #, javascript-format
 msgid "«%s» sparisce anche dal link condiviso."
 msgstr "“%s” also disappears from the shared link."
+
+msgid "Quanti"
+msgstr "How many"
+
+msgid "Uno in meno"
+msgstr "One less"
+
+msgid "Uno in più"
+msgstr "One more"
 
 msgid "Condividi la lista"
 msgstr "Share the list"

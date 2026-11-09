@@ -7,7 +7,7 @@ from .models import GiftIdea, Wish, WishList, WishListInclusion, WishListMember
 class WishInline(admin.TabularInline):
     model = Wish
     extra = 0
-    fields = ["title", "price", "url", "gifted_at", "gifted_by_name"]
+    fields = ["title", "price", "quantity", "url", "gifted_at", "gifted_by_name"]
     readonly_fields = ["gifted_at", "gifted_by_name"]
 
 

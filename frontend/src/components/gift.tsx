@@ -14,14 +14,39 @@ import type { LinkDescription, Money, PricePoint, UUID } from '../lib/types'
 import { useConfirm } from './ConfirmDialog'
 import { Field, Icon, IconButton, Modal } from './ui'
 
-/** Prezzo e link del regalo, sotto il titolo di una riga. */
-export function GiftMeta({ price, url }: { price: Money | null; url: string }) {
-  if (!price && !url) return null
+/** Il totale di un regalo: prezzo del pezzo per quanti ne servono, come Decimal in stringa. */
+export function lineTotal(price: Money | null, quantity: number): Money | null {
+  if (!price) return null
+  return (Number(price) * Math.max(1, quantity)).toFixed(2)
+}
+
+/**
+ * Prezzo e link del regalo, sotto il titolo di una riga. Se ne servono piu' di
+ * uno il prezzo mostrato e' il totale, con accanto "3 × 18,90 €".
+ */
+export function GiftMeta({
+  price,
+  url,
+  quantity = 1,
+}: {
+  price: Money | null
+  url: string
+  quantity?: number
+}) {
+  const many = quantity > 1
+  if (!price && !url && !many) return null
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-body-small">
       {price && (
         <span className="amount text-body-medium font-medium text-on-surface">
-          {formatPrice(price)}
+          {formatPrice(lineTotal(price, quantity))}
+        </span>
+      )}
+      {many && (
+        <span className="amount rounded-pill bg-secondary-container px-2 py-0.5 text-label-small text-on-secondary-container">
+          {price
+            ? interpolate(gettext('%s × %s'), [String(quantity), formatPrice(price)])
+            : interpolate(gettext('× %s'), [String(quantity)])}
         </span>
       )}
       {url && (
@@ -195,6 +220,7 @@ export function GiftCard({
   title,
   price,
   url,
+  quantity,
   notes,
   badge,
   taken,
@@ -211,6 +237,8 @@ export function GiftCard({
   title: string
   price: Money | null
   url: string
+  /** Quanti ne servono: sopra 1 il prezzo diventa il totale e compare "3 × …". */
+  quantity?: number
   notes?: string
   /** Etichetta sopra la foto (es. "Preso"). */
   badge?: ReactNode
@@ -289,7 +317,7 @@ export function GiftCard({
         >
           {title}
         </p>
-        <GiftMeta price={price} url={url} />
+        <GiftMeta price={price} url={url} quantity={quantity} />
         {detail && (
           <p className="mt-1 flex items-center gap-1 text-body-small text-on-surface-variant">
             <Icon name="link" size={16} />

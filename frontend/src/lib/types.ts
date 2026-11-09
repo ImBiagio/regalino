@@ -86,7 +86,10 @@ export interface Wish {
   title: string
   notes: string
   url: string
+  /** Prezzo del singolo pezzo: il totale e' `price * quantity`. */
   price: Money | null
+  /** Quanti ne servono ("6 bicchieri"), da 1 a 99; la spunta resta una sola (ADR 0012). */
+  quantity: number
   /** Percorso della foto (`/media/...`), da passare a `mediaUrl`. */
   image: string | null
   gtin: string
@@ -105,7 +108,10 @@ export interface Wish {
 }
 
 /** `image_id`: assente = foto invariata, `null` = toglila, id = quella caricata. */
-export type WishPayload = Pick<Wish, 'title' | 'notes' | 'url' | 'price' | 'gtin' | 'brand'> & {
+export type WishPayload = Pick<
+  Wish,
+  'title' | 'notes' | 'url' | 'price' | 'quantity' | 'gtin' | 'brand'
+> & {
   image_id?: UUID | null
   requires_id?: UUID | null
 }
@@ -204,6 +210,7 @@ export interface SharedWish {
   notes: string
   url: string
   price: Money | null
+  quantity: number
   image: string | null
   gtin: string
   brand: string

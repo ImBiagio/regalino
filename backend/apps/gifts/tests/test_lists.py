@@ -67,6 +67,34 @@ def test_link_lungo_salvato_pulito(wish_list, user, api):
     assert item.status_code == 400
 
 
+def test_quantita(wish_list, user, api):
+    """Di default uno; si puo' chiederne di piu' (fino a 99), mai zero."""
+    client = api(user)
+    item = client.post(
+        f"/api/lists/{wish_list.id}/items", {"title": "Bicchieri", "price": "4.50"}, format="json"
+    )
+    assert item.status_code == 201
+    assert item.data["quantity"] == 1
+
+    changed = client.patch(
+        f"/api/lists/{wish_list.id}/items/{item.data['id']}", {"quantity": 6}, format="json"
+    )
+    assert changed.status_code == 200
+    assert changed.data["quantity"] == 6
+    assert changed.data["price"] == "4.50"  # resta il prezzo del singolo pezzo
+
+    for bad in (0, -1, 100, "sei"):
+        response = client.post(
+            f"/api/lists/{wish_list.id}/items", {"title": "X", "quantity": bad}, format="json"
+        )
+        assert response.status_code == 400, bad
+        assert "quantity" in response.data
+
+    # Sul link condiviso si vede quanti ne servono.
+    [shared] = api().get(f"/api/shared/{wish_list.share_token}").data["items"]
+    assert shared["quantity"] == 6
+
+
 def test_prezzo_negativo_rifiutato(wish_list, user, api):
     response = api(user).post(
         f"/api/lists/{wish_list.id}/items", {"title": "X", "price": "-1"}, format="json"

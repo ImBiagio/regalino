@@ -152,6 +152,7 @@ function SharedCards({
             title={item.title}
             price={item.price}
             url={item.url}
+            quantity={item.quantity}
             notes={item.notes}
             taken={Boolean(item.gifted) && !mine}
             detail={required && interpolate(gettext('Va con «%s»'), [required.title])}
@@ -539,7 +540,7 @@ function ClaimModal({
           <GiftThumb image={item.image} seed={item.id} size={64} />
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 text-body-large font-medium">{item.title}</p>
-            <GiftMeta price={item.price} url={item.url} />
+            <GiftMeta price={item.price} url={item.url} quantity={item.quantity} />
           </div>
         </div>
         <p className="text-body-medium">

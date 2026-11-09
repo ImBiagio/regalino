@@ -27,6 +27,7 @@ import {
   ListHero,
   PriceTrend,
   WatchBell,
+  lineTotal,
   useAskForLink,
   useLinkFill,
 } from '../../components/gift'
@@ -51,6 +52,9 @@ import { formatDate, formatPrice, joinNames, parsePrice, priceInput } from '../.
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { IncludedList, Person, UUID, Wish, WishList } from '../../lib/types'
 import { ListFormModal } from './ListsPage'
+
+// Lo stesso tetto del server (`MAX_QUANTITY`): oltre si scrive un regalo a parte.
+const MAX_QUANTITY = 99
 
 export function shareUrl(list: Pick<WishList, 'share_token'>): string {
   return `${window.location.origin}/l/${list.share_token}`
@@ -261,7 +265,10 @@ function WishGrid({
     )
   }
 
-  const total = wishes.reduce((sum, wish) => sum + Number(wish.price ?? 0), 0)
+  const total = wishes.reduce(
+    (sum, wish) => sum + Number(lineTotal(wish.price, wish.quantity) ?? 0),
+    0,
+  )
 
   return (
     <section className="grid gap-3">
@@ -311,6 +318,7 @@ function WishCards({
             title={wish.title}
             price={wish.price}
             url={wish.url}
+            quantity={wish.quantity}
             notes={wish.notes}
             taken={Boolean(wish.gifted)}
             detail={
@@ -583,6 +591,7 @@ function WishFormModal({
   const [title, setTitle] = useState(wish?.title ?? '')
   const [url, setUrl] = useState(wish?.url ?? '')
   const [price, setPrice] = useState(priceInput(wish?.price ?? null))
+  const [quantity, setQuantity] = useState(wish?.quantity ?? 1)
   const [notes, setNotes] = useState(wish?.notes ?? '')
   const [gtin, setGtin] = useState(wish?.gtin ?? '')
   const [brand, setBrand] = useState(wish?.brand ?? '')
@@ -625,6 +634,7 @@ function WishFormModal({
               title: title.trim(),
               url: url.trim(),
               price: parsePrice(price),
+              quantity,
               notes: notes.trim(),
               gtin,
               brand,
@@ -638,6 +648,7 @@ function WishFormModal({
         {!fields.title &&
           !fields.url &&
           !fields.price &&
+          !fields.quantity &&
           !fields.image_id &&
           !fields.requires_id && <ErrorBanner error={save.error ?? remove.error} />}
         <Field label={gettext('Cosa ti piacerebbe')} error={fields.title} hint={fill.hint('title')}>
@@ -661,22 +672,32 @@ function WishFormModal({
             placeholder="https://"
           />
         </Field>
-        <Field
-          label={gettext('Prezzo indicativo (facoltativo)')}
-          error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
-          hint={fill.hint('price')}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-body-large text-on-surface-variant">€</span>
-            <input
-              className="field-input amount"
-              inputMode="decimal"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              placeholder="0,00"
-            />
-          </div>
-        </Field>
+        <div className="grid grid-cols-[1fr_auto] items-start gap-3">
+          <Field
+            label={gettext('Prezzo indicativo (facoltativo)')}
+            error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
+            hint={fill.hint('price')}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-body-large text-on-surface-variant">€</span>
+              <input
+                className="field-input amount"
+                inputMode="decimal"
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+          </Field>
+          <QuantityField value={quantity} onChange={setQuantity} error={fields.quantity} />
+        </div>
+        {quantity > 1 && parsePrice(price) && (
+          <p className="-mt-2 px-4 text-body-small text-on-surface-variant">
+            {interpolate(gettext('In tutto %s'), [
+              formatPrice(lineTotal(parsePrice(price), quantity)),
+            ])}
+          </p>
+        )}
         <ImagePicker
           current={wish?.image ?? null}
           choice={image}
@@ -749,6 +770,47 @@ function WishFormModal({
         </div>
       </form>
     </Modal>
+  )
+}
+
+/** Quanti ne servono: − e + attorno al numero, da 1 a 99 (il prezzo resta quello del pezzo). */
+function QuantityField({
+  value,
+  onChange,
+  error,
+}: {
+  value: number
+  onChange: (value: number) => void
+  error?: string
+}) {
+  const clamp = (next: number) => onChange(Math.min(MAX_QUANTITY, Math.max(1, next)))
+  return (
+    <Field label={gettext('Quanti')} error={error}>
+      <div className="flex items-center gap-1">
+        <IconButton
+          icon="remove"
+          label={gettext('Uno in meno')}
+          disabled={value <= 1}
+          onClick={() => clamp(value - 1)}
+        />
+        <input
+          className="field-input amount w-12 text-center"
+          inputMode="numeric"
+          value={value}
+          onChange={(event) => {
+            const next = Number.parseInt(event.target.value, 10)
+            if (Number.isFinite(next)) clamp(next)
+          }}
+          aria-label={gettext('Quanti')}
+        />
+        <IconButton
+          icon="add"
+          label={gettext('Uno in più')}
+          disabled={value >= MAX_QUANTITY}
+          onClick={() => clamp(value + 1)}
+        />
+      </div>
+    </Field>
   )
 }
 
