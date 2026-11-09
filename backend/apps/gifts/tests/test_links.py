@@ -281,6 +281,38 @@ def test_clean_title():
     assert len(long) <= links.MAX_TITLE and long.endswith("…")
 
 
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        # Amazon: resta solo il codice del prodotto, qualunque sia la forma del link.
+        (
+            "https://www.amazon.it/dp/B08P3G898S/?coliid=I1JTKPVPMFQVH&colid=309QLV6JK81HC"
+            "&psc=1&ref_=list_c_wl_lv_vv_lig_dp_it",
+            "https://www.amazon.it/dp/B08P3G898S",
+        ),
+        (
+            "https://www.amazon.it/Pendragon-Oscuro-Signore-Luxastra-Edizione/dp/b08p3g898s/"
+            "ref=sr_1_1?crid=ABC&keywords=luxastra&qid=1&sprefix=lux%2Caps%2C100&sr=8-1",
+            "https://www.amazon.it/dp/B08P3G898S",
+        ),
+        ("https://amazon.de/gp/product/8885591213?tag=x", "https://amazon.de/dp/8885591213"),
+        # Amazon senza codice (una ricerca): via solo il tracciamento.
+        ("https://www.amazon.it/s?k=luxastra&ref=nb_sb_noss", "https://www.amazon.it/s?k=luxastra"),
+        # Altri negozi: via utm_* e simili, il resto resta (taglia, colore, ricerca).
+        (
+            "https://www.zalando.it/scarpe-123.html?size=42&utm_source=fb&fbclid=XYZ#top",
+            "https://www.zalando.it/scarpe-123.html?size=42",
+        ),
+        ("https://esempio.it/libro", "https://esempio.it/libro"),
+        ("  https://esempio.it/libro?a=1&b=2  ", "https://esempio.it/libro?a=1&b=2"),
+        # Non e' un link web: non si tocca (ci pensa il validatore a rifiutarlo).
+        ("non un link", "non un link"),
+    ],
+)
+def test_clean_url(raw, expected):
+    assert links.clean_url(raw) == expected
+
+
 def test_nome_del_prodotto_prima_del_primo_h1():
     page = links.page_from_html(
         "<html><head><title>Libro : Autore : Amazon.it: Libri</title></head><body>"

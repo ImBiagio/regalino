@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from .links import clean_url
 from .models import GiftIdea, GiftImage, Notification, Wish, WishList, WishListMember
 
 
@@ -13,6 +14,11 @@ def validate_price(value: Decimal | None) -> Decimal | None:
     if value is not None and value < 0:
         raise serializers.ValidationError(_("Il prezzo non puo' essere negativo."))
     return value
+
+
+def validate_url(value: str) -> str:
+    """Il link si salva ripulito dal tracciamento: su Amazon resta solo ``/dp/ASIN``."""
+    return clean_url(value) if value else value
 
 
 def image_url(image: GiftImage | None) -> str | None:
@@ -102,11 +108,11 @@ class ImageUploadSerializer(serializers.Serializer):
 
 
 class ImageFromUrlSerializer(serializers.Serializer):
-    url = serializers.URLField(max_length=1000)
+    url = serializers.URLField(max_length=2000)
 
 
 class LinkReadSerializer(serializers.Serializer):
-    url = serializers.URLField(max_length=1000)
+    url = serializers.URLField(max_length=2000)
     # Falso quando nel form c'e' gia' una foto scelta a mano.
     image = serializers.BooleanField(default=True)
 
@@ -208,6 +214,9 @@ class WishSerializer(ImageFieldsMixin, PriceMixin, serializers.ModelSerializer):
 
     def validate_price(self, value):
         return validate_price(value)
+
+    def validate_url(self, value: str) -> str:
+        return validate_url(value)
 
     def validate_requires_id(self, value: Wish | None) -> Wish | None:
         """Della stessa lista, non se stesso, e senza giri (A va con B che va con A)."""
@@ -434,6 +443,9 @@ class GiftIdeaSerializer(ImageFieldsMixin, PriceMixin, serializers.ModelSerializ
 
     def validate_price(self, value):
         return validate_price(value)
+
+    def validate_url(self, value: str) -> str:
+        return validate_url(value)
 
 
 # --------------------------------------------------------- lista condivisa --

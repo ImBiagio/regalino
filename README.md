@@ -41,7 +41,9 @@ dopo nuove migrazioni ricostruisci l'immagine: `docker compose build backend`.
 (mostra quanto manca; le liste sono in ordine di data, la prossima in cima) e
 due righe per chi la apre. I regali hanno titolo, link al negozio, prezzo
 indicativo e note: si vedono come card in griglia, un tocco apre il form (dove
-c'è anche "Elimina"), e in testa c'è il totale indicativo.
+c'è anche "Elimina"), e in testa c'è il totale indicativo. Il link si salva
+ripulito dal tracciamento (`utm_*`, `fbclid`, `gclid`…; su Amazon resta solo
+`/dp/<codice>`) e può arrivare a 2000 caratteri.
 
 **Condivisione** (`/l/<token>`). Il link è un token casuale (`WishList.share_token`):
 chi lo ha vede la lista **senza account** (quanti regali restano, filtri "Da

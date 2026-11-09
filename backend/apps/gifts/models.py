@@ -160,7 +160,7 @@ class Wish(BaseModel):
     wish_list = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name="items")
     title = models.CharField(max_length=160)
     notes = models.TextField(blank=True)
-    url = models.URLField(max_length=500, blank=True)
+    url = models.URLField(max_length=2000, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     image = models.ForeignKey(
         GiftImage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
@@ -243,7 +243,7 @@ class GiftIdea(BaseModel):
     recipient = models.CharField(max_length=80)
     title = models.CharField(max_length=160)
     notes = models.TextField(blank=True)
-    url = models.URLField(max_length=500, blank=True)
+    url = models.URLField(max_length=2000, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     occasion = models.CharField(max_length=80, blank=True)
     image = models.ForeignKey(

@@ -32,6 +32,41 @@ def test_crea_lista_e_regali(user, api):
     assert row["gifted_count"] is None
 
 
+def test_link_lungo_salvato_pulito(wish_list, user, api):
+    """Un link Amazon con 600 caratteri di tracciamento entra e resta solo ``/dp/ASIN``."""
+    long_url = "https://www.amazon.it/dp/B08P3G898S/ref=sr_1_1?" + "&".join(
+        f"pd_rd_{i}=abcdefghijklmnopqrstuvwxyz" for i in range(20)
+    )
+    assert len(long_url) > 500
+    client = api(user)
+    item = client.post(
+        f"/api/lists/{wish_list.id}/items", {"title": "Gioco", "url": long_url}, format="json"
+    )
+    assert item.status_code == 201
+    assert item.data["url"] == "https://www.amazon.it/dp/B08P3G898S"
+
+    idea = client.post(
+        "/api/ideas",
+        {"recipient": "Anna", "title": "Gioco", "url": long_url + "&utm_source=x"},
+        format="json",
+    )
+    assert idea.status_code == 201
+    assert idea.data["url"] == "https://www.amazon.it/dp/B08P3G898S"
+
+    # Un link lungo di un altro negozio, senza tracciamento, entra intero fino a 2000.
+    other = "https://www.negozio.it/p/" + "x" * 1500
+    item = client.post(
+        f"/api/lists/{wish_list.id}/items", {"title": "Altro", "url": other}, format="json"
+    )
+    assert item.status_code == 201
+    assert item.data["url"] == other
+    too_long = "https://www.negozio.it/p/" + "x" * 2000
+    item = client.post(
+        f"/api/lists/{wish_list.id}/items", {"title": "Altro", "url": too_long}, format="json"
+    )
+    assert item.status_code == 400
+
+
 def test_prezzo_negativo_rifiutato(wish_list, user, api):
     response = api(user).post(
         f"/api/lists/{wish_list.id}/items", {"title": "X", "price": "-1"}, format="json"

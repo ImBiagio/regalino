@@ -21,7 +21,7 @@ import secrets
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 from django.conf import settings
@@ -41,6 +41,9 @@ MAX_TITLE = 160
 MAX_NOTES = 500
 # Quanto resta in cache la pagina letta, in attesa che il form chieda Gemini.
 PAGE_TTL = 10 * 60
+# Quanto puo' essere lungo un link salvato (``Wish.url``, ``GiftIdea.url``):
+# i link incollati dai negozi arrivano con decine di parametri di tracciamento.
+MAX_URL = 2000
 
 
 @dataclass
@@ -477,6 +480,42 @@ def parse_price(raw: str, currency: str = "") -> Decimal | None:
     except InvalidOperation:
         return None
     return value if Decimal("0") < value < Decimal("100000000") else None
+
+
+# Parametri di tracciamento che non cambiano la pagina: si tolgono da ogni link.
+_TRACKING_PARAMS = re.compile(
+    r"^(utm_\w+|fbclid|gclid|dclid|msclkid|igshid|mc_[ce]id|_ga|_gl|srsltid|yclid|ttclid|"
+    r"ref|ref_|refRID|spm|si|_branch_match_id)$",
+    re.I,
+)
+_AMAZON_HOST = re.compile(r"(^|\.)amazon\.[a-z.]+$", re.I)
+_AMAZON_ASIN = re.compile(r"/(?:dp|gp/product|gp/aw/d)/([A-Z0-9]{10})(?=[/?]|$)", re.I)
+
+
+def clean_url(url: str) -> str:
+    """Il link senza il tracciamento, piu' corto e uguale per tutti.
+
+    Su Amazon basta il codice del prodotto: "https://www.amazon.it/dp/B08P3G898S"
+    (via ``ref=``, ``psc``, ``colid`` e compagnia, che da soli superano i 500
+    caratteri). Sugli altri negozi si tolgono solo i parametri di tracciamento
+    noti (``utm_*``, ``fbclid``, ``gclid``...), il resto del link resta com'e':
+    taglia, colore o ricerca possono stare nella query.
+    """
+    url = url.strip()
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    if parts.scheme not in ("http", "https") or not parts.netloc:
+        return url
+    host = parts.hostname or ""
+    if _AMAZON_HOST.search(host):
+        asin = _AMAZON_ASIN.search(parts.path)
+        if asin:
+            return f"https://{host}/dp/{asin.group(1).upper()}"
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+             if not _TRACKING_PARAMS.match(k)]
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
 
 
 def clean_title(title: str) -> str:
