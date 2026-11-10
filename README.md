@@ -291,10 +291,9 @@ Primo avvio sul server (già fatto):
 1. DNS: record A `regal` → `104.167.28.163` (come `cinem` e `sold`);
 2. `~/regalino/compose.prod.yaml` (da `deploy/`) e `~/regalino/.env` (modello
    `deploy/.env.prod.example`, SMTP Brevo come soldino) — già fatto;
-3. il blocco `regal.inoo.it` del Caddyfile dell'edge (`deploy/edge/`, condiviso:
-   è anche nel repo di soldino) copiato in `~/edge/` e ricaricato con
-   `docker exec edge-caddy-1 caddy reload --config /etc/caddy/Caddyfile`, che
-   non ferma cinemino e soldino;
+3. il blocco `regal.inoo.it` nel Caddyfile dell'edge, che sta nel repo
+   [homeserver](https://github.com/ImBiagio/homeserver) (`edge/`) ed è
+   applicato con `./deploy.sh edge`, che non ferma cinemino e soldino;
 4. `git push origin main:prod`, poi `cd ~/regalino && docker compose -f
    compose.prod.yaml up -d` e `createsuperuser`.
 
@@ -312,8 +311,8 @@ docker run --rm -v regalino_media:/m -v ~/regalino/backups/media/last:/b:ro alpi
 ```
 
 **Copia fuori dal server** (dal 2026-11-03): lo stack condiviso `~/offsite`
-(sorgenti in `soldino/deploy/offsite/`) manda ogni notte alle 01:30 UTC le
-cartelle `backups` di cinemino, soldino e regalino su Google Drive, cifrate con
+(sorgenti nel repo homeserver, `offsite/`) manda ogni notte alle 01:30 UTC le
+cartelle `backups` di ogni app su Google Drive, cifrate con
 rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
