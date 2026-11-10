@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-09 12:45+0100\n"
+"POT-Creation-Date: 2026-11-10 14:43+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -74,6 +74,9 @@ msgstr[1] "days"
 
 msgid "Vedi la foto"
 msgstr "View photo"
+
+msgid "Scritto dall’AI dal link del negozio"
+msgstr "Written by AI from the shop link"
 
 msgid "Dal link del negozio"
 msgstr "From the shop link"
@@ -205,6 +208,30 @@ msgstr "Remove the bell"
 
 msgid "Avvisami se il prezzo scende"
 msgstr "Alert me if the price drops"
+
+msgid "Penso a cosa le/gli piace…"
+msgstr "Thinking about what they like…"
+
+msgid "Giro per negozi con la fantasia…"
+msgstr "Window-shopping in my head…"
+
+msgid "Scarto i soliti calzini…"
+msgstr "Skipping the usual socks…"
+
+msgid "Controllo che stia nel budget…"
+msgstr "Checking it fits the budget…"
+
+msgid "Incarto le idee migliori…"
+msgstr "Wrapping up the best ideas…"
+
+msgid "Guardo cosa c’è già in lista…"
+msgstr "Looking at what’s on the list…"
+
+msgid "Cerco qualcosa di simile…"
+msgstr "Looking for something similar…"
+
+msgid "Evito i doppioni…"
+msgstr "Avoiding duplicates…"
 
 msgid "Nascondi password"
 msgstr "Hide password"

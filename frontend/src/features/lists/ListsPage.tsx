@@ -58,7 +58,7 @@ export function ListsPage() {
       <div className="grid gap-4 px-5 md:px-8">
         <ErrorBanner error={error} />
         {isLoading && (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map((index) => (
               <Skeleton key={index} className="h-[236px] rounded-card" />
             ))}
@@ -80,7 +80,7 @@ export function ListsPage() {
           />
         )}
         {sorted.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sorted.map((list) => (
               <ListCard key={list.id} list={list} />
             ))}
@@ -113,7 +113,10 @@ function ListCard({ list }: { list: WishList }) {
     (person) => person.id !== user?.id,
   )
   return (
-    <Link to={`/liste/${list.id}`} className="card-elevated state flex flex-col overflow-hidden">
+    <Link
+      to={`/liste/${list.id}`}
+      className="card-elevated card-lift state flex flex-col overflow-hidden"
+    >
       <span className="relative block h-24">
         <GiftWrap
           seed={list.id}

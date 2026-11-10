@@ -393,7 +393,12 @@ function IdeaFormModal({
             ))}
           </datalist>
         </Field>
-        <Field label={gettext('Cosa')} error={fields.title} hint={fill.hint('title')}>
+        <Field
+          label={gettext('Cosa')}
+          error={fields.title}
+          hint={fill.hint('title')}
+          glow={fill.glow('title')}
+        >
           <input
             className="field-input"
             value={title}
@@ -417,6 +422,7 @@ function IdeaFormModal({
             label={gettext('Prezzo (facoltativo)')}
             error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
             hint={fill.hint('price')}
+            glow={fill.glow('price')}
           >
             <div className="flex items-center gap-2">
               <span className="text-body-large text-on-surface-variant">€</span>
@@ -447,7 +453,7 @@ function IdeaFormModal({
           link={url}
           fill={fill}
         />
-        <Field label={gettext('Note')} hint={fill.hint('notes')}>
+        <Field label={gettext('Note')} hint={fill.hint('notes')} glow={fill.glow('notes')}>
           <textarea
             className="field-input min-h-[64px] resize-y"
             value={notes}

@@ -86,6 +86,14 @@ nei negozi. Sul link condiviso, un regalo già preso ha "Alternative", idee
 simili partendo dalla lista. Serve `GEMINI_API_KEY`; limite `THROTTLE_SUGGEST`
 (30/ora).
 
+**Animazioni** ([ADR 0013](docs/decisions/0013-animazioni-e-segno-dell-ai.md)).
+Card e idee entrano in fila, i dialog salgono, col mouse il fiocco del pacco si
+muove. Dove lavora Gemini c'è l'oro del nastro: mentre pensa un pacco salta e
+un messaggio cambia ("Scarto i soliti calzini…"), e i campi del form che ha
+appena scritto lui hanno una passata di luce. "Lo regalo io" lancia i
+coriandoli. Tutto in CSS (`index.css`, sezione "moto") e `components/motion.tsx`;
+con "riduci movimento" del sistema non si muove niente.
+
 **Andamento del prezzo e campanella** ([ADR 0011](docs/decisions/0011-andamento-prezzo-e-campanella.md)).
 Ogni regalo o idea con un link ha la storia dei prezzi: il primo è quello di
 quando entra in lista, poi un task notturno rilegge la pagina (con un tetto:
@@ -186,7 +194,7 @@ scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape 
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
 ├── lib/                 client HTTP, auth, i18n, format (prezzi, date), tipi
-├── components/          UI M3, layout, dialog di conferma, pezzi dei regali
+├── components/          UI M3, layout, dialog di conferma, pezzi dei regali, animazioni
 └── features/            lists · ideas · shared · auth · account
 docs/decisions/          ADR
 ```

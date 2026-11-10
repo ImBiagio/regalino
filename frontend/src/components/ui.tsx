@@ -211,18 +211,33 @@ export function Field({
   label,
   error,
   hint,
+  glow,
   children,
   className,
 }: {
   label: string
   error?: string
   hint?: string
+  /** Quando cambia, sul campo passa una luce: l'ha appena scritto il link o l'AI. */
+  glow?: number
   children: ReactNode
   className?: string
 }) {
+  const [magic, setMagic] = useState(false)
+  useEffect(() => {
+    if (!glow) return
+    // Spento e riacceso al frame dopo: cosi' l'animazione riparte anche se era a meta'.
+    setMagic(false)
+    const frame = window.requestAnimationFrame(() => setMagic(true))
+    const timer = window.setTimeout(() => setMagic(false), 1300)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [glow])
   return (
     <div className={className}>
-      <label className="field block cursor-text">
+      <label className={clsx('field block cursor-text', magic && 'field-magic')}>
         <span className="field-label">{label}</span>
         {children}
       </label>
@@ -428,7 +443,7 @@ export function EmptyState({
 }) {
   return (
     <div className="card-m3 flex flex-col items-center gap-2 px-6 py-10 text-center">
-      <span className="mb-2 flex h-[72px] w-[72px] items-center justify-center rounded-pill bg-primary-container text-on-primary-container">
+      <span className="float mb-2 flex h-[72px] w-[72px] items-center justify-center rounded-pill bg-primary-container text-on-primary-container">
         <Icon name={icon} size={36} />
       </span>
       <p className="text-title-medium">{title}</p>
@@ -493,7 +508,7 @@ export function Modal({
     // In basso con mt-auto e non con items-end: con items-end un form piu' alto
     // dello schermo usciva dall'alto e la sua parte iniziale non si raggiungeva.
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto sm:p-6"
+      className="scrim-in fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto sm:p-6"
       style={{ background: 'var(--scrim)' }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
@@ -504,11 +519,10 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={clsx(
-          'w-full bg-surface shadow-sheet',
+          'sheet-in w-full bg-surface shadow-sheet',
           'mt-auto rounded-t-panel sm:my-auto sm:rounded-panel',
           wide ? 'sm:max-w-[620px]' : 'sm:max-w-[520px]',
         )}
-        style={{ animation: 'none' }}
       >
         <div className="flex items-center gap-3 px-6 pb-2 pt-6 sm:px-7 sm:pt-7">
           <IconButton

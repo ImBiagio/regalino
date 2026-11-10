@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -22,6 +23,7 @@ import {
   WhereToBuy,
 } from '../../components/gift'
 import { LanguageSwitcher } from '../../components/LanguageSwitcher'
+import { ALTERNATIVES_LINES, Confetti } from '../../components/motion'
 import {
   Chip,
   EmptyState,
@@ -39,7 +41,7 @@ import { useAuth } from '../../lib/auth'
 import { formatDate } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { GiftSuggestion, SharedSection, SharedWish, SharedWishList } from '../../lib/types'
-import { SuggestionRow } from '../ideas/InspireWizard'
+import { SuggestionRow, SuggestionsLoading } from '../ideas/InspireWizard'
 
 const NAME_KEY = 'regalino.name'
 
@@ -124,6 +126,7 @@ function SharedCards({
   onWatch,
   watching,
   releasing,
+  justClaimed,
 }: {
   items: SharedWish[]
   isMine: (item: SharedWish) => boolean
@@ -138,6 +141,8 @@ function SharedCards({
   onWatch: (item: SharedWish) => void
   watching: boolean
   releasing: boolean
+  /** Il regalo appena spuntato da qui: il suo badge entra a scatto. */
+  justClaimed: string | null
 }) {
   return (
     <div className={GIFT_GRID}>
@@ -176,7 +181,10 @@ function SharedCards({
             onImage={item.image ? () => onView(item) : undefined}
             badge={
               item.gifted && (
-                <GiftBadge icon={mine ? 'favorite' : 'check_circle'}>
+                <GiftBadge
+                  icon={mine ? 'favorite' : 'check_circle'}
+                  className={clsx(item.id === justClaimed && 'pop')}
+                >
                   {mine
                     ? gettext('Lo regali tu')
                     : item.gifted_by_name
@@ -303,15 +311,11 @@ function AlternativesModal({
           )}
         </p>
         <ErrorBanner error={suggest.error} />
-        {shown.map((idea) => (
-          <SuggestionRow key={idea.title} idea={idea} />
+        {shown.map((idea, index) => (
+          <SuggestionRow key={idea.title} idea={idea} order={index % 8} />
         ))}
         {suggest.isPending && (
-          <div className="grid gap-2">
-            {[0, 1, 2].map((index) => (
-              <Skeleton key={index} className="h-[84px]" />
-            ))}
-          </div>
+          <SuggestionsLoading lines={ALTERNATIVES_LINES()} more={shown.length > 0} />
         )}
         <div className="flex justify-end">
           <button
@@ -320,7 +324,7 @@ function AlternativesModal({
             disabled={suggest.isPending}
             onClick={() => void ask(true)}
           >
-            <Icon name="refresh" size={20} />
+            <Icon name="auto_awesome" size={20} className={clsx(suggest.isPending && 'ai-spark')} />
             {gettext('Altre idee')}
           </button>
         </div>
@@ -335,6 +339,9 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
   const [claiming, setClaiming] = useState<SharedWish | null>(null)
   const [viewing, setViewing] = useState<SharedWish | null>(null)
   const [alternatives, setAlternatives] = useState<SharedWish | null>(null)
+  // I coriandoli di "Lo regalo io": un contatore, cosi' ogni spunta li rilancia.
+  const [celebrations, setCelebrations] = useState(0)
+  const [justClaimed, setJustClaimed] = useState<string | null>(null)
   const watch = useWatchSharedWish(token)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -402,7 +409,11 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
           <div className="grid gap-3 rounded-card bg-surface-container-low p-4">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-success-container text-on-success-container">
-                <Icon name={free > 0 ? 'redeem' : 'celebration'} size={22} />
+                <Icon
+                  name={free > 0 ? 'redeem' : 'celebration'}
+                  size={22}
+                  className={clsx(free === 0 && 'float')}
+                />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-body-large font-medium">
@@ -467,6 +478,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
             onWatch={toggleWatch}
             watching={watch.isPending}
             releasing={release.isPending}
+            justClaimed={justClaimed}
           />
           {sections.map((section) => (
             <SharedSectionBlock key={section.id} section={section}>
@@ -481,6 +493,7 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
                 onWatch={toggleWatch}
                 watching={watch.isPending}
                 releasing={release.isPending}
+                justClaimed={justClaimed}
               />
             </SharedSectionBlock>
           ))}
@@ -504,11 +517,20 @@ function SharedList({ token, list }: { token: string; list: SharedWishList }) {
           onClose={() => setClaiming(null)}
           onConfirm={async (name) => {
             rememberName(name)
-            await claim.mutateAsync({ id: claiming.id, name }).catch(() => undefined)
+            const done = await claim
+              .mutateAsync({ id: claiming.id, name })
+              .then(() => true)
+              .catch(() => false)
             setClaiming(null)
+            // Fatto: due coriandoli e il badge del regalo che spunta.
+            if (done) {
+              setJustClaimed(claiming.id)
+              setCelebrations((count) => count + 1)
+            }
           }}
         />
       )}
+      {celebrations > 0 && <Confetti key={celebrations} />}
     </>
   )
 }

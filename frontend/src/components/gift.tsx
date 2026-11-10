@@ -289,7 +289,7 @@ export function GiftCard({
           : undefined
       }
       className={clsx(
-        'card-elevated flex flex-col overflow-hidden',
+        'card-elevated card-lift flex flex-col overflow-hidden',
         onClick && 'state cursor-pointer',
       )}
     >
@@ -340,10 +340,12 @@ export function GiftCard({
 export function GiftBadge({
   icon,
   tone = 'success',
+  className,
   children,
 }: {
   icon: string
   tone?: 'success' | 'neutral'
+  className?: string
   children: ReactNode
 }) {
   return (
@@ -353,6 +355,7 @@ export function GiftBadge({
         tone === 'success'
           ? 'bg-success-container text-on-success-container'
           : 'bg-surface text-on-surface',
+        className,
       )}
     >
       <Icon name={icon} size={16} filled />
@@ -521,6 +524,10 @@ export function useLinkFill(
   set: { [K in keyof LinkFields]: (value: string) => void },
 ) {
   const auto = useRef<Partial<LinkFields>>({})
+  // Chi ha scritto ogni campo (la pagina o Gemini) e un contatore per campo che
+  // sale a ogni riempimento: il `Field` lo usa per far passare la luce.
+  const source = useRef<Partial<Record<keyof LinkFields, 'page' | 'ai'>>>({})
+  const glows = useRef<Partial<Record<keyof LinkFields, number>>>({})
   // Si legge quando arriva la risposta, magari secondi dopo: servono i valori di allora.
   const now = useRef(values)
   now.current = values
@@ -531,7 +538,7 @@ export function useLinkFill(
   return {
     /** Almeno un campo e' libero: vale la pena leggere il link anche senza foto da prendere. */
     wanted: LINK_FIELDS.some(isFree),
-    apply(details: LinkDescription) {
+    apply(details: LinkDescription, from: 'page' | 'ai' = 'page') {
       const proposed: LinkFields = {
         title: details.title,
         price: priceInput(details.price),
@@ -542,6 +549,10 @@ export function useLinkFill(
       const next: Partial<LinkFields> = {}
       for (const key of LINK_FIELDS) {
         if (!isFree(key)) continue
+        if (proposed[key] && proposed[key] !== now.current[key]) {
+          glows.current[key] = (glows.current[key] ?? 0) + 1
+          source.current[key] = from
+        }
         set[key](proposed[key])
         if (proposed[key]) next[key] = proposed[key]
       }
@@ -551,7 +562,14 @@ export function useLinkFill(
     /** Testo di supporto per un campo compilato dal link e non ancora toccato. */
     hint(key: keyof LinkFields): string | undefined {
       const value = auto.current[key]
-      return value && values[key] === value ? gettext('Dal link del negozio') : undefined
+      if (!value || values[key] !== value) return undefined
+      return source.current[key] === 'ai'
+        ? gettext('Scritto dall’AI dal link del negozio')
+        : gettext('Dal link del negozio')
+    },
+    /** Sale ogni volta che il link riempie il campo: per `Field glow`. */
+    glow(key: keyof LinkFields): number | undefined {
+      return glows.current[key]
     },
   }
 }
@@ -656,7 +674,7 @@ export function ImagePicker({
   // Gemini dopo: i campi che l'utente ha toccato nel frattempo restano suoi.
   const describeFrom = async (url: string, describeId: string) => {
     const description = await describeLink.mutateAsync(describeId).catch(() => null)
-    if (description && url === tried.current) fill?.apply(description)
+    if (description && url === tried.current) fill?.apply(description, 'ai')
   }
   const readFromRef = useRef(readFrom)
   readFromRef.current = readFrom
@@ -682,9 +700,13 @@ export function ImagePicker({
             alt=""
             className="h-24 w-24 shrink-0 rounded-nested bg-surface-container object-cover"
           />
+        ) : busy ? (
+          <span className="skeleton flex h-24 w-24 shrink-0 items-center justify-center rounded-nested text-on-surface-variant">
+            <Icon name="image_search" size={32} className="ai-spark !text-on-surface-variant" />
+          </span>
         ) : (
           <span className="flex h-24 w-24 shrink-0 items-center justify-center rounded-nested bg-surface-container text-on-surface-variant">
-            <Icon name={busy ? 'hourglass_top' : 'image'} size={32} />
+            <Icon name="image" size={32} />
           </span>
         )}
         <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
@@ -697,9 +719,9 @@ export function ImagePicker({
             </p>
           )}
           {describeLink.isPending && !busy && (
-            <p className="flex items-center gap-1 text-body-small text-on-surface-variant">
-              <Icon name="auto_awesome" size={16} />
-              {gettext('Miglioro nome e note…')}
+            <p className="flex items-center gap-1 text-body-small" role="status">
+              <Icon name="auto_awesome" size={16} className="ai-spark" />
+              <span className="ai-text font-medium">{gettext('Miglioro nome e note…')}</span>
             </p>
           )}
           {autoFrom && !busy && !describeLink.isPending && (

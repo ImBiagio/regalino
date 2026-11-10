@@ -1,9 +1,11 @@
 import clsx from 'clsx'
+import type { CSSProperties } from 'react'
 import { useState } from 'react'
 
 import { useSaveIdea, useSuggestGifts } from '../../api/hooks'
 import { WhereToBuy } from '../../components/gift'
-import { Chip, ErrorBanner, Field, Icon, Modal, Skeleton } from '../../components/ui'
+import { AiSkeleton, AiThinking, INSPIRE_LINES } from '../../components/motion'
+import { Chip, ErrorBanner, Field, Icon, Modal } from '../../components/ui'
 import { formatPrice } from '../../lib/format'
 import { gettext, interpolate } from '../../lib/i18n'
 import type { GiftSuggestion, SuggestPayload } from '../../lib/types'
@@ -280,8 +282,12 @@ export function InspireWizard({
               <Icon name="arrow_back" size={20} />
               {gettext('Indietro')}
             </button>
-            <button className="btn-filled">
-              <Icon name="auto_awesome" size={20} />
+            <button className="btn-filled group">
+              <Icon
+                name="auto_awesome"
+                size={20}
+                className="transition-transform duration-300 ease-m3 group-hover:rotate-12 group-hover:scale-110"
+              />
               {gettext('Trova idee')}
             </button>
           </div>
@@ -294,20 +300,17 @@ export function InspireWizard({
             {gettext('Idee scritte da un’AI partendo da quello che hai detto: scegli tu.')}
           </p>
           <ErrorBanner error={suggest.error} />
-          {shown.map((idea) => (
+          {shown.map((idea, index) => (
             <SuggestionRow
               key={idea.title}
               idea={idea}
               recipient={answers.recipient}
               occasion={answers.occasion}
+              order={index % SUGGESTIONS_PER_ROUND}
             />
           ))}
           {suggest.isPending && (
-            <div className="grid gap-2">
-              {[0, 1, 2].map((index) => (
-                <Skeleton key={index} className="h-[84px]" />
-              ))}
-            </div>
+            <SuggestionsLoading lines={INSPIRE_LINES()} more={shown.length > 0} />
           )}
           <div className="mt-2 flex flex-wrap justify-between gap-2">
             <button type="button" className="btn-text -ml-3" onClick={() => setStep(2)}>
@@ -320,7 +323,11 @@ export function InspireWizard({
               disabled={suggest.isPending}
               onClick={() => void ask(shown.length > 0)}
             >
-              <Icon name="refresh" size={20} />
+              <Icon
+                name="auto_awesome"
+                size={20}
+                className={clsx(suggest.isPending && 'ai-spark')}
+              />
               {gettext('Altre idee')}
             </button>
           </div>
@@ -330,16 +337,35 @@ export function InspireWizard({
   )
 }
 
+/** Quante idee arrivano a ogni giro: le nuove entrano in fila, dalla prima. */
+const SUGGESTIONS_PER_ROUND = 8
+
+/**
+ * Mentre Gemini pensa: la prima volta il pacco grande che salta (e' l'unica
+ * cosa nel dialog), per "Altre idee" la riga piccola sotto quelle gia' arrivate.
+ */
+export function SuggestionsLoading({ lines, more }: { lines: string[]; more: boolean }) {
+  return (
+    <div className="grid gap-2">
+      <AiThinking lines={lines} compact={more} />
+      <AiSkeleton rows={2} />
+    </div>
+  )
+}
+
 /** Un'idea proposta: si aggiunge a "Da regalare" con un tocco, o si cerca nei negozi. */
 export function SuggestionRow({
   idea,
   recipient,
   occasion,
+  order = 0,
 }: {
   idea: GiftSuggestion
   /** Senza (alternative sul link condiviso) non si puo' aggiungere. */
   recipient?: string
   occasion?: string
+  /** Posizione nel giro di idee appena arrivato: entrano una dopo l'altra. */
+  order?: number
 }) {
   const save = useSaveIdea()
   const [added, setAdded] = useState(false)
@@ -347,7 +373,10 @@ export function SuggestionRow({
   const priceOk = price !== '' && Number.isFinite(Number(price))
 
   return (
-    <div className="grid gap-2 rounded-row bg-surface-container-low px-4 py-3">
+    <div
+      className="rise grid gap-2 rounded-row bg-surface-container-low px-4 py-3"
+      style={{ '--i': order } as CSSProperties}
+    >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-body-large font-medium">{idea.title}</p>
@@ -382,7 +411,12 @@ export function SuggestionRow({
               if (saved) setAdded(true)
             }}
           >
-            <Icon name={added ? 'check' : 'add'} size={18} />
+            <Icon
+              key={added ? 'added' : 'add'}
+              name={added ? 'check' : 'add'}
+              size={18}
+              className={clsx(added && 'pop')}
+            />
             {added ? gettext('Aggiunta') : gettext('Aggiungi a Da regalare')}
           </button>
         )}

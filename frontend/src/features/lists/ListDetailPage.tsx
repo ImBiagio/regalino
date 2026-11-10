@@ -65,7 +65,7 @@ export function inviteUrl(list: Pick<WishList, 'invite_token'>): string {
 }
 
 /** Griglia delle card regalo: due colonne gia' sul telefono, come un catalogo. */
-export const GIFT_GRID = 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4'
+export const GIFT_GRID = 'stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4'
 
 export function ListDetailPage() {
   const { listId } = useParams()
@@ -651,7 +651,12 @@ function WishFormModal({
           !fields.quantity &&
           !fields.image_id &&
           !fields.requires_id && <ErrorBanner error={save.error ?? remove.error} />}
-        <Field label={gettext('Cosa ti piacerebbe')} error={fields.title} hint={fill.hint('title')}>
+        <Field
+          label={gettext('Cosa ti piacerebbe')}
+          error={fields.title}
+          hint={fill.hint('title')}
+          glow={fill.glow('title')}
+        >
           <input
             className="field-input"
             value={title}
@@ -677,6 +682,7 @@ function WishFormModal({
             label={gettext('Prezzo indicativo (facoltativo)')}
             error={priceInvalid ? gettext('Scrivi un numero, es. 24,90') : fields.price}
             hint={fill.hint('price')}
+            glow={fill.glow('price')}
           >
             <div className="flex items-center gap-2">
               <span className="text-body-large text-on-surface-variant">€</span>
@@ -725,7 +731,11 @@ function WishFormModal({
             </select>
           </Field>
         )}
-        <Field label={gettext('Note (taglia, colore, dove trovarlo)')} hint={fill.hint('notes')}>
+        <Field
+          label={gettext('Note (taglia, colore, dove trovarlo)')}
+          hint={fill.hint('notes')}
+          glow={fill.glow('notes')}
+        >
           <textarea
             className="field-input min-h-[72px] resize-y"
             value={notes}
