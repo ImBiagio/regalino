@@ -11,6 +11,8 @@ Due cose diverse, che non si toccano:
   anche sotto di lei, nel suo link pubblico.
 - ``GiftIdea``: i regali che ho in mente *per gli altri*. Privata, la vede solo
   chi l'ha scritta.
+- ``SavedList``: le liste degli altri che ho salvato dal loro link, per
+  ritrovarle senza cercare il messaggio (ADR 0014).
 """
 
 from __future__ import annotations
@@ -158,6 +160,40 @@ class WishListMember(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} ∈ {self.wish_list}"
+
+
+class SavedList(models.Model):
+    """Una lista di un altro salvata da chi ha il link (ADR 0014).
+
+    Si ricorda anche il token con cui la si e' salvata: se il proprietario
+    rigenera il link, quello vecchio si spegne anche qui (la lista resta in
+    "Liste salvate" ma non si apre piu'), come per chiunque altro avesse il
+    link. Il titolo e' una copia, per riconoscerla anche quando non si apre.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="saved_lists"
+    )
+    wish_list = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name="saves")
+    share_token = models.CharField(max_length=40)
+    title = models.CharField(max_length=120)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "wish_list"], name="unique_saved_list")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} ★ {self.title}"
+
+    @property
+    def is_available(self) -> bool:
+        """Il link salvato apre ancora la lista: non e' stata eliminata ne' rigenerata."""
+        wish_list = self.wish_list
+        return not wish_list.is_deleted and wish_list.share_token == self.share_token
 
 
 class Wish(BaseModel):

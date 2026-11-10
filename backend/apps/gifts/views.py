@@ -34,6 +34,7 @@ from .models import (
     GiftImage,
     Notification,
     PriceWatch,
+    SavedList,
     Wish,
     WishList,
     WishListMember,
@@ -53,6 +54,7 @@ from .serializers import (
     LinkDetailsSerializer,
     LinkReadSerializer,
     NotificationSerializer,
+    SavedListSerializer,
     SharedSuggestSerializer,
     SharedWishListSerializer,
     SharedWishSerializer,
@@ -523,6 +525,61 @@ class SharedSuggestView(APIView):
         titles = list(Wish.objects.filter(wish_list__in=lists).values_list("title", flat=True))
         data = {"occasion": wish_list.title, "exclude": serializer.validated_data["exclude"]}
         return _suggest(data, known_gifts=titles[:40], alternative_to=wish.title)
+
+
+class SharedSaveView(APIView):
+    """Salva (POST) o toglie (DELETE) la lista tra le "Liste salvate" di chi guarda (ADR 0014)."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "shared"
+
+    @extend_schema(
+        request=None,
+        responses={200: inline_serializer("SavedState", {"saved": serializers.BooleanField()})},
+    )
+    def post(self, request, token: str):
+        wish_list = _shared_list(token)
+        if wish_list.is_member(request.user):
+            raise ValidationError(
+                _("È una lista che scrivi tu: la trovi già in «Le mie liste».")
+            )
+        SavedList.objects.update_or_create(
+            user=request.user,
+            wish_list=wish_list,
+            defaults={"share_token": token, "title": wish_list.title},
+        )
+        return Response({"saved": True})
+
+    @extend_schema(
+        request=None,
+        responses={200: inline_serializer("SavedStateOff", {"saved": serializers.BooleanField()})},
+    )
+    def delete(self, request, token: str):
+        wish_list = _shared_list(token)
+        SavedList.objects.filter(user=request.user, wish_list=wish_list).delete()
+        return Response({"saved": False})
+
+
+class SavedListsView(APIView):
+    """Le liste degli altri salvate dall'utente, l'ultima salvata in cima."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: SavedListSerializer(many=True)})
+    def get(self, request):
+        rows = SavedList.objects.filter(user=request.user).select_related("wish_list__owner")
+        return Response(SavedListSerializer(rows, many=True).data)
+
+
+class SavedListDetailView(APIView):
+    """Togliere una lista salvata, anche quando il suo link non vale piu'."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=None, responses={204: None})
+    def delete(self, request, pk):
+        get_object_or_404(SavedList, pk=pk, user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SharedWatchView(APIView):

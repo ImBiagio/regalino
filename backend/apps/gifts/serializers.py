@@ -7,7 +7,15 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .links import clean_url
-from .models import GiftIdea, GiftImage, Notification, Wish, WishList, WishListMember
+from .models import (
+    GiftIdea,
+    GiftImage,
+    Notification,
+    SavedList,
+    Wish,
+    WishList,
+    WishListMember,
+)
 
 
 def validate_price(value: Decimal | None) -> Decimal | None:
@@ -520,6 +528,7 @@ class SharedSectionSerializer(serializers.Serializer):
 class SharedWishListSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(source="owner.display_name", read_only=True)
     is_owner = serializers.SerializerMethodField()
+    saved = serializers.SerializerMethodField()
     items = serializers.SerializerMethodField()
     sections = serializers.SerializerMethodField()
 
@@ -531,6 +540,7 @@ class SharedWishListSerializer(serializers.ModelSerializer):
             "event_date",
             "owner_name",
             "is_owner",
+            "saved",
             "items",
             "sections",
         ]
@@ -538,6 +548,13 @@ class SharedWishListSerializer(serializers.ModelSerializer):
 
     def get_is_owner(self, obj: WishList) -> bool:
         return bool(self.context.get("is_owner"))
+
+    def get_saved(self, obj: WishList) -> bool:
+        """Chi guarda l'ha salvata con questo link (ADR 0014)."""
+        viewer = self.context.get("viewer_id")
+        return viewer is not None and obj.saves.filter(
+            user_id=viewer, share_token=obj.share_token
+        ).exists()
 
     @extend_schema_field(SharedWishSerializer(many=True))
     def get_items(self, obj: WishList):
@@ -565,6 +582,61 @@ class SharedWishListSerializer(serializers.ModelSerializer):
             )
         # Gia' dizionari: ripassarli dal serializer li romperebbe.
         return sections
+
+
+class SavedListSerializer(serializers.ModelSerializer):
+    """Una lista salvata, per "Liste salvate" (ADR 0014).
+
+    Se il link non vale piu' (lista eliminata o link rigenerato) restano solo
+    il titolo copiato e ``available: false``: niente token nuovo, niente regali.
+    """
+
+    title = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
+    event_date = serializers.SerializerMethodField()
+    share_token = serializers.SerializerMethodField()
+    available = serializers.BooleanField(source="is_available", read_only=True)
+    item_count = serializers.SerializerMethodField()
+    free_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SavedList
+        fields = [
+            "id",
+            "title",
+            "owner_name",
+            "event_date",
+            "share_token",
+            "available",
+            "item_count",
+            "free_count",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def _items(self, obj: SavedList):
+        """I regali che vede chi ha il link: della lista e di quelle incluse (ADR 0008)."""
+        lists = [obj.wish_list, *alive_children(obj.wish_list)]
+        return Wish.objects.filter(wish_list__in=lists)
+
+    def get_title(self, obj: SavedList) -> str:
+        return obj.wish_list.title if obj.is_available else obj.title
+
+    def get_owner_name(self, obj: SavedList) -> str:
+        return obj.wish_list.owner.display_name if obj.is_available else ""
+
+    def get_event_date(self, obj: SavedList) -> str | None:
+        date = obj.wish_list.event_date if obj.is_available else None
+        return date.isoformat() if date else None
+
+    def get_share_token(self, obj: SavedList) -> str | None:
+        return obj.share_token if obj.is_available else None
+
+    def get_item_count(self, obj: SavedList) -> int:
+        return self._items(obj).count() if obj.is_available else 0
+
+    def get_free_count(self, obj: SavedList) -> int:
+        return self._items(obj).filter(gifted_at=None).count() if obj.is_available else 0
 
 
 class GiftClaimSerializer(serializers.Serializer):

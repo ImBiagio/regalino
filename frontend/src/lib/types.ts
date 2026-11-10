@@ -238,6 +238,22 @@ export interface SharedWishList {
   event_date: string | null
   owner_name: string
   is_owner: boolean
+  /** Chi guarda l'ha tra le sue "Liste salvate" (ADR 0014). */
+  saved: boolean
   items: SharedWish[]
   sections: SharedSection[]
+}
+
+/** Una lista di un altro salvata dal suo link (ADR 0014). */
+export interface SavedList {
+  id: UUID
+  title: string
+  owner_name: string
+  event_date: string | null
+  /** null quando il link non vale piu' (lista eliminata o link rigenerato). */
+  share_token: string | null
+  available: boolean
+  item_count: number
+  free_count: number
+  created_at: string
 }

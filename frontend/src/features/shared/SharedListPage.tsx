@@ -8,6 +8,7 @@ import {
   useClaimGift,
   useReleaseGift,
   useSharedList,
+  useSaveSharedList,
   useSharedSuggest,
   useWatchSharedWish,
 } from '../../api/hooks'
@@ -74,6 +75,8 @@ export function SharedListPage() {
           <img src="/logo-mark.svg" alt="" width={32} height={32} className="h-8 w-8" />
           Regalino
         </Link>
+        <span className="flex-1" />
+        {data && !data.is_owner && <SaveListButton token={token} saved={data.saved} />}
       </header>
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-4 md:px-8 md:py-6">
         {(!ready || isLoading) && (
@@ -107,6 +110,56 @@ export function SharedListPage() {
         </footer>
       </div>
     </div>
+  )
+}
+
+/**
+ * "Salva lista" (ADR 0014): la lista finisce in "Liste salvate", nella propria
+ * area. Serve un account per sapere di chi e': da sloggati si propone il login.
+ */
+function SaveListButton({ token, saved }: { token: string; saved: boolean }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const confirm = useConfirm()
+  const save = useSaveSharedList(token)
+  // Solo dopo un tocco: la spunta del segnalibro fa pop, non al caricamento.
+  const [touched, setTouched] = useState(false)
+
+  const toggle = async () => {
+    if (user) {
+      setTouched(true)
+      save.mutate(!saved)
+      return
+    }
+    const ok = await confirm({
+      title: gettext('Salva la lista'),
+      message: gettext(
+        'Per ritrovarla in «Le mie liste» serve un account: accedi o creane uno, poi torni qui.',
+      ),
+      confirmLabel: gettext('Accedi'),
+      icon: 'bookmark',
+    })
+    if (ok) navigate(`/accedi?next=${encodeURIComponent(window.location.pathname)}`)
+  }
+
+  return (
+    <button
+      type="button"
+      className={clsx('btn-sm', saved ? 'btn-tonal' : 'btn-outlined')}
+      disabled={save.isPending}
+      onClick={() => void toggle()}
+      aria-pressed={saved}
+      title={saved ? gettext('Togli dalle liste salvate') : undefined}
+    >
+      <Icon
+        key={saved ? 'on' : 'off'}
+        name={saved ? 'bookmark_added' : 'bookmark_add'}
+        size={18}
+        filled={saved}
+        className={clsx(saved && touched && 'pop', saved && 'text-tertiary')}
+      />
+      {saved ? gettext('Salvata') : gettext('Salva lista')}
+    </button>
   )
 }
 

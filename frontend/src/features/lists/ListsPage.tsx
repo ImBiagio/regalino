@@ -22,6 +22,7 @@ import { useAuth } from '../../lib/auth'
 import { daysUntil, formatDate, joinNames } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { WishList } from '../../lib/types'
+import { SavedListsSection } from './SavedLists'
 
 /**
  * Prima le liste con la festa piu' vicina, poi quelle senza data, in fondo
@@ -91,6 +92,7 @@ export function ListsPage() {
             />
           </div>
         )}
+        <SavedListsSection />
       </div>
 
       <Fab icon="add" label={gettext('Nuova lista')} onClick={() => setCreating(true)} />

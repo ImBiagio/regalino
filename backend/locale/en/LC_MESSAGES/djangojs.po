@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 14:43+0100\n"
+"POT-Creation-Date: 2026-11-10 14:56+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1133,6 +1133,34 @@ msgstr ""
 msgid "Crea lista"
 msgstr "Create list"
 
+msgid "Liste salvate"
+msgstr "Saved lists"
+
+msgid "Le liste degli altri che hai salvato dal loro link."
+msgstr "Other people's lists you saved from their link."
+
+#, javascript-format
+msgid "Di %s · %s"
+msgstr "By %s · %s"
+
+msgid "Ancora vuota"
+msgstr "Still empty"
+
+#, javascript-format
+msgid "%s da prendere"
+msgid_plural "%s da prendere"
+msgstr[0] "%s to take"
+msgstr[1] "%s to take"
+
+msgid "Tutto preso"
+msgstr "All taken"
+
+msgid "Il link non vale più: chiedine uno nuovo"
+msgstr "The link no longer works: ask for a new one"
+
+msgid "Togli dalle liste salvate"
+msgstr "Remove from saved lists"
+
 msgid "Lista non trovata"
 msgstr "List not found"
 
@@ -1144,6 +1172,20 @@ msgstr ""
 
 msgid "Fai anche tu la tua lista con Regalino"
 msgstr "Make your own list with Regalino"
+
+msgid "Salva la lista"
+msgstr "Save the list"
+
+msgid ""
+"Per ritrovarla in «Le mie liste» serve un account: accedi o creane uno, poi "
+"torni qui."
+msgstr "To find it again in “My lists” you need an account: sign in or create one, then come back here."
+
+msgid "Salvata"
+msgstr "Saved"
+
+msgid "Salva lista"
+msgstr "Save list"
 
 msgid "Lo regali tu"
 msgstr "You're giving it"

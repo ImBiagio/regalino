@@ -54,6 +54,12 @@ chi lo ha vede la lista **senza account** (quanti regali restano, filtri "Da
 prendere" / "Tutti"), e tocca "Lo regalo io" lasciando il nome se vuole. Il regalo risulta preso per tutti. Rigenerare il link spegne
 quello vecchio; eliminare la lista lo spegne del tutto.
 
+**Liste salvate** ([ADR 0014](docs/decisions/0014-liste-salvate.md)). Sul
+link di una lista di un altro, da loggati, "Salva lista" la mette in "Le mie
+liste" sotto **Liste salvate** (di chi è, la data, quanti regali restano), così
+non si cerca più il messaggio. Si salva il link: se il proprietario lo rigenera
+o elimina la lista, resta solo il titolo e "Il link non vale più".
+
 **Scritta in due** ([ADR 0007](docs/decisions/0007-liste-scritte-insieme.md)).
 Una lista si può scrivere con altri: dal riquadro "La scrivi solo tu" si crea
 un link d'invito (`/unisciti/<token>`), chi lo apre con un account entra e

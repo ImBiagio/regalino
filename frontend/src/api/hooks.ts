@@ -10,6 +10,7 @@ import type {
   LinkDescription,
   NotificationList,
   LinkDetails,
+  SavedList,
   SharedWish,
   SharedWishList,
   SuggestPayload,
@@ -27,6 +28,7 @@ export const keys = {
   shared: (token: string) => ['shared', token] as const,
   invite: (token: string) => ['invites', token] as const,
   notifications: ['notifications'] as const,
+  savedLists: ['saved-lists'] as const,
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -195,6 +197,41 @@ export function useWatchSharedWish(token: string) {
       return watch ? api.post<SharedWish>(url) : api.delete<SharedWish>(url)
     },
     onSuccess: () => client.invalidateQueries({ queryKey: keys.shared(token) }),
+  })
+}
+
+/* --------------------------------------------------------- liste salvate -- */
+
+/** Le liste degli altri salvate dal loro link (ADR 0014). */
+export function useSavedLists() {
+  return useQuery({
+    queryKey: keys.savedLists,
+    queryFn: () => api.get<SavedList[]>('/api/saved-lists'),
+  })
+}
+
+/** "Salva lista" sul link condiviso: aggiorna sia la pagina sia l'elenco. */
+export function useSaveSharedList(token: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (save: boolean) => {
+      const url = `/api/shared/${token}/save`
+      return save ? api.post<{ saved: boolean }>(url) : api.delete<{ saved: boolean }>(url)
+    },
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: keys.shared(token) }),
+        client.invalidateQueries({ queryKey: keys.savedLists }),
+      ]),
+  })
+}
+
+/** Togliere una lista salvata dall'elenco, anche se il link non vale piu'. */
+export function useRemoveSavedList() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete<void>(`/api/saved-lists/${id}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.savedLists }),
   })
 }
 

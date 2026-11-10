@@ -1,7 +1,7 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import GiftIdea, Wish, WishList, WishListInclusion, WishListMember
+from .models import GiftIdea, SavedList, Wish, WishList, WishListInclusion, WishListMember
 
 
 class WishInline(admin.TabularInline):
@@ -37,3 +37,10 @@ class GiftIdeaAdmin(SimpleHistoryAdmin):
     list_display = ["title", "recipient", "owner", "status", "price"]
     list_filter = ["status"]
     search_fields = ["title", "recipient", "owner__email"]
+
+
+@admin.register(SavedList)
+class SavedListAdmin(admin.ModelAdmin):
+    list_display = ["title", "user", "wish_list", "created_at"]
+    search_fields = ["title", "user__email"]
+    raw_id_fields = ["user", "wish_list"]
