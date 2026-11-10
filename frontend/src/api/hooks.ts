@@ -11,6 +11,7 @@ import type {
   NotificationList,
   LinkDetails,
   SavedList,
+  WatchedItem,
   SharedWish,
   SharedWishList,
   SuggestPayload,
@@ -29,6 +30,7 @@ export const keys = {
   invite: (token: string) => ['invites', token] as const,
   notifications: ['notifications'] as const,
   savedLists: ['saved-lists'] as const,
+  watches: ['watches'] as const,
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -232,6 +234,28 @@ export function useRemoveSavedList() {
   return useMutation({
     mutationFn: (id: UUID) => api.delete<void>(`/api/saved-lists/${id}`),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.savedLists }),
+  })
+}
+
+/** I regali e le idee con la campanella dell'utente, l'ultima messa in cima. */
+export function useWatches() {
+  return useQuery({
+    queryKey: keys.watches,
+    queryFn: () => api.get<WatchedItem[]>('/api/watches'),
+  })
+}
+
+/** Togliere la campanella dalla schermata "Campanelle": anche liste e idee la perdono. */
+export function useRemoveWatch() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete<void>(`/api/watches/${id}`),
+    onSuccess: () =>
+      Promise.all(
+        [keys.watches, keys.lists, keys.ideas, ['shared']].map((queryKey) =>
+          client.invalidateQueries({ queryKey }),
+        ),
+      ),
   })
 }
 

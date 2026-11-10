@@ -107,7 +107,10 @@ quando entra in lista, poi un task notturno rilegge la pagina (con un tetto:
 quando è in lista"; un tocco apre il grafico (attuale, minimo, massimo,
 linea nel tempo e tabella). La campanella sul regalo (dalla lista, dal link con un
 account, dalle idee) avvisa quando il prezzo scende: nell'app ("Avvisi", col
-contatore), per email o entrambi, come si sceglie in Account.
+contatore), per email o entrambi, come si sceglie in Account. In "Avvisi" la
+vista **Campanelle** elenca tutti i regali e le idee con la campanella (di chi è
+la lista o per chi è l'idea, prezzo di oggi, andamento, se è già preso) e la
+toglie con un tocco (`GET /api/watches`, `DELETE /api/watches/<id>`).
 
 **La sorpresa** ([ADR 0002](docs/decisions/0002-sorpresa-e-chiavi-di-spunta.md)).
 Di default il proprietario **non vede** cosa è stato regalato, né nella sua

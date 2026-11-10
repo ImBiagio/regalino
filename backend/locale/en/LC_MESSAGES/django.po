@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 14:56+0100\n"
+"POT-Creation-Date: 2026-11-10 15:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/images.py:63 apps/gifts/views.py:372
+#: apps/gifts/images.py:63 apps/gifts/views.py:410
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
@@ -134,85 +134,95 @@ msgstr "Open"
 msgid "Prezzo letto dal link del negozio: puo' cambiare ancora."
 msgstr "Price read from the shop link: it may change again."
 
-#: apps/gifts/serializers.py:23
+#: apps/gifts/serializers.py:24
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:236
+#: apps/gifts/serializers.py:237
 msgid "Scegli un regalo di questa lista."
 msgstr "Pick a gift from this list."
 
-#: apps/gifts/serializers.py:239
+#: apps/gifts/serializers.py:240
 msgid "Un regalo non puo' andare con se stesso."
 msgstr "A gift can't go with itself."
 
-#: apps/gifts/serializers.py:246
+#: apps/gifts/serializers.py:247
 #, python-format
 msgid "«%(title)s» va gia' con questo regalo: sarebbe un giro."
 msgstr "“%(title)s” already goes with this gift: that would be a loop."
 
-#: apps/gifts/serializers.py:370
+#: apps/gifts/serializers.py:371
 msgid "Una lista non puo' includere se stessa."
 msgstr "A list can't include itself."
 
-#: apps/gifts/serializers.py:375
+#: apps/gifts/serializers.py:376
 msgid ""
 "Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
 msgstr ""
 "This list already sits inside another one: it can't include lists in turn."
 
-#: apps/gifts/serializers.py:380
+#: apps/gifts/serializers.py:381
 msgid "Una delle liste non esiste piu'."
 msgstr "One of the lists no longer exists."
 
-#: apps/gifts/serializers.py:383
+#: apps/gifts/serializers.py:384
 #, python-format
 msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
 msgstr ""
 "“%(title)s” already includes other lists: an included list can't include any."
 
-#: apps/gifts/serializers.py:450
+#: apps/gifts/serializers.py:451
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
-#: apps/gifts/views.py:95
+#: apps/gifts/serializers.py:706
+#, python-format
+msgid "Per %(name)s"
+msgstr "For %(name)s"
+
+#: apps/gifts/serializers.py:710
+#, python-format
+msgid "%(list)s di %(owner)s"
+msgstr "%(list)s by %(owner)s"
+
+#: apps/gifts/views.py:96
 msgid "Solo chi ha creato la lista puo' farlo."
 msgstr "Only whoever created the list can do that."
 
-#: apps/gifts/views.py:198
+#: apps/gifts/views.py:199
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:236
+#: apps/gifts/views.py:237
 msgid "I suggerimenti non sono attivi su questo server."
 msgstr "Suggestions are not enabled on this server."
 
-#: apps/gifts/views.py:255
+#: apps/gifts/views.py:256
 msgid "Adesso non riesco a trovare idee: riprova tra un momento."
 msgstr "I can't find ideas right now: try again in a moment."
 
-#: apps/gifts/views.py:425
+#: apps/gifts/views.py:463
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:544
+#: apps/gifts/views.py:582
 msgid "È una lista che scrivi tu: la trovi già in «Le mie liste»."
 msgstr "You write this list: it is already in “My lists”."
 
-#: apps/gifts/views.py:655
+#: apps/gifts/views.py:693
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:660
+#: apps/gifts/views.py:698
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:666
+#: apps/gifts/views.py:704
 #, python-format
 msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
 msgstr "It goes with “%(title)s”: someone needs to give that one first."
 
-#: apps/gifts/views.py:710
+#: apps/gifts/views.py:748
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 

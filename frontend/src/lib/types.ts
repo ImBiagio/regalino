@@ -244,6 +244,27 @@ export interface SharedWishList {
   sections: SharedSection[]
 }
 
+/** Un regalo o un'idea con la campanella dell'utente ("Campanelle"). */
+export interface WatchedItem {
+  id: UUID
+  kind: 'wish' | 'idea'
+  item_id: UUID
+  title: string
+  image: string | null
+  /** Il link del negozio. */
+  url: string
+  /** L'ultimo prezzo letto (o quello indicativo). */
+  price: Money | null
+  price_history: PricePoint[]
+  /** "Compleanno", "Natale di Marco", "Per Mamma". */
+  where: string
+  /** Dove aprirlo nell'app. */
+  path: string
+  /** Preso o regalato; null se la sorpresa lo nasconde. */
+  gifted: boolean | null
+  created_at: string
+}
+
 /** Una lista di un altro salvata dal suo link (ADR 0014). */
 export interface SavedList {
   id: UUID

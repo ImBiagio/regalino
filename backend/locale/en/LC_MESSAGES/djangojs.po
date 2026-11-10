@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 14:56+0100\n"
+"POT-Creation-Date: 2026-11-10 15:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -329,11 +329,30 @@ msgid "Vale per l'app e per le mail che ti mandiamo."
 msgstr "Applies to the app and to the emails we send you."
 
 msgid ""
-"Quando scende il prezzo di un regalo con la campanella. Scegli come "
+"I regali con la campanella e gli avvisi quando il prezzo scende. Scegli come "
 "riceverli in Account."
-msgstr ""
-"When the price of a gift with the bell drops. Choose how to get them in "
-"Account."
+msgstr "Gifts with the bell and alerts when the price drops. Choose how to get them in Account."
+
+msgid "Campanelle"
+msgstr "Bells"
+
+#, javascript-format
+msgid "Avvisi · %s"
+msgstr "Alerts · %s"
+
+msgid "Nessuna campanella, per ora"
+msgstr "No bells yet"
+
+msgid ""
+"Tocca la campanella su un regalo con il link al negozio (nelle tue liste, in "
+"Da regalare o sul link di un altro): lo ritrovi qui, con il prezzo di oggi."
+msgstr "Tap the bell on a gift with a shop link (in your lists, in Gift ideas or on someone else's link): you'll find it here, with today's price."
+
+msgid "Già comprato"
+msgstr "Bought"
+
+msgid "Già preso"
+msgstr "Taken"
 
 msgid "Nessun avviso, per ora"
 msgstr "No alerts yet"
@@ -1179,7 +1198,9 @@ msgstr "Save the list"
 msgid ""
 "Per ritrovarla in «Le mie liste» serve un account: accedi o creane uno, poi "
 "torni qui."
-msgstr "To find it again in “My lists” you need an account: sign in or create one, then come back here."
+msgstr ""
+"To find it again in “My lists” you need an account: sign in or create one, "
+"then come back here."
 
 msgid "Salvata"
 msgstr "Saved"
@@ -1193,9 +1214,6 @@ msgstr "You're giving it"
 #, javascript-format
 msgid "Lo regala %s"
 msgstr "%s is giving it"
-
-msgid "Già preso"
-msgstr "Taken"
 
 #, javascript-format
 msgid "Prima serve che qualcuno prenda «%s»."

@@ -11,6 +11,7 @@ from .models import (
     GiftIdea,
     GiftImage,
     Notification,
+    PriceWatch,
     SavedList,
     Wish,
     WishList,
@@ -637,6 +638,95 @@ class SavedListSerializer(serializers.ModelSerializer):
 
     def get_free_count(self, obj: SavedList) -> int:
         return self._items(obj).filter(gifted_at=None).count() if obj.is_available else 0
+
+
+class WatchSerializer(serializers.Serializer):
+    """Un regalo o un'idea con la campanella dell'utente, per la schermata "Campanelle".
+
+    ``path`` e' dove portarlo nell'app (come negli avvisi); ``gifted`` segue la
+    sorpresa: chi scrive la lista senza "mostrami cosa e' stato regalato" non lo
+    sa (``None``).
+    """
+
+    id = serializers.UUIDField(read_only=True)
+    kind = serializers.SerializerMethodField()
+    item_id = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
+    price = serializers.SerializerMethodField()
+    price_history = serializers.SerializerMethodField()
+    where = serializers.SerializerMethodField()
+    path = serializers.SerializerMethodField()
+    gifted = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(read_only=True)
+
+    @staticmethod
+    def _target(obj: PriceWatch) -> Wish | GiftIdea:
+        return obj.wish or obj.idea
+
+    def _member(self, wish_list: WishList) -> bool:
+        """Chi guarda scrive la lista? Una query per lista, non per campo."""
+        cache = self.context.setdefault("member_of", {})
+        if wish_list.pk not in cache:
+            cache[wish_list.pk] = wish_list.is_member(self.context["request"].user)
+        return cache[wish_list.pk]
+
+    def get_kind(self, obj: PriceWatch) -> str:
+        return "wish" if obj.wish_id else "idea"
+
+    def get_item_id(self, obj: PriceWatch) -> str:
+        return str(self._target(obj).pk)
+
+    def get_title(self, obj: PriceWatch) -> str:
+        return self._target(obj).title
+
+    def get_image(self, obj: PriceWatch) -> str | None:
+        return image_url(self._target(obj).image)
+
+    def get_url(self, obj: PriceWatch) -> str:
+        return self._target(obj).url
+
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
+    def get_price(self, obj: PriceWatch) -> str | None:
+        """L'ultimo prezzo letto dal link, o quello indicativo se non se n'e' letto nessuno."""
+        target = self._target(obj)
+        points = list(target.price_points.all())
+        price = points[-1].price if points else target.price
+        return f"{price:.2f}" if price is not None else None
+
+    @extend_schema_field(PricePointSerializer(many=True))
+    def get_price_history(self, obj: PriceWatch):
+        points = list(self._target(obj).price_points.all())[-60:]
+        return PricePointSerializer(points, many=True).data
+
+    def get_where(self, obj: PriceWatch) -> str:
+        """In quale lista, e di chi se non e' mia; per le idee, per chi."""
+        if obj.idea_id:
+            return _("Per %(name)s") % {"name": obj.idea.recipient}
+        wish_list = obj.wish.wish_list
+        if self._member(wish_list):
+            return wish_list.title
+        return _("%(list)s di %(owner)s") % {
+            "list": wish_list.title,
+            "owner": wish_list.owner.display_name,
+        }
+
+    def get_path(self, obj: PriceWatch) -> str:
+        if obj.idea_id:
+            return "/da-regalare"
+        wish_list = obj.wish.wish_list
+        if self._member(wish_list):
+            return f"/liste/{wish_list.pk}"
+        return f"/l/{wish_list.share_token}"
+
+    def get_gifted(self, obj: PriceWatch) -> bool | None:
+        if obj.idea_id:
+            return obj.idea.status != GiftIdea.Status.IDEA
+        wish = obj.wish
+        if self._member(wish.wish_list) and not wish.wish_list.show_gifted:
+            return None
+        return wish.is_gifted
 
 
 class GiftClaimSerializer(serializers.Serializer):

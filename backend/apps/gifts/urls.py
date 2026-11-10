@@ -17,6 +17,8 @@ from .views import (
     SharedSuggestView,
     SharedWatchView,
     SuggestView,
+    WatchDetailView,
+    WatchesView,
     WishListViewSet,
     WishViewSet,
 )
@@ -42,6 +44,8 @@ urlpatterns = [
     path("lists/<uuid:list_pk>/items/<uuid:pk>/gift", wish_gift, name="wish-gift"),
     path("lists/<uuid:list_pk>/items/<uuid:pk>/watch", wish_watch, name="wish-watch"),
     path("notifications", NotificationsView.as_view(), name="notifications"),
+    path("watches", WatchesView.as_view(), name="watches"),
+    path("watches/<uuid:pk>", WatchDetailView.as_view(), name="watch"),
     path("invites/<str:token>", InviteView.as_view(), name="invite"),
     # Prima del router: ``ideas/<pk>`` prenderebbe anche "suggest".
     path("ideas/suggest", SuggestView.as_view(), name="idea-suggest"),

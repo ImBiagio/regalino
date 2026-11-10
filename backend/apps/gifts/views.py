@@ -60,6 +60,7 @@ from .serializers import (
     SharedWishSerializer,
     SuggestionSerializer,
     SuggestSerializer,
+    WatchSerializer,
     WishListSerializer,
     WishSerializer,
     invite_data,
@@ -306,6 +307,43 @@ def _toggle_watch(request, **target) -> None:
         PriceWatch.objects.get_or_create(user=request.user, **target)
     else:
         PriceWatch.objects.filter(user=request.user, **target).delete()
+
+
+class WatchesView(APIView):
+    """I regali e le idee con la campanella dell'utente, l'ultima messa in cima.
+
+    Si saltano quelli eliminati (anche con la lista): la campanella resta nel
+    database ma non c'e' piu' niente da guardare.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: WatchSerializer(many=True)})
+    def get(self, request):
+        rows = (
+            PriceWatch.objects.filter(user=request.user)
+            .filter(
+                Q(wish__deleted_at=None, wish__wish_list__deleted_at=None, idea=None)
+                | Q(idea__deleted_at=None, wish=None)
+            )
+            .select_related(
+                "wish__image", "wish__wish_list__owner", "idea__image"
+            )
+            .prefetch_related("wish__price_points", "idea__price_points")
+            .order_by("-created_at")
+        )
+        return Response(WatchSerializer(rows, many=True, context={"request": request}).data)
+
+
+class WatchDetailView(APIView):
+    """Togliere una campanella dalla schermata "Campanelle"."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=None, responses={204: None})
+    def delete(self, request, pk):
+        get_object_or_404(PriceWatch, pk=pk, user=request.user).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class NotificationsView(APIView):
