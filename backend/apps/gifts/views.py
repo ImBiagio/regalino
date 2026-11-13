@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -10,14 +12,14 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.methods import hash_secret, random_token
 
-from . import ai
+from . import ai, imports, tasks
 from .images import ImageError, process_image
 from .links import (
     can_describe,
@@ -48,6 +50,8 @@ from .serializers import (
     GiftReleaseSerializer,
     ImageFromUrlSerializer,
     ImageUploadSerializer,
+    ImportCreateSerializer,
+    ImportReadSerializer,
     InviteSerializer,
     LinkDescribeSerializer,
     LinkDescriptionSerializer,
@@ -501,6 +505,85 @@ class LinkDescribeView(APIView):
             "brand": details.brand,
         }
         return Response(LinkDescriptionSerializer(data).data)
+
+
+# ----------------------------------------------------------------- import --
+
+
+class ImportReadView(APIView):
+    """Legge una lista da importare (ADR 0015): non salva niente, e' l'anteprima.
+
+    Un file si legge subito. Un link no: aprire la pagina col browser, farla
+    leggere a Gemini e seguire le liste collegate puo' durare piu' di un
+    minuto, quindi lo fa il worker e qui torna ``job_id``, da chiedere a
+    ``GET imports/read/<job_id>`` finche' non e' pronto.
+    """
+
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    throttle_scope = "imports"
+
+    @extend_schema(
+        request=ImportReadSerializer,
+        responses={200: inline_serializer("ImportRead", {"job_id": serializers.CharField(),
+                                                         "status": serializers.CharField()})},
+    )
+    def post(self, request):
+        serializer = ImportReadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        if data.get("file"):
+            upload = data["file"]
+            try:
+                lists = imports.read_file(upload.name, upload.read(imports.MAX_FILE_BYTES + 1))
+            except imports.ImportFailed as exc:
+                raise ValidationError({"file": [str(exc)]}) from None
+            return Response({"status": "done", "lists": imports.as_data(lists)})
+        job_id = random_token(12)
+        cache.set(
+            tasks.import_key(job_id),
+            {"owner": str(request.user.pk), "status": "reading"},
+            tasks.IMPORT_TTL,
+        )
+        tasks.read_import.delay(job_id, str(request.user.pk), data["url"], data.get("html") or None)
+        return Response({"job_id": job_id, "status": "reading"}, status=status.HTTP_202_ACCEPTED)
+
+
+class ImportJobView(APIView):
+    """A che punto e' la lettura di un link: ``reading``, ``done`` (con le liste) o ``error``."""
+
+    @extend_schema(responses={200: None})
+    def get(self, request, job_id: str):
+        state = cache.get(tasks.import_key(job_id))
+        if not state or state.get("owner") != str(request.user.pk):
+            raise NotFound()
+        if state["status"] == "error":
+            message = state.get("error") or _("Non sono riuscito a leggere la lista.")
+            return Response({"status": "error", "error": message})
+        return Response({key: value for key, value in state.items() if key != "owner"})
+
+
+class ImportCreateView(APIView):
+    """Crea le liste scelte nell'anteprima, con i regali; le foto le prende il worker."""
+
+    throttle_scope = "imports"
+
+    @extend_schema(request=ImportCreateSerializer, responses={201: WishListSerializer(many=True)})
+    def post(self, request):
+        serializer = ImportCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        created, jobs = imports.create_lists(
+            request.user, imports.from_data(data["lists"]), data["group_title"].strip()
+        )
+        transaction.on_commit(lambda: tasks.schedule_import_images(jobs))
+        # Nell'ordine dell'anteprima: il browser apre la prima.
+        found = lists_of(request.user).filter(pk__in=[entry.pk for entry in created])
+        rows = {row.pk: row for row in found}
+        ordered = [rows[entry.pk] for entry in created]
+        return Response(
+            WishListSerializer(ordered, many=True, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 # ------------------------------------------------------- lista condivisa --

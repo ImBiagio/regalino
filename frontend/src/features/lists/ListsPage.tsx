@@ -22,6 +22,7 @@ import { useAuth } from '../../lib/auth'
 import { daysUntil, formatDate, joinNames } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { WishList } from '../../lib/types'
+import { ImportDialog } from './ImportDialog'
 import { SavedListsSection } from './SavedLists'
 
 /**
@@ -44,6 +45,7 @@ export function ListsPage() {
   const { user } = useAuth()
   const { data: lists, isLoading, error } = useLists()
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
   const navigate = useNavigate()
   const sorted = useMemo(() => [...(lists ?? [])].sort(byNextEvent), [lists])
 
@@ -55,6 +57,12 @@ export function ListsPage() {
           gettext('Ciao %s: qui scrivi cosa ti piacerebbe ricevere e lo condividi con un link.'),
           [user?.display_name ?? ''],
         )}
+        actions={
+          <button type="button" className="btn-tonal btn-sm" onClick={() => setImporting(true)}>
+            <Icon name="download" size={18} />
+            {gettext('Importa')}
+          </button>
+        }
       />
       <div className="grid gap-4 px-5 md:px-8">
         <ErrorBanner error={error} />
@@ -96,6 +104,15 @@ export function ListsPage() {
       </div>
 
       <Fab icon="add" label={gettext('Nuova lista')} onClick={() => setCreating(true)} />
+      {importing && (
+        <ImportDialog
+          onClose={() => setImporting(false)}
+          onDone={(created) => {
+            setImporting(false)
+            if (created[0]) navigate(`/liste/${created[0].id}`)
+          }}
+        />
+      )}
       {creating && (
         <ListFormModal
           onClose={() => setCreating(false)}

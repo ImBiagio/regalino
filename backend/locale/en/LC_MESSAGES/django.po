@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 15:00+0100\n"
+"POT-Creation-Date: 2026-11-13 11:35+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/images.py:63 apps/gifts/views.py:410
+#: apps/gifts/images.py:63 apps/gifts/views.py:414
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
@@ -76,13 +76,72 @@ msgstr "I can't read the link."
 msgid "Il link rimanda troppe volte altrove."
 msgstr "The link redirects too many times."
 
+#: apps/gifts/imports.py:188
+msgid "Il link non porta a una pagina web."
+msgstr "The link doesn't lead to a web page."
+
+#: apps/gifts/imports.py:195 apps/gifts/imports.py:204
+#: apps/gifts/imports.py:206 apps/gifts/links.py:336 apps/gifts/links.py:338
+#: apps/gifts/links.py:341
+msgid "Non riesco ad aprire la pagina del link."
+msgstr "I can't open the link's page."
+
+#: apps/gifts/imports.py:211
+msgid ""
+"Il sito chiede di dimostrare di non essere un robot: apri la lista nel tuo "
+"browser e importala con l'estensione di Regalino."
+msgstr "The site asks to prove you're not a robot: open the list in your browser and import it with the Regalino extension."
+
+#: apps/gifts/imports.py:380
+msgid ""
+"Non trovo regali in questa lista Amazon: controlla che sia pubblica o "
+"condivisa col link."
+msgstr "I can't find any gifts in this Amazon list: check that it's public or shared with the link."
+
+#: apps/gifts/imports.py:384
+msgid "Lista Amazon"
+msgstr "Amazon list"
+
+#: apps/gifts/imports.py:518
+msgid "Non riesco a leggere i regali di questa pagina. Riprova tra poco."
+msgstr "I can't read the gifts on this page. Try again in a moment."
+
+#: apps/gifts/imports.py:573
+msgid ""
+"Per leggere le liste di questo sito serve Gemini, che non e' configurato."
+msgstr "Reading lists from this site needs Gemini, which isn't configured."
+
+#: apps/gifts/imports.py:601
+msgid "In questa pagina non trovo una lista di regali."
+msgstr "I can't find a gift list on this page."
+
+#: apps/gifts/imports.py:604 apps/gifts/imports.py:734
+msgid "Lista importata"
+msgstr "Imported list"
+
+#: apps/gifts/imports.py:677
+msgid "Il file JSON non e' valido."
+msgstr "The JSON file isn't valid."
+
+#: apps/gifts/imports.py:684
+msgid "Il file JSON non contiene una lista di regali."
+msgstr "The JSON file doesn't contain a gift list."
+
+#: apps/gifts/imports.py:701
+msgid "Nel CSV manca la colonna col nome del regalo (title, nome o titolo)."
+msgstr "The CSV is missing the gift name column (title, nome or titolo)."
+
+#: apps/gifts/imports.py:728
+msgid "Il file e' troppo grande (al massimo 2 MB)."
+msgstr "The file is too large (2 MB at most)."
+
+#: apps/gifts/imports.py:741
+msgid "Nel file non trovo regali."
+msgstr "I can't find any gifts in the file."
+
 #: apps/gifts/links.py:314
 msgid "Il link non e' ne' un'immagine ne' una pagina web."
 msgstr "The link is neither an image nor a web page."
-
-#: apps/gifts/links.py:336 apps/gifts/links.py:338 apps/gifts/links.py:341
-msgid "Non riesco ad aprire la pagina del link."
-msgstr "I can't open the link's page."
 
 #: apps/gifts/links.py:350
 msgid ""
@@ -134,95 +193,111 @@ msgstr "Open"
 msgid "Prezzo letto dal link del negozio: puo' cambiare ancora."
 msgstr "Price read from the shop link: it may change again."
 
-#: apps/gifts/serializers.py:24
+#: apps/gifts/serializers.py:25
 msgid "Il prezzo non puo' essere negativo."
 msgstr "The price can't be negative."
 
-#: apps/gifts/serializers.py:237
+#: apps/gifts/serializers.py:238
 msgid "Scegli un regalo di questa lista."
 msgstr "Pick a gift from this list."
 
-#: apps/gifts/serializers.py:240
+#: apps/gifts/serializers.py:241
 msgid "Un regalo non puo' andare con se stesso."
 msgstr "A gift can't go with itself."
 
-#: apps/gifts/serializers.py:247
+#: apps/gifts/serializers.py:248
 #, python-format
 msgid "«%(title)s» va gia' con questo regalo: sarebbe un giro."
 msgstr "“%(title)s” already goes with this gift: that would be a loop."
 
-#: apps/gifts/serializers.py:371
+#: apps/gifts/serializers.py:372
 msgid "Una lista non puo' includere se stessa."
 msgstr "A list can't include itself."
 
-#: apps/gifts/serializers.py:376
+#: apps/gifts/serializers.py:377
 msgid ""
 "Questa lista e' gia' dentro un'altra: non puo' includerne altre a sua volta."
 msgstr ""
 "This list already sits inside another one: it can't include lists in turn."
 
-#: apps/gifts/serializers.py:381
+#: apps/gifts/serializers.py:382
 msgid "Una delle liste non esiste piu'."
 msgstr "One of the lists no longer exists."
 
-#: apps/gifts/serializers.py:384
+#: apps/gifts/serializers.py:385
 #, python-format
 msgid "«%(title)s» include gia' altre liste: una inclusa non ne include."
 msgstr ""
 "“%(title)s” already includes other lists: an included list can't include any."
 
-#: apps/gifts/serializers.py:451
+#: apps/gifts/serializers.py:452
 msgid "Scrivi per chi e' il regalo."
 msgstr "Write who the gift is for."
 
-#: apps/gifts/serializers.py:706
+#: apps/gifts/serializers.py:707
 #, python-format
 msgid "Per %(name)s"
 msgstr "For %(name)s"
 
-#: apps/gifts/serializers.py:710
+#: apps/gifts/serializers.py:711
 #, python-format
 msgid "%(list)s di %(owner)s"
 msgstr "%(list)s by %(owner)s"
 
-#: apps/gifts/views.py:96
+#: apps/gifts/serializers.py:759
+msgid "Incolla un link oppure scegli un file."
+msgstr "Paste a link or choose a file."
+
+#: apps/gifts/serializers.py:787
+msgid "Troppi livelli di liste."
+msgstr "Too many levels of lists."
+
+#: apps/gifts/serializers.py:802
+msgid "Scegli almeno una lista da importare."
+msgstr "Choose at least one list to import."
+
+#: apps/gifts/views.py:100
 msgid "Solo chi ha creato la lista puo' farlo."
 msgstr "Only whoever created the list can do that."
 
-#: apps/gifts/views.py:199
+#: apps/gifts/views.py:203
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:237
+#: apps/gifts/views.py:241
 msgid "I suggerimenti non sono attivi su questo server."
 msgstr "Suggestions are not enabled on this server."
 
-#: apps/gifts/views.py:256
+#: apps/gifts/views.py:260
 msgid "Adesso non riesco a trovare idee: riprova tra un momento."
 msgstr "I can't find ideas right now: try again in a moment."
 
-#: apps/gifts/views.py:463
+#: apps/gifts/views.py:467
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:582
+#: apps/gifts/views.py:560
+msgid "Non sono riuscito a leggere la lista."
+msgstr "I couldn't read the list."
+
+#: apps/gifts/views.py:664
 msgid "È una lista che scrivi tu: la trovi già in «Le mie liste»."
 msgstr "You write this list: it is already in “My lists”."
 
-#: apps/gifts/views.py:693
+#: apps/gifts/views.py:775
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:698
+#: apps/gifts/views.py:780
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:704
+#: apps/gifts/views.py:786
 #, python-format
 msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
 msgstr "It goes with “%(title)s”: someone needs to give that one first."
 
-#: apps/gifts/views.py:748
+#: apps/gifts/views.py:830
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 

@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from .links import clean_url
 from .models import (
+    MAX_QUANTITY,
     GiftIdea,
     GiftImage,
     Notification,
@@ -737,3 +738,66 @@ class GiftClaimSerializer(serializers.Serializer):
 
 class GiftReleaseSerializer(serializers.Serializer):
     claim_key = serializers.CharField(required=False, allow_blank=True)
+
+
+# ----------------------------------------------------------------- import --
+
+
+class ImportReadSerializer(serializers.Serializer):
+    """Da dove importare: un link o un file (CSV/JSON).
+
+    ``html`` arriva solo dall'estensione (ADR 0016): la pagina gia' costruita
+    nel browser di chi la sta guardando, cosi' il server non la riapre.
+    """
+
+    url = serializers.URLField(max_length=2000, required=False)
+    html = serializers.CharField(required=False, allow_blank=True, trim_whitespace=False)
+    file = serializers.FileField(required=False)
+
+    def validate(self, attrs):
+        if bool(attrs.get("url")) == bool(attrs.get("file")):
+            raise serializers.ValidationError(_("Incolla un link oppure scegli un file."))
+        return attrs
+
+
+class ImportItemSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=160)
+    url = serializers.URLField(max_length=2000, required=False, allow_blank=True, default="")
+    price = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True, default=None,
+        min_value=0,
+    )
+    quantity = serializers.IntegerField(min_value=1, max_value=MAX_QUANTITY, default=1)
+    notes = serializers.CharField(required=False, allow_blank=True, max_length=1000, default="")
+    image_url = serializers.URLField(
+        max_length=2000, required=False, allow_blank=True, default=""
+    )
+
+
+class ImportListSerializer(serializers.Serializer):
+    """Una lista dell'anteprima, con le sue sotto-liste (al massimo tre livelli)."""
+
+    title = serializers.CharField(max_length=120)
+    items = ImportItemSerializer(many=True, required=False, default=list)
+    lists = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+
+    def validate_lists(self, value):
+        depth = self.context.get("depth", 0)
+        if value and depth >= 3:
+            raise serializers.ValidationError(_("Troppi livelli di liste."))
+        child = ImportListSerializer(data=value, many=True, context={"depth": depth + 1})
+        child.is_valid(raise_exception=True)
+        return child.validated_data
+
+
+class ImportCreateSerializer(serializers.Serializer):
+    lists = ImportListSerializer(many=True)
+    # Se c'e', tutte le liste importate finiscono dentro una lista con questo nome.
+    group_title = serializers.CharField(
+        max_length=120, required=False, allow_blank=True, default=""
+    )
+
+    def validate_lists(self, value):
+        if not value:
+            raise serializers.ValidationError(_("Scegli almeno una lista da importare."))
+        return value

@@ -156,6 +156,8 @@ REST_FRAMEWORK = {
         "links": env("THROTTLE_LINKS", "60/hour"),
         # "Ispirami" e le alternative: ogni chiamata consuma la quota di Gemini.
         "suggest": env("THROTTLE_SUGGEST", "30/hour"),
+        # Import di liste (ADR 0015): browser dello scraper e Gemini su pagine intere.
+        "imports": env("THROTTLE_IMPORTS", "20/hour"),
     },
 }
 

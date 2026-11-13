@@ -278,3 +278,31 @@ export interface SavedList {
   free_count: number
   created_at: string
 }
+
+/* ----------------------------------------------------------------- import -- */
+
+/** Un regalo letto da un altro sito o da un file, prima di salvarlo (ADR 0015). */
+export interface ImportItem {
+  title: string
+  url: string
+  price: Money | null
+  quantity: number
+  notes: string
+  /** La foto, se il sito la mostra: la scarica il server dopo il salvataggio. */
+  image_url: string
+}
+
+/** Una lista dell'anteprima, con le liste "dentro" (diventano liste incluse). */
+export interface ImportList {
+  title: string
+  source?: string
+  items: ImportItem[]
+  lists: ImportList[]
+}
+
+export interface ImportRead {
+  status: 'reading' | 'done' | 'error'
+  job_id?: string
+  lists?: ImportList[]
+  error?: string
+}

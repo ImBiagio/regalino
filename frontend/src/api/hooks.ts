@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '../lib/api'
+import { gettext } from '../lib/i18n'
 import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
   GiftSuggestion,
+  ImportList,
+  ImportRead,
   Invite,
   LinkDescription,
   NotificationList,
@@ -422,5 +425,54 @@ export function useReleaseGift(token: string) {
       writeClaims(claims)
       return client.invalidateQueries({ queryKey: keys.shared(token) })
     },
+  })
+}
+
+/* ----------------------------------------------------------------- import -- */
+
+/** Ogni quanto chiedere se la lettura del link e' finita, e per quanto al massimo. */
+const IMPORT_POLL_MS = 2000
+const IMPORT_MAX_MS = 5 * 60 * 1000
+
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+
+/**
+ * Legge una lista da importare (ADR 0015): un file subito, un link nel worker
+ * (browser e Gemini, anche un minuto o due) chiedendo finche' non e' pronta.
+ */
+export function useReadImport() {
+  return useMutation({
+    mutationFn: async (source: { url: string } | { file: File }): Promise<ImportList[]> => {
+      let body: FormData | { url: string }
+      if ('file' in source) {
+        body = new FormData()
+        body.append('file', source.file)
+      } else {
+        body = { url: source.url }
+      }
+      let state = await api.post<ImportRead>('/api/imports/read', body)
+      const started = Date.now()
+      while (state.status === 'reading' && state.job_id) {
+        if (Date.now() - started > IMPORT_MAX_MS) {
+          throw new Error(gettext('La lettura ci mette troppo: riprova tra poco.'))
+        }
+        await sleep(IMPORT_POLL_MS)
+        state = await api.get<ImportRead>(`/api/imports/read/${state.job_id}`)
+      }
+      if (state.status === 'error') {
+        throw new Error(state.error || gettext('Non sono riuscito a leggere la lista.'))
+      }
+      return state.lists ?? []
+    },
+  })
+}
+
+/** Crea le liste scelte nell'anteprima; con `group_title` tutte dentro una lista nuova. */
+export function useCreateImport() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { lists: ImportList[]; group_title: string }) =>
+      api.post<WishList[]>('/api/imports', body),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
   })
 }

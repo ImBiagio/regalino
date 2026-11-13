@@ -21,6 +21,7 @@ REST_FRAMEWORK = {
         "images": "10000/min",
         "links": "10000/min",
         "suggest": "10000/min",
+        "imports": "10000/min",
     },
 }
 STORAGES = {

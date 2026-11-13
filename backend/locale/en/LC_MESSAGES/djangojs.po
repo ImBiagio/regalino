@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 15:00+0100\n"
+"POT-Creation-Date: 2026-11-13 11:35+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "La lettura ci mette troppo: riprova tra poco."
+msgstr "Reading is taking too long: try again in a moment."
+
+msgid "Non sono riuscito a leggere la lista."
+msgstr "I couldn't read the list."
 
 msgid "Annulla"
 msgstr "Cancel"
@@ -331,7 +337,9 @@ msgstr "Applies to the app and to the emails we send you."
 msgid ""
 "I regali con la campanella e gli avvisi quando il prezzo scende. Scegli come "
 "riceverli in Account."
-msgstr "Gifts with the bell and alerts when the price drops. Choose how to get them in Account."
+msgstr ""
+"Gifts with the bell and alerts when the price drops. Choose how to get them "
+"in Account."
 
 msgid "Campanelle"
 msgstr "Bells"
@@ -346,7 +354,9 @@ msgstr "No bells yet"
 msgid ""
 "Tocca la campanella su un regalo con il link al negozio (nelle tue liste, in "
 "Da regalare o sul link di un altro): lo ritrovi qui, con il prezzo di oggi."
-msgstr "Tap the bell on a gift with a shop link (in your lists, in Gift ideas or on someone else's link): you'll find it here, with today's price."
+msgstr ""
+"Tap the bell on a gift with a shop link (in your lists, in Gift ideas or on "
+"someone else's link): you'll find it here, with today's price."
 
 msgid "Già comprato"
 msgstr "Bought"
@@ -728,6 +738,88 @@ msgstr "Added"
 msgid "Aggiungi a Da regalare"
 msgstr "Add to Gift ideas"
 
+msgid "Apro la lista…"
+msgstr "Opening the list…"
+
+msgid "Scorro fino all’ultimo regalo…"
+msgstr "Scrolling to the last gift…"
+
+msgid "Leggo nomi, prezzi e foto…"
+msgstr "Reading names, prices and photos…"
+
+msgid "Cerco le altre liste collegate…"
+msgstr "Looking for other linked lists…"
+
+msgid "Incarto tutto…"
+msgstr "Wrapping it all up…"
+
+msgid "Liste importate"
+msgstr "Imported lists"
+
+msgid "Importa una lista"
+msgstr "Import a list"
+
+msgid "Da un link"
+msgstr "From a link"
+
+msgid "Da un file"
+msgstr "From a file"
+
+msgid "Link della lista"
+msgstr "List link"
+
+msgid ""
+"Una lista desideri Amazon pubblica, una lista o un profilo Elfster, o "
+"un’altra pagina di lista. Più link? Uno per riga."
+msgstr "A public Amazon wish list, an Elfster list or profile, or another list page. More links? One per line."
+
+msgid "Scegli un file CSV o JSON"
+msgstr "Choose a CSV or JSON file"
+
+msgid ""
+"CSV: una riga per regalo, colonne nome, link, prezzo, quantità, note e lista "
+"(“Natale > Libri” per una lista dentro un’altra). JSON: liste con “items” e "
+"“lists”."
+msgstr "CSV: one row per gift, with columns name, link, price, quantity, notes and list (“Christmas > Books” for a list inside another). JSON: lists with “items” and “lists”."
+
+msgid "Leggi la lista"
+msgstr "Read the list"
+
+msgid "Ecco cosa ho trovato. Togli le liste che non vuoi, poi importa."
+msgstr "Here's what I found. Untick the lists you don't want, then import."
+
+msgid "Mettile tutte dentro una lista nuova"
+msgstr "Put them all inside a new list"
+
+msgid ""
+"Ogni lista resta com’è e compare anche dentro quella nuova, in una sezione "
+"sua."
+msgstr "Each list stays as it is and also shows up inside the new one, in its own section."
+
+msgid ""
+"Le liste che ne contengono altre le includono: i loro regali si vedono anche "
+"lì."
+msgstr "Lists that contain others include them: their gifts show up there too."
+
+msgid "Nome della lista nuova"
+msgstr "Name of the new list"
+
+#, javascript-format
+msgid "Importa %s regalo"
+msgid_plural "Importa %s regali"
+msgstr[0] "Import %s gift"
+msgstr[1] "Import %s gifts"
+
+#, javascript-format
+msgid "%s regalo"
+msgid_plural "%s regali"
+msgstr[0] "%s gift"
+msgstr[1] "%s gifts"
+
+#, javascript-format
+msgid "e altri %s"
+msgstr "and %s more"
+
 msgid "Invito non valido"
 msgstr "Invalid invite"
 
@@ -763,12 +855,6 @@ msgstr "Joining…"
 
 msgid "Entra nella lista"
 msgstr "Join the list"
-
-#, javascript-format
-msgid "%s regalo"
-msgid_plural "%s regali"
-msgstr[0] "%s gift"
-msgstr[1] "%s gifts"
 
 msgid "Condividi"
 msgstr "Share"
@@ -1089,6 +1175,9 @@ msgstr "you"
 msgid ""
 "Ciao %s: qui scrivi cosa ti piacerebbe ricevere e lo condividi con un link."
 msgstr "Hi %s: write down what you'd like to receive and share it with a link."
+
+msgid "Importa"
+msgstr "Import"
 
 msgid "Nessuna lista, per ora"
 msgstr "No lists yet"

@@ -60,6 +60,19 @@ liste" sotto **Liste salvate** (di chi è, la data, quanti regali restano), cos�
 non si cerca più il messaggio. Si salva il link: se il proprietario lo rigenera
 o elimina la lista, resta solo il titolo e "Il link non vale più".
 
+**Importa** ([ADR 0015](docs/decisions/0015-import-di-liste.md)). Da "Le
+mie liste" → Importa si incolla il link di una lista desideri Amazon pubblica,
+di una lista o di un profilo Elfster (o di un'altra pagina di lista; più link,
+uno per riga) oppure si sceglie un file CSV/JSON. Amazon si legge con un parser
+dedicato (pagine "mostra altro" comprese); Elfster e le altre pagine si aprono
+col browser dello scraper e Gemini ne estrae i regali (link e foto solo se
+sono davvero nella pagina). Si vede un'anteprima, si tolgono le liste che non
+servono e si importa. Più liste in una sorgente (il profilo con più wishlist,
+`lists` annidate nel JSON, `Natale > Libri` nella colonna `lista` del CSV)
+diventano liste incluse, oppure tutte dentro una lista nuova. Le foto le
+scarica il worker dopo. Limiti: 20 liste, 300 regali, file da 2 MB,
+`THROTTLE_IMPORTS` (20/ora).
+
 **Scritta in due** ([ADR 0007](docs/decisions/0007-liste-scritte-insieme.md)).
 Una lista si può scrivere con altri: dal riquadro "La scrivi solo tu" si crea
 un link d'invito (`/unisciti/<token>`), chi lo apre con un account entra e
@@ -198,7 +211,7 @@ backend/
     ├── users/           User custom + auth JWT + mail dell'account
     └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa,
                          images.py (foto, rete), links.py (pagina del link), ai.py (Gemini),
-                         prices.py (andamento prezzo e avvisi)
+                         prices.py (andamento prezzo e avvisi), imports.py (import di liste)
 scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape {url}, guard.py
 frontend/src/
 ├── api/hooks.ts         hook TanStack Query (e le claim_key in localStorage)
@@ -226,6 +239,8 @@ docs/decisions/          ADR
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
 | `POST /api/links/read` `{url, image}` | nome, prezzo, codice a barre, marca e foto dichiarati dalla pagina, subito, più `describe_id` |
 | `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
+| `POST /api/imports/read` `{url}` o multipart `file` · `GET /api/imports/read/{job_id}` | anteprima dell'import: un file subito (`{status: done, lists}`), un link nel worker (202 `{job_id}`, poi `reading` → `done`/`error`) |
+| `POST /api/imports` `{lists, group_title}` | crea le liste dell'anteprima (sotto-liste = liste incluse; con `group_title` tutte dentro una lista nuova) |
 | `GET /api/shared/{token}` | lista condivisa, pubblica (`items` più `sections` delle liste incluse) |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta (anche i regali delle liste incluse; 409 se "va con" un regalo non ancora preso) |
 
@@ -317,7 +332,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-140 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+174 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -347,6 +362,12 @@ rifiutate, errore diretto se lo scraper è giù. Dal link al form: dati dichiara
 (JSON-LD, meta, `#productTitle`), prezzi in tutti i formati (e niente prezzi in
 altre valute), titoli ripuliti, browser quando manca il prezzo o il testo,
 Gemini finto che scrive nome e note, prezzo dichiarato che vince, Gemini in
-errore che non blocca. Lo scraper ha i suoi test delle
+errore che non blocca. Import: lista Amazon con le pagine successive (quantità,
+note, foto, prezzo assente o in dollari), lista privata, pagina Elfster letta
+col browser e Gemini finti (link e foto inventati scartati), profilo con più
+liste solo dello stesso sito, `ItemList` senza Gemini, pagina già costruita
+dall'estensione, CSV con `Natale > Libri`, JSON annidato, file rotti, liste
+create con le incluse a un livello, tutto dentro una lista nuova, foto prese
+dal worker. Lo scraper ha i suoi test delle
 regole di rete (`scraper/tests`); il browser vero si prova a mano con un link
 Amazon e uno IKEA.

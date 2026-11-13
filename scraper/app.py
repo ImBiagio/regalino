@@ -34,6 +34,10 @@ NAVIGATION_MS = int(os.environ.get("SCRAPER_NAVIGATION_MS", "15000"))
 SETTLE_MS = int(os.environ.get("SCRAPER_SETTLE_MS", "1500"))
 # Un browser per pagina costa ~150 MB: due alla volta bastano a una famiglia.
 PAGES_AT_ONCE = asyncio.Semaphore(int(os.environ.get("SCRAPER_CONCURRENCY", "2")))
+# Per le liste: quante volte scorrere fino in fondo e quanto HTML restituire.
+SCROLLS = int(os.environ.get("SCRAPER_SCROLLS", "12"))
+SCROLL_PAUSE_MS = int(os.environ.get("SCRAPER_SCROLL_PAUSE_MS", "900"))
+MAX_HTML = 3 * 1024 * 1024
 # Video e font non servono a trovare la foto: non si scaricano.
 SKIPPED_RESOURCES = {"media", "font"}
 
@@ -136,6 +140,9 @@ EXTRACT_JS = r"""
 
 class ScrapeRequest(BaseModel):
     url: str
+    # Per l'import delle liste (Amazon, Elfster...): scorre la pagina, cosi'
+    # le liste lunghe caricano tutti i regali, e restituisce anche l'HTML.
+    html: bool = False
 
 
 class ScrapeResult(BaseModel):
@@ -148,6 +155,7 @@ class ScrapeResult(BaseModel):
     currency: str | None
     images: list[str]
     text: str = ""
+    html: str | None = None
 
 
 state: dict[str, Browser] = {}
@@ -176,10 +184,22 @@ async def scrape(request: ScrapeRequest):
     if not await asyncio.to_thread(guard.allows, request.url):
         raise HTTPException(400, "link non ammesso")
     async with PAGES_AT_ONCE:
-        return await _scrape(request.url, guard)
+        return await _scrape(request.url, guard, with_html=request.html)
 
 
-async def _scrape(url: str, guard: Guard) -> ScrapeResult:
+async def _scroll_to_end(page: Page) -> None:
+    """Scorre finche' la pagina smette di allungarsi (liste che caricano scorrendo)."""
+    height = 0
+    for _ in range(SCROLLS):
+        new_height = await page.evaluate("document.body ? document.body.scrollHeight : 0")
+        if new_height <= height:
+            break
+        height = new_height
+        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        await page.wait_for_timeout(SCROLL_PAUSE_MS)
+
+
+async def _scrape(url: str, guard: Guard, with_html: bool = False) -> ScrapeResult:
     context = await state["browser"].new_context(
         locale="it-IT",
         viewport={"width": 1280, "height": 900},
@@ -227,6 +247,10 @@ async def _scrape(url: str, guard: Guard) -> ScrapeResult:
             # Pagina lenta o che non finisce mai di caricare: si legge quello che c'e'.
             pass
         await page.wait_for_timeout(SETTLE_MS)
+        html = None
+        if with_html:
+            await _scroll_to_end(page)
+            html = (await page.content())[:MAX_HTML]
         data = await page.evaluate(EXTRACT_JS)
         final_url = page.url
     except PlaywrightError as exc:
@@ -236,4 +260,4 @@ async def _scrape(url: str, guard: Guard) -> ScrapeResult:
 
     if tainted:
         raise HTTPException(400, "la pagina ha raggiunto un indirizzo non pubblico")
-    return ScrapeResult(url=final_url, status=status, **data)
+    return ScrapeResult(url=final_url, status=status, html=html, **data)
