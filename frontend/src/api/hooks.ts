@@ -6,6 +6,7 @@ import type {
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
+  ExtensionToken,
   GiftSuggestion,
   ImportList,
   ImportRead,
@@ -34,6 +35,7 @@ export const keys = {
   notifications: ['notifications'] as const,
   savedLists: ['saved-lists'] as const,
   watches: ['watches'] as const,
+  extensionTokens: ['extension-tokens'] as const,
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -474,5 +476,32 @@ export function useCreateImport() {
     mutationFn: (body: { lists: ImportList[]; group_title: string }) =>
       api.post<WishList[]>('/api/imports', body),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.lists }),
+  })
+}
+
+/* ------------------------------------------------------------- estensione -- */
+
+export function useExtensionTokens() {
+  return useQuery({
+    queryKey: keys.extensionTokens,
+    queryFn: () => api.get<ExtensionToken[]>('/api/extension/tokens'),
+  })
+}
+
+/** Crea la chiave per l'estensione: torna una volta sola, intera, in `key`. */
+export function useCreateExtensionToken() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (name: string) =>
+      api.post<ExtensionToken & { key: string }>('/api/extension/tokens', { name }),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.extensionTokens }),
+  })
+}
+
+export function useDeleteExtensionToken() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (id: UUID) => api.delete<void>(`/api/extension/tokens/${id}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.extensionTokens }),
   })
 }

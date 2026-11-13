@@ -306,3 +306,13 @@ export interface ImportRead {
   lists?: ImportList[]
   error?: string
 }
+
+/* ------------------------------------------------------------- estensione -- */
+
+/** Un browser con l'estensione collegata (ADR 0016): la chiave non torna mai. */
+export interface ExtensionToken {
+  id: UUID
+  name: string
+  created_at: string
+  last_used_at: string | null
+}

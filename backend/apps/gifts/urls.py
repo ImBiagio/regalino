@@ -1,6 +1,18 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
+from .extension import (
+    ExtensionDescribeView,
+    ExtensionImportCreateView,
+    ExtensionImportJobView,
+    ExtensionImportReadView,
+    ExtensionItemView,
+    ExtensionListsView,
+    ExtensionMeView,
+    ExtensionReadView,
+    ExtensionTokenDetailView,
+    ExtensionTokensView,
+)
 from .views import (
     GiftIdeaViewSet,
     ImageFromUrlView,
@@ -40,6 +52,32 @@ wish_watch = WishViewSet.as_view({"post": "watch", "delete": "watch"})
 urlpatterns = [
     path("images", ImageUploadView.as_view(), name="image-upload"),
     path("images/from-url", ImageFromUrlView.as_view(), name="image-from-url"),
+    # L'estensione Chrome (ADR 0016): le chiavi si creano dall'app, il resto
+    # lo chiama l'estensione con la sua chiave.
+    path("extension/tokens", ExtensionTokensView.as_view(), name="extension-tokens"),
+    path(
+        "extension/tokens/<uuid:pk>", ExtensionTokenDetailView.as_view(), name="extension-token"
+    ),
+    path("extension/me", ExtensionMeView.as_view(), name="extension-me"),
+    path("extension/lists", ExtensionListsView.as_view(), name="extension-lists"),
+    path(
+        "extension/lists/<uuid:list_pk>/items",
+        ExtensionItemView.as_view(),
+        name="extension-items",
+    ),
+    path("extension/read", ExtensionReadView.as_view(), name="extension-read"),
+    path("extension/describe", ExtensionDescribeView.as_view(), name="extension-describe"),
+    path("extension/imports", ExtensionImportCreateView.as_view(), name="extension-import"),
+    path(
+        "extension/imports/read",
+        ExtensionImportReadView.as_view(),
+        name="extension-import-read",
+    ),
+    path(
+        "extension/imports/read/<str:job_id>",
+        ExtensionImportJobView.as_view(),
+        name="extension-import-job",
+    ),
     path("imports", ImportCreateView.as_view(), name="import-create"),
     path("imports/read", ImportReadView.as_view(), name="import-read"),
     path("imports/read/<str:job_id>", ImportJobView.as_view(), name="import-job"),

@@ -1,7 +1,15 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
-from .models import GiftIdea, SavedList, Wish, WishList, WishListInclusion, WishListMember
+from .models import (
+    ExtensionToken,
+    GiftIdea,
+    SavedList,
+    Wish,
+    WishList,
+    WishListInclusion,
+    WishListMember,
+)
 
 
 class WishInline(admin.TabularInline):
@@ -44,3 +52,12 @@ class SavedListAdmin(admin.ModelAdmin):
     list_display = ["title", "user", "wish_list", "created_at"]
     search_fields = ["title", "user__email"]
     raw_id_fields = ["user", "wish_list"]
+
+
+@admin.register(ExtensionToken)
+class ExtensionTokenAdmin(admin.ModelAdmin):
+    """Solo per vedere e togliere: la chiave intera non c'e' (solo l'hash)."""
+
+    list_display = ["user", "name", "created_at", "last_used_at"]
+    search_fields = ["user__email", "name"]
+    readonly_fields = ["user", "name", "key_hash", "created_at", "last_used_at"]

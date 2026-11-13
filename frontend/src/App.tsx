@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppLayout } from './components/Layout'
 import { Skeleton } from './components/ui'
 import { AccountPage } from './features/account/AccountPage'
+import { ExtensionPage } from './features/account/ExtensionPage'
 import { NotificationsPage } from './features/account/NotificationsPage'
 import {
   ForgotPasswordPage,
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="da-regalare" element={<IdeasPage />} />
         <Route path="avvisi" element={<NotificationsPage />} />
         <Route path="account" element={<AccountPage />} />
+        <Route path="estensione" element={<ExtensionPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

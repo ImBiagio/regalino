@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 11:35+0100\n"
+"POT-Creation-Date: 2026-11-13 11:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -334,6 +334,90 @@ msgstr "Language"
 msgid "Vale per l'app e per le mail che ti mandiamo."
 msgstr "Applies to the app and to the emails we send you."
 
+#, javascript-format
+msgid "%s su %s"
+msgstr "%s on %s"
+
+msgid "L’estensione non ha risposto. Ricarica la pagina e riprova."
+msgstr "The extension didn't respond. Reload the page and try again."
+
+msgid "Estensione per Chrome"
+msgstr "Chrome extension"
+
+msgid ""
+"Aggiungi un regalo dalla pagina del negozio con un tocco, o importa una "
+"lista Amazon o Elfster intera."
+msgstr "Add a gift from the shop page with one tap, or import a whole Amazon or Elfster list."
+
+msgid "Estensione collegata"
+msgstr "Extension connected"
+
+msgid ""
+"Puoi chiudere questa pagina. Su un prodotto, o su una lista Amazon o "
+"Elfster, tocca l’icona di Regalino nella barra di Chrome."
+msgstr "You can close this page. On a product, or on an Amazon or Elfster list, tap the Regalino icon in the Chrome toolbar."
+
+#, javascript-format
+msgid "Collega l’estensione a %s"
+msgstr "Connect the extension to %s"
+
+msgid ""
+"L’estensione riceve una chiave sua: può leggere le pagine che le chiedi, "
+"vedere le tue liste e aggiungerci regali. Nient’altro. La scolleghi quando "
+"vuoi da Account."
+msgstr "The extension gets its own key: it can read the pages you ask it to, see your lists and add gifts to them. Nothing else. Disconnect it any time from Account."
+
+msgid "Collega l’estensione"
+msgstr "Connect the extension"
+
+msgid "Installa l’estensione"
+msgstr "Install the extension"
+
+msgid "Scarica la cartella"
+msgstr "Download the folder"
+
+msgid "dal repository di Regalino."
+msgstr "from the Regalino repository."
+
+msgid "In Chrome apri"
+msgstr "In Chrome open"
+
+msgid "e accendi “Modalità sviluppatore”."
+msgstr "and turn on “Developer mode”."
+
+msgid "Tocca “Carica estensione non pacchettizzata” e scegli la cartella."
+msgstr "Tap “Load unpacked” and choose the folder."
+
+msgid "Ricarica questa pagina e tocca “Collega l’estensione”."
+msgstr "Reload this page and tap “Connect the extension”."
+
+msgid "Browser collegati"
+msgstr "Connected browsers"
+
+msgid "si vedono e si scollegano in Account."
+msgstr "are listed, and disconnected, in Account."
+
+msgid "Collega"
+msgstr "Colleague"
+
+msgid ""
+"Aggiungi regali dalla pagina del negozio e importa liste da Amazon o Elfster."
+msgstr "Add gifts from the shop page and import lists from Amazon or Elfster."
+
+msgid "Browser"
+msgstr "Browser"
+
+#, javascript-format
+msgid "Usata l’ultima volta il %s"
+msgstr "Last used on %s"
+
+#, javascript-format
+msgid "Collegata il %s"
+msgstr "Connected on %s"
+
+msgid "Scollega"
+msgstr "Disconnect"
+
 msgid ""
 "I regali con la campanella e gli avvisi quando il prezzo scende. Scegli come "
 "riceverli in Account."
@@ -595,9 +679,6 @@ msgstr "Brother/sister"
 msgid "Amico/a"
 msgstr "Friend"
 
-msgid "Collega"
-msgstr "Colleague"
-
 msgid "Nonno/a"
 msgstr "Grandparent"
 
@@ -771,7 +852,9 @@ msgstr "List link"
 msgid ""
 "Una lista desideri Amazon pubblica, una lista o un profilo Elfster, o "
 "un’altra pagina di lista. Più link? Uno per riga."
-msgstr "A public Amazon wish list, an Elfster list or profile, or another list page. More links? One per line."
+msgstr ""
+"A public Amazon wish list, an Elfster list or profile, or another list page. "
+"More links? One per line."
 
 msgid "Scegli un file CSV o JSON"
 msgstr "Choose a CSV or JSON file"
@@ -780,7 +863,10 @@ msgid ""
 "CSV: una riga per regalo, colonne nome, link, prezzo, quantità, note e lista "
 "(“Natale > Libri” per una lista dentro un’altra). JSON: liste con “items” e "
 "“lists”."
-msgstr "CSV: one row per gift, with columns name, link, price, quantity, notes and list (“Christmas > Books” for a list inside another). JSON: lists with “items” and “lists”."
+msgstr ""
+"CSV: one row per gift, with columns name, link, price, quantity, notes and "
+"list (“Christmas > Books” for a list inside another). JSON: lists with "
+"“items” and “lists”."
 
 msgid "Leggi la lista"
 msgstr "Read the list"
@@ -794,7 +880,9 @@ msgstr "Put them all inside a new list"
 msgid ""
 "Ogni lista resta com’è e compare anche dentro quella nuova, in una sezione "
 "sua."
-msgstr "Each list stays as it is and also shows up inside the new one, in its own section."
+msgstr ""
+"Each list stays as it is and also shows up inside the new one, in its own "
+"section."
 
 msgid ""
 "Le liste che ne contengono altre le includono: i loro regali si vedono anche "

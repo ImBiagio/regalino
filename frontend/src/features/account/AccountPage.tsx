@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth'
 import { gettext, interpolate } from '../../lib/i18n'
 import type { NotifyBy, User } from '../../lib/types'
 import { NewPasswordFields, requestEmail } from '../auth/AuthPages'
+import { ExtensionSection } from './ExtensionPage'
 
 /** Profilo, stato dell'email, password e lingua. */
 export function AccountPage() {
@@ -31,6 +32,7 @@ export function AccountPage() {
         <EmailSection user={user} />
         <PasswordSection user={user} />
         <NotifySection user={user} />
+        <ExtensionSection />
         <LanguageSection />
       </div>
     </Page>

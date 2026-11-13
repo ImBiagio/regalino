@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Regalino",
+  "short_name": "Regalino",
+  "version": "0.1.0",
+  "description": "Aggiungi un regalo alla tua lista di Regalino dalla pagina del negozio, o importa una lista intera.",
+  "icons": {
+    "16": "icons/icon-32.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-128.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Aggiungi a Regalino",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-32.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://regal.inoo.it/*",
+    "http://localhost:8020/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://regal.inoo.it/*",
+        "http://localhost:5176/*"
+      ],
+      "js": [
+        "connect.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

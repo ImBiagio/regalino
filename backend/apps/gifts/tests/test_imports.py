@@ -83,6 +83,24 @@ def test_lista_amazon_con_le_pagine_successive(user, api, amazon):
     assert wishlist["items"][1]["price"] is None
 
 
+def test_lista_amazon_con_le_altre_liste_della_persona(user, api, amazon):
+    # Dall'estensione, sulla propria lista: accanto c'e' l'elenco delle altre.
+    other = "https://www.amazon.it/hz/wishlist/ls/9ZZZZZZZZZZZ"
+    amazon[other] = (200, {"content-type": "text/html"}, AMAZON_PAGE_2.replace(
+        b"<ul>", b'<span id="profile-list-name">Libri</span><ul>'
+    ))  # fmt: skip
+    nav = (
+        '<a href="/hz/wishlist/ls/3ABCDEF12345?ref_=wl">Compleanno di Anna</a>'
+        '<a href="/hz/wishlist/ls/9ZZZZZZZZZZZ?ref_=wl">Libri</a>'
+        '<a href="/hz/wishlist/ls/8PRIVATA0000?ref_=wl">Privata</a>'
+    )
+    html = AMAZON_PAGE_1.decode().replace("<ul", nav + "<ul", 1)
+    response = read(api(user), url=AMAZON_URL, html=html)
+    [wishlist] = response.data["lists"]
+    assert [child["title"] for child in wishlist["lists"]] == ["Libri"]
+    assert wishlist["lists"][0]["items"][0]["title"] == "Tazza"
+
+
 def test_lista_amazon_vuota_o_privata(user, api, dns, web):
     dns["www.amazon.it"] = PUBLIC_IP
     web[AMAZON_URL] = (200, {"content-type": "text/html"}, b"<html><body>Accedi</body></html>")

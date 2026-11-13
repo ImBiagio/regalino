@@ -356,7 +356,18 @@ def parse_amazon(html: str, base: str) -> tuple[str, list[ImportItem], str]:
     return _clean_text(parser.list_title, MAX_LIST_TITLE), _amazon_items(parser, base), next_url
 
 
-def read_amazon(url: str, html: str | None = None) -> list[ImportList]:
+def _amazon_list_id(url: str) -> str:
+    match = _AMAZON_LIST.search(urlsplit(url).path)
+    return match.group(1).upper() if match else ""
+
+
+def read_amazon(url: str, html: str | None = None, depth: int = 0) -> list[ImportList]:
+    """La lista Amazon, con le pagine "mostra altro".
+
+    Chi apre la propria lista (dall'estensione) vede accanto l'elenco delle
+    altre sue liste: si leggono anche quelle, come liste dentro questa. Quelle
+    private il server non le vede e si saltano.
+    """
     if html is None:
         html, url = _page(url)
     title, items, next_url = parse_amazon(html, url)
@@ -374,14 +385,30 @@ def read_amazon(url: str, html: str | None = None) -> list[ImportList]:
         seen.add(next_url)
         items += extra
         pages += 1
-    if not items:
+    children: list[ImportList] = []
+    if depth == 0:
+        own = _amazon_list_id(url)
+        others = []
+        for match in _AMAZON_LIST.finditer(html):
+            list_id = match.group(1).upper()
+            if list_id != own and list_id not in others:
+                others.append(list_id)
+        host = urlsplit(url).hostname
+        for list_id in others[:MAX_LINKED_LISTS]:
+            try:
+                children += read_amazon(f"https://{host}/hz/wishlist/ls/{list_id}", depth=1)
+            except (ImageError, ImportFailed) as exc:
+                logger.info("Lista Amazon collegata non letta (%s): %s", list_id, exc)
+    if not items and not children:
         raise ImportFailed(
             _(
                 "Non trovo regali in questa lista Amazon: controlla che sia pubblica o "
                 "condivisa col link."
             )
         )
-    return [ImportList(title=title or _("Lista Amazon"), items=items, source=url)]
+    return [
+        ImportList(title=title or _("Lista Amazon"), items=items, lists=children, source=url)
+    ]
 
 
 # ------------------------------------------------ pagina qualsiasi e Gemini --

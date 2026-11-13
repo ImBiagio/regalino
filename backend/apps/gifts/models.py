@@ -404,3 +404,32 @@ def seed_price(target: Wish | GiftIdea) -> None:
     """Il primo punto: il prezzo indicativo con cui il regalo entra in lista, se c'e'."""
     if target.price is not None and not target.price_points.exists():
         record_price(target, target.price)
+
+
+# ----------------------------------------------------------- estensione --
+
+
+class ExtensionToken(models.Model):
+    """La chiave con cui l'estensione Chrome parla con l'API (ADR 0016).
+
+    Una per browser collegato. Sul server resta solo l'hash, come per le
+    chiavi di spunta (ADR 0002): la chiave intera la vede solo l'estensione,
+    una volta. Vale solo per gli endpoint ``/api/extension/...`` (aggiungere
+    un regalo, leggere una pagina, importare), non per il resto dell'account.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="extension_tokens"
+    )
+    # "Chrome su Mac": lo scrive l'estensione, per riconoscerla in Account.
+    name = models.CharField(max_length=80, blank=True)
+    key_hash = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.user} ⧉ {self.name or self.pk}"

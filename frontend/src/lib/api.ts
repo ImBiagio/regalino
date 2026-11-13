@@ -6,7 +6,7 @@
 // frontend e API escono dallo stesso dominio, quindi basta l'origin della pagina.
 import { gettext, interpolate } from './i18n'
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin
+export const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin
 
 /** URL completo di un file di `/media/...` (in sviluppo sta sulla porta dell'API). */
 export function mediaUrl(path: string): string {

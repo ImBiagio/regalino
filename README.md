@@ -73,6 +73,17 @@ diventano liste incluse, oppure tutte dentro una lista nuova. Le foto le
 scarica il worker dopo. Limiti: 20 liste, 300 regali, file da 2 MB,
 `THROTTLE_IMPORTS` (20/ora).
 
+**Estensione per Chrome** ([ADR 0016](docs/decisions/0016-estensione-chrome.md),
+cartella [`extension/`](extension/README.md)). Sulla pagina di un prodotto si
+tocca l'icona di Regalino: il regalo arriva compilato (nome, prezzo, foto, note
+di Gemini) dalla pagina che si sta guardando, si sceglie la lista e si
+aggiunge. Su una lista desideri Amazon o una lista/profilo Elfster propone di
+importarla tutta (scorre la pagina fino in fondo e segue la lettura anche a
+popup chiuso). Si installa a mano ("Carica estensione non pacchettizzata") e
+si collega da `/estensione` con un tocco: l'app crea una chiave
+(`ExtensionToken`, sul server solo l'hash) che vale solo per
+`/api/extension/...`; i browser collegati si vedono e si scollegano in Account.
+
 **Scritta in due** ([ADR 0007](docs/decisions/0007-liste-scritte-insieme.md)).
 Una lista si può scrivere con altri: dal riquadro "La scrivi solo tu" si crea
 un link d'invito (`/unisciti/<token>`), chi lo apre con un account entra e
@@ -218,6 +229,7 @@ frontend/src/
 ├── lib/                 client HTTP, auth, i18n, format (prezzi, date), tipi
 ├── components/          UI M3, layout, dialog di conferma, pezzi dei regali, animazioni
 └── features/            lists · ideas · shared · auth · account
+extension/               estensione Chrome (Manifest V3, senza build)
 docs/decisions/          ADR
 ```
 
@@ -241,6 +253,8 @@ docs/decisions/          ADR
 | `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
 | `POST /api/imports/read` `{url}` o multipart `file` · `GET /api/imports/read/{job_id}` | anteprima dell'import: un file subito (`{status: done, lists}`), un link nel worker (202 `{job_id}`, poi `reading` → `done`/`error`) |
 | `POST /api/imports` `{lists, group_title}` | crea le liste dell'anteprima (sotto-liste = liste incluse; con `group_title` tutte dentro una lista nuova) |
+| `GET/POST /api/extension/tokens`, `DELETE …/tokens/{id}` | chiavi dell'estensione (dall'app, col login): `POST` torna `key` una volta sola |
+| `/api/extension/me` · `lists` · `read` `{url, html}` · `describe` · `lists/{id}/items` · `imports`, `imports/read[/{job_id}]` | per l'estensione, con `Authorization: Token <chiave>`: chi è collegato, le liste che scrive, la pagina aperta letta, il regalo aggiunto, l'import |
 | `GET /api/shared/{token}` | lista condivisa, pubblica (`items` più `sections` delle liste incluse) |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta (anche i regali delle liste incluse; 409 se "va con" un regalo non ancora preso) |
 
@@ -332,7 +346,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-174 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+183 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
@@ -368,6 +382,10 @@ col browser e Gemini finti (link e foto inventati scartati), profilo con più
 liste solo dello stesso sito, `ItemList` senza Gemini, pagina già costruita
 dall'estensione, CSV con `Natale > Libri`, JSON annidato, file rotti, liste
 create con le incluse a un livello, tutto dentro una lista nuova, foto prese
-dal worker. Lo scraper ha i suoi test delle
+dal worker. Estensione: chiave vista una volta e salvata come hash, valida solo
+su `/api/extension/...`, tolta o sbagliata → 401, liste scrivibili, pagina
+mandata dal browser letta senza riaprirla, regalo aggiunto con link pulito e
+primo prezzo, solo nelle proprie liste, import; liste Amazon collegate (le
+altre liste della persona) come sotto-liste. Lo scraper ha i suoi test delle
 regole di rete (`scraper/tests`); il browser vero si prova a mano con un link
 Amazon e uno IKEA.
