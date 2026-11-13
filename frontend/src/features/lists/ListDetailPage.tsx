@@ -27,6 +27,7 @@ import {
   ListHero,
   PriceTrend,
   WatchBell,
+  WhereToBuy,
   lineTotal,
   useAskForLink,
   useLinkFill,
@@ -355,27 +356,38 @@ function WishCards({
               )
             }
             footer={
-              wish.gifted && (
-                <button
-                  type="button"
-                  className="btn-text btn-sm -ml-2"
-                  onClick={async (event) => {
-                    event.stopPropagation()
-                    const ok = await confirm({
-                      title: gettext('Togliere la spunta?'),
-                      message: gettext(
-                        'Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio.',
-                      ),
-                      confirmLabel: gettext('Togli la spunta'),
-                      icon: 'remove_done',
-                    })
-                    if (ok) clearGift.mutate(wish.id)
-                  }}
-                >
-                  <Icon name="remove_done" size={18} />
-                  {gettext('Togli la spunta')}
-                </button>
-              )
+              // "Dove trovarlo" anche qui: chi scrive la lista confronta i
+              // negozi prima di mettere un link (o per sceglierne uno migliore).
+              // Il dialog e' in un portal ma i click risalgono l'albero React:
+              // senza fermarli qui un tocco nel dialog aprirebbe il form.
+              <div
+                className="grid justify-items-start gap-1"
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <WhereToBuy item={wish} className="-ml-2" />
+                {wish.gifted && (
+                  <button
+                    type="button"
+                    className="btn-text btn-sm -ml-2"
+                    onClick={async (event) => {
+                      event.stopPropagation()
+                      const ok = await confirm({
+                        title: gettext('Togliere la spunta?'),
+                        message: gettext(
+                          'Il regalo torna disponibile per chi ha il link. Serve se qualcuno l’ha spuntato per sbaglio.',
+                        ),
+                        confirmLabel: gettext('Togli la spunta'),
+                        icon: 'remove_done',
+                      })
+                      if (ok) clearGift.mutate(wish.id)
+                    }}
+                  >
+                    <Icon name="remove_done" size={18} />
+                    {gettext('Togli la spunta')}
+                  </button>
+                )}
+              </div>
             }
           />
         ))}
