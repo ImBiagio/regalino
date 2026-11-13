@@ -104,8 +104,8 @@ cuffie): sul link la card lo dice, e "Lo regalo io" si accende solo dopo che
 l'altro è stato preso (il server rifiuta con 409 prima). Stessa lista, niente giri.
 
 **Dove trovarlo.** Dal link il server legge anche codice a barre (EAN/ISBN) e
-marca, se la pagina li dichiara. Su ogni regalo del link condiviso e su ogni
-idea c'è "Dove trovarlo": il negozio indicato e la ricerca dello stesso
+marca, se la pagina li dichiara. Su ogni regalo (delle proprie liste e del
+link condiviso) e su ogni idea c'è "Dove trovarlo": il negozio indicato e la ricerca dello stesso
 prodotto (per codice, altrimenti marca e nome) su Google Shopping, Amazon,
 eBay e Trovaprezzi. Solo link di ricerca: nessuna API, nessuna pagina letta.
 
