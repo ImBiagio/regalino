@@ -2,7 +2,18 @@
 # prod) e aggiornate da Watchtower. Sul server servono solo questo file e un
 # .env accanto (modello in deploy/.env.prod.example). Nessuna porta pubblicata:
 # il traffico arriva dal proxy "edge" (repo homeserver, edge/) sulla rete Docker "edge".
+#
+# Container chiusi (ADR 0017): ogni servizio ha no-new-privileges e un tetto di
+# memoria; i servizi del progetto, che girano senza root, non hanno capability.
+# Se un servizio viene ucciso per memoria (OOMKilled in docker inspect) si alza
+# il suo mem_limit.
 name: regalino
+
+# no-new-privileges: nessun processo acquista privilegi dopo l'avvio (setuid,
+# capability sui file). Su tutti i servizi.
+x-no-new-privileges: &no-new-privileges
+  security_opt:
+    - no-new-privileges:true
 
 x-backend: &backend
   image: ghcr.io/imbiagio/regalino-backend:prod
@@ -17,11 +28,19 @@ x-backend: &backend
     - media:/app/media
   labels:
     - com.centurylinklabs.watchtower.enable=true
+  # appuser (uid 10001) non ha bisogno di nessuna capability: porta 8000,
+  # file suoi. Postgres, Redis, Caddy e i backup invece partono da root e
+  # cambiano utente da soli: li' le capability restano.
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
 
 services:
   db:
+    <<: *no-new-privileges
     image: postgres:16-alpine
     restart: unless-stopped
+    mem_limit: 512m
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-regalino}
       POSTGRES_USER: ${POSTGRES_USER:-regalino}
@@ -35,8 +54,10 @@ services:
       retries: 10
 
   redis:
+    <<: *no-new-privileges
     image: redis:7-alpine
     restart: unless-stopped
+    mem_limit: 128m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -45,6 +66,7 @@ services:
 
   backend:
     <<: *backend
+    mem_limit: 768m
     environment:
       POSTGRES_HOST: db
       REDIS_URL: redis://redis:6379/0
@@ -67,6 +89,7 @@ services:
 
   worker:
     <<: *backend
+    mem_limit: 512m
     command: celery -A config worker -l info --concurrency 2
     depends_on:
       backend:
@@ -74,6 +97,7 @@ services:
 
   beat:
     <<: *backend
+    mem_limit: 256m
     command: >
       celery -A config beat -l info
       --scheduler django_celery_beat.schedulers:DatabaseScheduler
@@ -111,8 +135,10 @@ services:
       - com.centurylinklabs.watchtower.enable=true
 
   web:
+    <<: *no-new-privileges
     image: ghcr.io/imbiagio/regalino-web:prod
     restart: unless-stopped
+    mem_limit: 128m
     depends_on:
       - backend
     volumes:
@@ -128,8 +154,10 @@ services:
     # pg_dump compresso ogni notte a mezzanotte (ora italiana) e a ogni avvio,
     # in ~/regalino/backups: tiene 7 giornalieri, 4 settimanali e 6 mensili.
     # Restore e prova in README (Deploy) e nel vault.
+    <<: *no-new-privileges
     image: prodrigestivill/postgres-backup-local:16
     restart: unless-stopped
+    mem_limit: 256m
     # biagio: i dump restano leggibili solo dal proprietario della cartella.
     user: "1000:1000"
     environment:
@@ -155,17 +183,22 @@ services:
     # avvio, in ~/regalino/backups/media: 7 giornalieri, 4 settimanali (la
     # domenica) e l'ultimo. Un ciclo con sleep e non cron: busybox crond vuole
     # root, qui si gira come biagio. Restore nel README (Deploy) e nel vault.
+    <<: *no-new-privileges
     image: alpine:3.20
     restart: unless-stopped
+    mem_limit: 256m
     user: "1000:1000"
     # Dopo il backend: il volume "media" nuovo deve nascere dall'immagine del
-    # backend (cartella di appuser). Se lo crea prima questo container nasce
-    # di root, con le cartelle /media di alpine, e ogni upload da' 500.
+    # backend (cartella di appuser).
     depends_on:
       backend:
         condition: service_healthy
+    # Montato su /srv/media e non su /media: in alpine /media esiste gia'
+    # (cdrom, floppy, usb, di root) e Docker, finche' il volume e' vuoto, ci
+    # copia dentro la cartella dell'immagine con i suoi permessi: il volume
+    # diventava di root e ogni upload dava 500, anche partendo dopo il backend.
     volumes:
-      - media:/media:ro
+      - media:/srv/media:ro
       - ./backups/media:/backups
     command:
       - sh
@@ -175,7 +208,7 @@ services:
         backup() {
           mkdir -p /backups/daily /backups/weekly /backups/last
           tmp=/backups/last/.media-in-corso.tar.gz
-          tar czf "$$tmp" -C /media .
+          tar czf "$$tmp" -C /srv/media .
           cp "$$tmp" "/backups/daily/media-$$(date +%F).tar.gz"
           if [ "$$(date +%u)" = 7 ]; then
             cp "$$tmp" "/backups/weekly/media-$$(date +%G-W%V).tar.gz"
