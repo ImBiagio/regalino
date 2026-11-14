@@ -22,10 +22,14 @@ voler aspettare lo sconto e lo dice con un tocco.
 
 **Perché un tetto e una pausa.** Lo scraper sul server impiega 10–20 secondi
 su Amazon e i negozi non vanno martellati: `PRICE_CHECKS_PER_NIGHT` pagine a
-notte (80), una ogni `PRICE_CHECK_GAP` secondi (90), prima quelle mai lette o
+notte (80), una ogni `PRICE_CHECK_GAP` secondi (30; 90 fino al 2026-11-14,
+abbassato perché il giro durava più di un'ora senza motivo), prima quelle mai lette o
 lette da più tempo; si saltano i regali già presi, le liste con la data
 passata e le idee già comprate o regalate. Nessuna intestazione finta (ADR
-0003): un sito che blocca resta senza punto quella notte.
+0003): un sito che blocca resta senza punto quella notte. La fila sta tutta
+nel worker con un `countdown`: il `visibility_timeout` di Redis
+(`CELERY_BROKER_TRANSPORT_OPTIONS`) deve coprirla, altrimenti dopo un'ora i
+task ancora in attesa vengono riconsegnati e partono due volte.
 
 **Perché non Keepa.** Keepa è un servizio a pagamento solo per Amazon; qui i
 link sono di qualsiasi negozio e la lettura della pagina c'è già. Se i volumi

@@ -227,7 +227,16 @@ CELERY_BEAT_SCHEDULE = {
 
 # Quante pagine rileggere a notte e quanti secondi tra una e l'altra.
 PRICE_CHECKS_PER_NIGHT = int(env("PRICE_CHECKS_PER_NIGHT", "80"))
-PRICE_CHECK_GAP = int(env("PRICE_CHECK_GAP", "90"))
+PRICE_CHECK_GAP = int(env("PRICE_CHECK_GAP", "30"))
+
+# Con Redis un task con ``countdown`` resta "non confermato" nel worker fino
+# all'ora di partire, e dopo ``visibility_timeout`` (un'ora se non si dice
+# niente) Redis lo riconsegna: i controlli del prezzo messi in fila oltre
+# l'ora partivano due volte. Il tempo copre tutta la fila della notte, con
+# un'ora di margine; mai meno dell'ora di serie.
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "visibility_timeout": max(3600, PRICE_CHECKS_PER_NIGHT * PRICE_CHECK_GAP + 3600),
+}
 
 CACHES = {
     "default": {
