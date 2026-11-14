@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 11:45+0100\n"
+"POT-Creation-Date: 2026-11-14 15:00+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -360,51 +360,55 @@ msgstr ""
 "The link is valid for 2 hours and can be used once. If you didn't request "
 "it, just ignore this email: your password stays the same."
 
-#: apps/users/serializers.py:46
+#: apps/users/serializers.py:58
+msgid "Codice d'invito non valido."
+msgstr "Invalid invite code."
+
+#: apps/users/serializers.py:65
 msgid "Esiste gia' un account con questa email."
 msgstr "An account with this email already exists."
 
-#: apps/users/views.py:74
+#: apps/users/views.py:89
 msgid "Registrazione completata. Controlla la mail per confermare."
 msgstr "Sign-up complete. Check your email to confirm."
 
-#: apps/users/views.py:100
+#: apps/users/views.py:115
 msgid "Credenziali non valide."
 msgstr "Invalid credentials."
 
-#: apps/users/views.py:105
+#: apps/users/views.py:120
 msgid "Email non ancora confermata."
 msgstr "Email not confirmed yet."
 
-#: apps/users/views.py:121
+#: apps/users/views.py:136
 msgid "Refresh token assente."
 msgstr "Refresh token missing."
 
-#: apps/users/views.py:127
+#: apps/users/views.py:142
 msgid "Refresh token non valido."
 msgstr "Invalid refresh token."
 
-#: apps/users/views.py:133
+#: apps/users/views.py:148
 msgid "Utente non valido."
 msgstr "Invalid user."
 
-#: apps/users/views.py:170
+#: apps/users/views.py:185
 msgid "Link non valido o scaduto."
 msgstr "Invalid or expired link."
 
-#: apps/users/views.py:175
+#: apps/users/views.py:190
 msgid "Utente inesistente."
 msgstr "User doesn't exist."
 
-#: apps/users/views.py:180
+#: apps/users/views.py:195
 msgid "Email gia' confermata: accedi con la tua password."
 msgstr "Email already confirmed: sign in with your password."
 
-#: apps/users/views.py:212
+#: apps/users/views.py:227
 msgid "Password attuale errata."
 msgstr "Current password is incorrect."
 
-#: apps/users/views.py:274
+#: apps/users/views.py:289
 msgid "Link non valido, gia' usato o scaduto: chiedine uno nuovo."
 msgstr "Invalid, already used or expired link: request a new one."
 

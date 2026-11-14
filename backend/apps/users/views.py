@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, get_user_model, password_validatio
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -56,6 +56,21 @@ def revoke_all_refresh_tokens(user) -> None:
         [BlacklistedToken(token=token) for token in OutstandingToken.objects.filter(user=user)],
         ignore_conflicts=True,
     )
+
+
+class SignupConfigView(APIView):
+    """Cosa serve per registrarsi: il form sa se mostrare il codice d'invito."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        responses=inline_serializer(
+            "SignupConfig", {"invite_code_required": serializers.BooleanField()}
+        )
+    )
+    def get(self, request):
+        return Response({"invite_code_required": bool(settings.SIGNUP_CODE)})
 
 
 class RegisterView(APIView):

@@ -196,6 +196,9 @@ REFRESH_COOKIE_SAMESITE = env("REFRESH_COOKIE_SAMESITE", "Lax")
 REFRESH_COOKIE_PATH = "/api/auth"
 
 REQUIRE_EMAIL_VERIFICATION = env_bool("REQUIRE_EMAIL_VERIFICATION", True)
+# Codice d'invito (ADR 0018). Vuoto: registrazione aperta a tutti. Impostato:
+# ci si registra solo scrivendolo nel form.
+SIGNUP_CODE = env("SIGNUP_CODE", "").strip()
 
 # --- Celery ---
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/1")

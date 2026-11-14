@@ -10,10 +10,12 @@ from .views import (
     RefreshView,
     RegisterView,
     ResendVerificationView,
+    SignupConfigView,
     VerifyEmailView,
 )
 
 urlpatterns = [
+    path("auth/signup-config", SignupConfigView.as_view(), name="auth-signup-config"),
     path("auth/register", RegisterView.as_view(), name="auth-register"),
     path("auth/login", LoginView.as_view(), name="auth-login"),
     path("auth/refresh", RefreshView.as_view(), name="auth-refresh"),

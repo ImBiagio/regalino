@@ -184,12 +184,33 @@ export function RegisterPage() {
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  // Il server dice se la registrazione e' solo su invito (SIGNUP_CODE): finche'
+  // non risponde, o se non risponde, il campo non c'e' e decide lui al submit.
+  const [needsInvite, setNeedsInvite] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const { next, query } = useNextPath()
 
+  useEffect(() => {
+    let alive = true
+    api
+      .get<{ invite_code_required: boolean }>('/api/auth/signup-config')
+      .then((config) => {
+        if (alive) setNeedsInvite(config.invite_code_required)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [])
+
   if (user) return <Navigate to={next} replace />
+
+  const fieldErrors = error instanceof ApiError ? error.fieldErrors() : {}
+  // Codice rifiutato senza che il campo fosse in pagina: adesso si mostra.
+  const showInvite = needsInvite || Boolean(fieldErrors.invite_code)
 
   return (
     <Shell
@@ -221,7 +242,7 @@ export function RegisterPage() {
             setBusy(true)
             setError(null)
             try {
-              setMessage(await register(email, password, displayName))
+              setMessage(await register(email, password, displayName, inviteCode))
             } catch (err) {
               setError(err)
             } finally {
@@ -250,7 +271,7 @@ export function RegisterPage() {
           </Field>
           <Field
             label={gettext('Password')}
-            error={error instanceof ApiError ? error.fieldErrors().password : undefined}
+            error={fieldErrors.password}
             hint={gettext('Almeno 10 caratteri.')}
           >
             <PasswordInput
@@ -260,6 +281,25 @@ export function RegisterPage() {
               required
             />
           </Field>
+          {showInvite && (
+            <Field
+              label={gettext("Codice d'invito")}
+              error={fieldErrors.invite_code}
+              hint={gettext(
+                'Qui ci si registra solo su invito: il codice te lo dà chi ti ha invitato.',
+              )}
+            >
+              <input
+                className="field-input"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+                required
+              />
+            </Field>
+          )}
           <button className="btn-filled mt-1 w-full" disabled={busy}>
             {busy ? gettext('Creazione…') : gettext('Crea account')}
           </button>

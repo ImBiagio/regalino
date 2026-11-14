@@ -179,7 +179,9 @@ stato `idea → comprato → regalato` (un tocco sulla pill passa al successivo)
 Raggruppate per persona, con il totale; filtri Da fare / Idee / Comprati /
 Regalati / Tutte. Private: le vede solo chi le scrive.
 
-**Account e lingue**: come soldino. Registrazione, conferma email, password
+**Account e lingue**: come soldino. Registrazione (aperta, oppure solo su
+invito con `SIGNUP_CODE`: il form chiede il codice,
+[ADR 0018](docs/decisions/0018-registrazione-su-invito.md)), conferma email, password
 dimenticata (link 2 ore, una volta sola), cambio password che chiude le altre
 sessioni, nome, italiano/inglese con il gettext di Django anche nel frontend.
 
@@ -239,6 +241,7 @@ docs/decisions/          ADR
 
 | | |
 |---|---|
+| `GET /api/auth/signup-config` · `POST /api/auth/register` `{email, password, display_name, invite_code}` | se serve il codice d'invito (`{invite_code_required}`, pubblico) · registrazione (`invite_code` obbligatorio se `SIGNUP_CODE` è impostato) |
 | `GET/POST /api/lists`, `GET/PATCH/DELETE /api/lists/{id}` | le mie liste (`included_list_ids` in scrittura, `included_lists` / `included_in` in lettura) |
 | `POST /api/lists/{id}/regenerate-link` | link nuovo, il vecchio muore (solo il proprietario) |
 | `POST/DELETE /api/lists/{id}/invite-link` | crea/rinnova o spegne il link d'invito |
@@ -353,7 +356,9 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-183 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+194 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+codice d'invito (registrazione aperta senza `SIGNUP_CODE`; con, 400 senza il
+codice giusto e senza dire chi è già registrato, login che non lo chiede),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
