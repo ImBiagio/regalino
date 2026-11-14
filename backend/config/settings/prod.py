@@ -1,5 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured
 
+from ..sentry import init_sentry
 from .base import *  # noqa: F403
 from .base import SECRET_KEY
 
@@ -30,3 +31,6 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "SERVE_AUTHENTICATION": ["rest_framework.authentication.SessionAuthentication"],
 }
+
+# Errori non gestiti di richieste e task verso GlitchTip, se c'e' SENTRY_DSN (ADR 0019).
+init_sentry()

@@ -221,6 +221,7 @@ scan con Gemini, open banking, ordine personalizzato del menu.
 ```
 backend/
 ├── config/settings/     base · dev · prod · test
+├── config/sentry.py     errori verso GlitchTip, solo con SENTRY_DSN (ADR 0019)
 └── apps/
     ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
     ├── users/           User custom + auth JWT + mail dell'account
@@ -336,6 +337,12 @@ Primo avvio sul server (già fatto):
 4. `git push origin main:prod`, poi `cd ~/regalino && docker compose -f
    compose.prod.yaml up -d` e `createsuperuser`.
 
+**Errori** ([ADR 0019](docs/decisions/0019-errori-su-glitchtip.md)). Con
+`SENTRY_DSN` nel `.env` le eccezioni non gestite di backend, worker, beat e
+scraper arrivano a GlitchTip (SDK di Sentry), senza dati personali e senza
+tracce; `SENTRY_ENVIRONMENT` è il nome dell'ambiente (default `production`).
+Vuota: niente segnalazioni.
+
 Backup notturni, entrambi a ogni avvio e poi ogni notte, sul disco del server:
 
 - **Postgres** (servizio `backup`, come soldino) in `~/regalino/backups/{daily,weekly,monthly,last}`;
@@ -356,7 +363,7 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-194 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
+198 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
 codice d'invito (registrazione aperta senza `SIGNUP_CODE`; con, 400 senza il
 codice giusto e senza dire chi è già registrato, login che non lo chiede),
 isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia

@@ -161,6 +161,37 @@ class ScrapeResult(BaseModel):
 
 log = logging.getLogger("uvicorn.error")
 
+
+def init_sentry() -> bool:
+    """Errori non gestiti verso GlitchTip (protocollo Sentry, ADR 0019), solo se c'e' SENTRY_DSN."""
+    dsn = os.environ.get("SENTRY_DSN", "").strip()
+    if not dsn:
+        return False
+
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    # Solo le eccezioni non gestite: i 400/502 che lo scraper risponde apposta
+    # (link non ammesso, pagina non leggibile) sono normali, non errori.
+    quiet = {"failed_request_status_codes": set()}
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "").strip() or "production",
+        integrations=[StarletteIntegration(**quiet), FastApiIntegration(**quiet)],
+        # Niente dati personali: ne' il corpo della richiesta ne' le variabili
+        # locali dello stack, dove c'e' il link che un utente sta guardando.
+        send_default_pii=False,
+        max_request_body_size="never",
+        include_local_variables=False,
+        traces_sample_rate=0,
+        auto_session_tracking=False,
+    )
+    return True
+
+
+init_sentry()
+
 state: dict[str, Browser] = {}
 # Se Chromium gira con la sua sandbox: lo dice /health, per controllarlo sul server.
 sandbox = {"on": False}

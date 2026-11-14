@@ -88,6 +88,11 @@ services:
     image: ghcr.io/imbiagio/regalino-scraper:prod
     restart: unless-stopped
     networks: [scraper]
+    # Lo scraper non legge il .env (li' ci sono i segreti del backend): la DSN
+    # per gli errori (ADR 0019) arriva da li' solo con queste due righe.
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     mem_limit: 1g
     # Apre pagine scelte dagli utenti: gira come pwuser (non root, come
     # nell'immagine), senza capability, senza poterne acquistare e con il

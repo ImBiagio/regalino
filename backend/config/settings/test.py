@@ -31,3 +31,6 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 DATABASES["default"]["HOST"] = env("POSTGRES_HOST", "db")  # noqa: F405
+
+# Qui init_sentry() non si chiama: i test non segnalano niente a nessuno,
+# qualunque SENTRY_DSN ci sia nel .env (apps/core/tests/test_sentry.py).
