@@ -18,6 +18,7 @@ viene da un indirizzo non pubblico (DNS rebinding) il risultato si butta.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -158,14 +159,44 @@ class ScrapeResult(BaseModel):
     html: str | None = None
 
 
+log = logging.getLogger("uvicorn.error")
+
 state: dict[str, Browser] = {}
+# Se Chromium gira con la sua sandbox: lo dice /health, per controllarlo sul server.
+sandbox = {"on": False}
+
+
+async def _launch(playwright) -> Browser:
+    """Avvia Chromium con la sandbox, se il container la permette.
+
+    Le pagine le scelgono gli utenti: la sandbox e' cio' che separa un renderer
+    compromesso dal resto del container. Playwright di suo la spegne; qui si
+    accende. Le servono gli user namespace, che Docker concede solo col profilo
+    seccomp ``deploy/seccomp-chromium.json`` (e che il kernel dell'host puo'
+    comunque negare): se non parte si ripiega senza, dicendolo nei log, invece
+    di lasciare il servizio giu'. ``SCRAPER_CHROMIUM_SANDBOX=0`` la spegne.
+    """
+    # --disable-dev-shm-usage: /dev/shm dei container e' piccola (64 MB).
+    args = ["--disable-dev-shm-usage"]
+    if os.environ.get("SCRAPER_CHROMIUM_SANDBOX", "1") != "0":
+        try:
+            browser = await playwright.chromium.launch(args=args, chromium_sandbox=True)
+            sandbox["on"] = True
+            return browser
+        except PlaywrightError as exc:
+            log.warning(
+                "Chromium non parte con la sandbox (manca il profilo seccomp o gli user "
+                "namespace?): avvio SENZA sandbox. %s",
+                exc.message[:300],
+            )
+    sandbox["on"] = False
+    return await playwright.chromium.launch(args=args, chromium_sandbox=False)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     async with async_playwright() as playwright:
-        # --disable-dev-shm-usage: /dev/shm dei container e' piccola (64 MB).
-        state["browser"] = await playwright.chromium.launch(args=["--disable-dev-shm-usage"])
+        state["browser"] = await _launch(playwright)
         yield
         await state["browser"].close()
 
@@ -175,7 +206,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/health")
 async def health():
-    return {"ok": state["browser"].is_connected()}
+    return {"ok": state["browser"].is_connected(), "sandbox": sandbox["on"]}
 
 
 @app.post("/scrape", response_model=ScrapeResult)

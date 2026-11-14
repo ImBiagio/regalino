@@ -73,6 +73,15 @@ services:
     build:
       context: ./scraper
     networks: [scraper]
+    # Come in produzione (deploy/compose.prod.yaml): senza capability, in sola
+    # lettura e col profilo seccomp che lascia partire la sandbox di Chromium.
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=./deploy/seccomp-chromium.json
 
   frontend:
     build:

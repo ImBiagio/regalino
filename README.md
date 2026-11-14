@@ -158,7 +158,9 @@ verificato. Se la lettura diretta non basta (Amazon, pagine fatte in
 JavaScript) la pagina si apre col browser headless del servizio `scraper`
 ([ADR 0005](docs/decisions/0005-scraper-col-browser.md)), con le stesse regole
 di rete; i siti che bloccano anche il browser o chiedono un captcha (Zalando)
-restano da caricare a mano. Sulla lista condivisa la foto si tocca per vederla grande.
+restano da caricare a mano. Chromium gira con la sua sandbox, in un container
+senza capability e in sola lettura ([ADR 0017](docs/decisions/0017-sandbox-di-chromium-e-container-chiusi.md)).
+Sulla lista condivisa la foto si tocca per vederla grande.
 
 **Dal link al form** ([ADR 0006](docs/decisions/0006-dati-del-regalo-dal-link.md)).
 Incollato il link, il form si compila da solo nei campi ancora liberi: nome,
@@ -312,13 +314,18 @@ Action (`.github/workflows/prod.yml`) fa ruff, pytest, tsc ed eslint e pubblica
 ghcr.io → Watchtower (quello di cinemino) ricrea i container. Le migrazioni
 girano all'avvio del backend. Watchtower aggiorna le immagini ma non aggiunge
 servizi né reti: quando cambia `deploy/compose.prod.yaml` (es. l'arrivo dello
-scraper) va ricopiato a mano in `~/regalino` e poi `docker compose -f
-compose.prod.yaml up -d`.
+scraper) va ricopiato a mano in `~/regalino`, insieme a
+`deploy/seccomp-chromium.json` (il profilo seccomp dello scraper, ADR 0017: se
+manca il compose non parte), e poi `docker compose -f compose.prod.yaml up -d`.
+Dopo: `docker compose -f compose.prod.yaml exec scraper python -c "import
+urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read())"`
+deve dire `"sandbox":true`.
 
 Primo avvio sul server (già fatto):
 
 1. DNS: record A `regal` → `104.167.28.163` (come `cinem` e `sold`);
-2. `~/regalino/compose.prod.yaml` (da `deploy/`) e `~/regalino/.env` (modello
+2. `~/regalino/compose.prod.yaml` e `~/regalino/seccomp-chromium.json` (da
+   `deploy/`) e `~/regalino/.env` (modello
    `deploy/.env.prod.example`, SMTP Brevo come soldino) — già fatto;
 3. il blocco `regal.inoo.it` nel Caddyfile dell'edge, che sta nel repo
    [homeserver](https://github.com/ImBiagio/homeserver) (`edge/`) ed è

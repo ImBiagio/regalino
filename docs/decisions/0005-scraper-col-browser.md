@@ -38,6 +38,8 @@ raggiungerebbe router, LAN e container. Quindi:
   1 GB e al massimo due pagine alla volta;
 - i link rifiutati dal backend (indirizzo non pubblico, porta, credenziali)
   non arrivano allo scraper.
+- Chromium aggiornato, con la sua sandbox accesa, in un container senza
+  capability e in sola lettura: [ADR 0017](0017-sandbox-di-chromium-e-container-chiusi.md).
 
 **Costo accettato:** il rebinding può ancora far partire una richiesta GET
 "alla cieca" verso la LAN (la risposta non esce). La foto dal browser arriva

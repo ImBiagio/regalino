@@ -89,6 +89,19 @@ services:
     restart: unless-stopped
     networks: [scraper]
     mem_limit: 1g
+    # Apre pagine scelte dagli utenti: gira come pwuser (non root, come
+    # nell'immagine), senza capability, senza poterne acquistare e con il
+    # filesystem in sola lettura. Chromium scrive il suo profilo in /tmp.
+    user: pwuser
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+      # Il profilo predefinito di Docker piu' gli user namespace, che servono
+      # alla sandbox di Chromium. Il file va copiato sul server accanto a questo.
+      - seccomp=./seccomp-chromium.json
     labels:
       - com.centurylinklabs.watchtower.enable=true
 
