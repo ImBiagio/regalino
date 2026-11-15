@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 15:00+0100\n"
+"POT-Creation-Date: 2026-11-15 12:44+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,15 +18,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/gifts/extension.py:66
+#: apps/gifts/extension.py:72
 msgid "Chiave dell'estensione non valida."
 msgstr "Invalid extension key."
 
-#: apps/gifts/extension.py:74
+#: apps/gifts/extension.py:80
 msgid "L'estensione e' stata scollegata: collegala di nuovo."
 msgstr "The extension was disconnected: connect it again."
 
-#: apps/gifts/images.py:63 apps/gifts/views.py:414
+#: apps/gifts/extension.py:86
+msgid "Il tuo account non puo' piu' usare Regalino: entra di nuovo dall'app."
+msgstr "Your account can no longer use Regalino: sign in again from the app."
+
+#: apps/gifts/images.py:63 apps/gifts/views.py:433
 msgid "L'immagine e' troppo grande (massimo 10 MB)."
 msgstr "The image is too large (10 MB max)."
 
@@ -63,7 +67,7 @@ msgstr ""
 "The site blocks automatic reading: upload the photo, or paste the direct "
 "link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/images.py:163 apps/gifts/links.py:358
+#: apps/gifts/images.py:163 apps/gifts/links.py:365
 #, python-format
 msgid "Il sito ha risposto con un errore (%s)."
 msgstr "The site answered with an error (%s)."
@@ -84,17 +88,17 @@ msgstr "I can't read the link."
 msgid "Il link rimanda troppe volte altrove."
 msgstr "The link redirects too many times."
 
-#: apps/gifts/imports.py:188
+#: apps/gifts/imports.py:198
 msgid "Il link non porta a una pagina web."
 msgstr "The link doesn't lead to a web page."
 
-#: apps/gifts/imports.py:195 apps/gifts/imports.py:204
-#: apps/gifts/imports.py:206 apps/gifts/links.py:336 apps/gifts/links.py:338
-#: apps/gifts/links.py:341
+#: apps/gifts/imports.py:205 apps/gifts/imports.py:214
+#: apps/gifts/imports.py:216 apps/gifts/links.py:343 apps/gifts/links.py:345
+#: apps/gifts/links.py:348
 msgid "Non riesco ad aprire la pagina del link."
 msgstr "I can't open the link's page."
 
-#: apps/gifts/imports.py:211
+#: apps/gifts/imports.py:221
 msgid ""
 "Il sito chiede di dimostrare di non essere un robot: apri la lista nel tuo "
 "browser e importala con l'estensione di Regalino."
@@ -102,7 +106,7 @@ msgstr ""
 "The site asks to prove you're not a robot: open the list in your browser and "
 "import it with the Regalino extension."
 
-#: apps/gifts/imports.py:405
+#: apps/gifts/imports.py:415
 msgid ""
 "Non trovo regali in questa lista Amazon: controlla che sia pubblica o "
 "condivisa col link."
@@ -110,52 +114,49 @@ msgstr ""
 "I can't find any gifts in this Amazon list: check that it's public or shared "
 "with the link."
 
-#: apps/gifts/imports.py:410
+#: apps/gifts/imports.py:420
 msgid "Lista Amazon"
 msgstr "Amazon list"
 
-#: apps/gifts/imports.py:545
-msgid "Non riesco a leggere i regali di questa pagina. Riprova tra poco."
-msgstr "I can't read the gifts on this page. Try again in a moment."
-
-#: apps/gifts/imports.py:600
+#: apps/gifts/imports.py:619
 msgid ""
-"Per leggere le liste di questo sito serve Gemini, che non e' configurato."
-msgstr "Reading lists from this site needs Gemini, which isn't configured."
+"Per leggere le liste di questo sito serve l'intelligenza artificiale, che "
+"non e' configurata."
+msgstr "Reading lists from this site needs AI, which isn't configured."
 
-#: apps/gifts/imports.py:628
+#: apps/gifts/imports.py:649
 msgid "In questa pagina non trovo una lista di regali."
 msgstr "I can't find a gift list on this page."
 
-#: apps/gifts/imports.py:631 apps/gifts/imports.py:761
+#: apps/gifts/imports.py:652 apps/gifts/imports.py:785
 msgid "Lista importata"
 msgstr "Imported list"
 
-#: apps/gifts/imports.py:704
+#: apps/gifts/imports.py:728
 msgid "Il file JSON non e' valido."
 msgstr "The JSON file isn't valid."
 
-#: apps/gifts/imports.py:711
+#: apps/gifts/imports.py:735
 msgid "Il file JSON non contiene una lista di regali."
 msgstr "The JSON file doesn't contain a gift list."
 
-#: apps/gifts/imports.py:728
+#: apps/gifts/imports.py:752
 msgid "Nel CSV manca la colonna col nome del regalo (title, nome o titolo)."
 msgstr "The CSV is missing the gift name column (title, nome or titolo)."
 
-#: apps/gifts/imports.py:755
+#: apps/gifts/imports.py:779
 msgid "Il file e' troppo grande (al massimo 2 MB)."
 msgstr "The file is too large (2 MB at most)."
 
-#: apps/gifts/imports.py:768
+#: apps/gifts/imports.py:792
 msgid "Nel file non trovo regali."
 msgstr "I can't find any gifts in the file."
 
-#: apps/gifts/links.py:314
+#: apps/gifts/links.py:321
 msgid "Il link non e' ne' un'immagine ne' una pagina web."
 msgstr "The link is neither an image nor a web page."
 
-#: apps/gifts/links.py:350
+#: apps/gifts/links.py:357
 msgid ""
 "Il sito chiede di dimostrare di non essere un robot: carica la foto, oppure "
 "incolla il link diretto dell'immagine (tasto destro sulla foto → Copia "
@@ -164,7 +165,7 @@ msgstr ""
 "The site asks to prove you're not a robot: upload the photo, or paste the "
 "direct link of the image (right-click the photo → Copy image address)."
 
-#: apps/gifts/links.py:435
+#: apps/gifts/links.py:442
 msgid ""
 "In quella pagina non trovo un'immagine del prodotto: caricala tu dal "
 "telefono."
@@ -268,149 +269,58 @@ msgstr "Too many levels of lists."
 msgid "Scegli almeno una lista da importare."
 msgstr "Choose at least one list to import."
 
-#: apps/gifts/views.py:100
+#: apps/gifts/views.py:101
 msgid "Solo chi ha creato la lista puo' farlo."
 msgstr "Only whoever created the list can do that."
 
-#: apps/gifts/views.py:203
+#: apps/gifts/views.py:204
 msgid "Attiva \"Mostrami cosa e' stato regalato\" per gestire le spunte."
 msgstr "Turn on \"Show me what has been given\" to manage the ticks."
 
-#: apps/gifts/views.py:241
+#: apps/gifts/views.py:258
 msgid "I suggerimenti non sono attivi su questo server."
 msgstr "Suggestions are not enabled on this server."
 
-#: apps/gifts/views.py:260
-msgid "Adesso non riesco a trovare idee: riprova tra un momento."
-msgstr "I can't find ideas right now: try again in a moment."
-
-#: apps/gifts/views.py:467
+#: apps/gifts/views.py:486
 msgid "In quella pagina non trovo il prodotto."
 msgstr "I can't find the product on that page."
 
-#: apps/gifts/views.py:560
+#: apps/gifts/views.py:579
 msgid "Non sono riuscito a leggere la lista."
 msgstr "I couldn't read the list."
 
-#: apps/gifts/views.py:665
+#: apps/gifts/views.py:692
 msgid "È una lista che scrivi tu: la trovi già in «Le mie liste»."
 msgstr "You write this list: it is already in “My lists”."
 
-#: apps/gifts/views.py:776
+#: apps/gifts/views.py:803
 msgid "Non puoi spuntare i regali della tua lista."
 msgstr "You can't tick the gifts on your own list."
 
-#: apps/gifts/views.py:781
+#: apps/gifts/views.py:808
 msgid "Qualcuno l'ha appena regalato: ricarica la lista."
 msgstr "Someone has just taken it: reload the list."
 
-#: apps/gifts/views.py:787
+#: apps/gifts/views.py:814
 #, python-format
 msgid "Va con «%(title)s»: prima serve che qualcuno regali quello."
 msgstr "It goes with “%(title)s”: someone needs to give that one first."
 
-#: apps/gifts/views.py:831
+#: apps/gifts/views.py:858
 msgid "Solo chi l'ha spuntato puo' togliere la spunta."
 msgstr "Only whoever ticked it can untick it."
 
-#: apps/users/emails.py:21
-msgid "Conferma il tuo indirizzo email"
-msgstr "Confirm your email address"
+#: apps/users/views.py:91
+msgid "Sessione assente."
+msgstr "No session."
 
-#: apps/users/emails.py:24
-msgid ""
-"Manca un passo: conferma che questo indirizzo e' tuo e il tuo account "
-"Regalino e' pronto."
-msgstr ""
-"One last step: confirm this address is yours and your Regalino account is "
-"ready."
+#: apps/users/views.py:95
+msgid "Sessione scaduta."
+msgstr "Session expired."
 
-#: apps/users/emails.py:27
-msgid "Conferma email"
-msgstr "Confirm email"
-
-#: apps/users/emails.py:30
-msgid ""
-"Il link vale 3 giorni e una volta sola. Se non ti sei registrato tu, ignora "
-"questa mail."
-msgstr ""
-"The link is valid for 3 days and can be used once. If you didn't sign up, "
-"just ignore this email."
-
-#: apps/users/emails.py:40
-msgid "Reimposta la password di Regalino"
-msgstr "Reset your Regalino password"
-
-#: apps/users/emails.py:43
-msgid ""
-"Qualcuno (speriamo tu) ha chiesto di reimpostare la password del tuo account "
-"Regalino."
-msgstr ""
-"Someone (hopefully you) asked to reset the password of your Regalino account."
-
-#: apps/users/emails.py:46
-msgid "Scegli una nuova password"
-msgstr "Choose a new password"
-
-#: apps/users/emails.py:49
-msgid ""
-"Il link vale 2 ore e una volta sola. Se non l'hai chiesto tu, ignora questa "
-"mail: la password resta quella di prima."
-msgstr ""
-"The link is valid for 2 hours and can be used once. If you didn't request "
-"it, just ignore this email: your password stays the same."
-
-#: apps/users/serializers.py:58
-msgid "Codice d'invito non valido."
-msgstr "Invalid invite code."
-
-#: apps/users/serializers.py:65
-msgid "Esiste gia' un account con questa email."
-msgstr "An account with this email already exists."
-
-#: apps/users/views.py:89
-msgid "Registrazione completata. Controlla la mail per confermare."
-msgstr "Sign-up complete. Check your email to confirm."
-
-#: apps/users/views.py:115
-msgid "Credenziali non valide."
-msgstr "Invalid credentials."
-
-#: apps/users/views.py:120
-msgid "Email non ancora confermata."
-msgstr "Email not confirmed yet."
-
-#: apps/users/views.py:136
-msgid "Refresh token assente."
-msgstr "Refresh token missing."
-
-#: apps/users/views.py:142
-msgid "Refresh token non valido."
-msgstr "Invalid refresh token."
-
-#: apps/users/views.py:148
-msgid "Utente non valido."
-msgstr "Invalid user."
-
-#: apps/users/views.py:185
-msgid "Link non valido o scaduto."
-msgstr "Invalid or expired link."
-
-#: apps/users/views.py:190
-msgid "Utente inesistente."
-msgstr "User doesn't exist."
-
-#: apps/users/views.py:195
-msgid "Email gia' confermata: accedi con la tua password."
-msgstr "Email already confirmed: sign in with your password."
-
-#: apps/users/views.py:227
-msgid "Password attuale errata."
-msgstr "Current password is incorrect."
-
-#: apps/users/views.py:289
-msgid "Link non valido, gia' usato o scaduto: chiedine uno nuovo."
-msgstr "Invalid, already used or expired link: request a new one."
+#: apps/users/views.py:102
+msgid "Accesso non piu' valido."
+msgstr "Access no longer valid."
 
 #: templates/emails/base.html:25 templates/emails/base.txt:1
 #, python-format
