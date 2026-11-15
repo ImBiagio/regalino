@@ -109,12 +109,23 @@ EXTRACT_JS = r"""
     const value = el && (el.getAttribute('content') || el.textContent)
     return value ? value.trim() : null
   }
+  // Il primo elemento con un numero, non il primo e basta: Amazon lascia
+  // riquadri prezzo vuoti prima di quello pieno. Uguale in extension/popup.js.
+  const shownPrice = (selector) => {
+    for (const el of document.querySelectorAll(selector)) {
+      const value = (el.value || el.getAttribute('content') || el.textContent || '').trim()
+      if (/\d/.test(value)) return value
+    }
+    return null
+  }
   const price =
     meta('product:price:amount', 'og:price:amount') ||
     (offerPrice != null && offerPrice !== '' ? String(offerPrice) : null) ||
-    shown('[itemprop="price"]') ||
-    shown('#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, ' +
-          '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price')
+    shownPrice('[itemprop="price"]') ||
+    shownPrice('#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, ' +
+               '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price, #buybox .a-price .a-offscreen') ||
+    // Il campo nascosto del carrello di Amazon: c'e' anche quando il prezzo non si vede.
+    shownPrice('input[name="items[0.base][customerVisiblePrice][displayString]"]')
   const heading = shown('#productTitle') || shown('h1')
 
   // Il testo della pagina, per chi lo riassume (ADR 0006): la parte del

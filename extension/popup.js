@@ -118,15 +118,21 @@ function capturePage(scroll) {
       .slice(0, 3)
       .forEach(({ img }) => add(img.currentSrc || img.src))
 
+    // Il primo elemento con un numero, non il primo e basta: Amazon lascia
+    // riquadri prezzo vuoti prima di quello pieno.
     const shown = (selector) => {
-      const el = document.querySelector(selector)
-      const value = el && (el.getAttribute('content') || el.textContent)
-      return value ? value.trim().slice(0, 60) : ''
+      for (const el of document.querySelectorAll(selector)) {
+        const value = (el.value || el.getAttribute('content') || el.textContent || '').trim()
+        if (/\d/.test(value)) return value.slice(0, 60)
+      }
+      return ''
     }
     const price =
       shown('[itemprop="price"]') ||
       shown('#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, ' +
-            '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price')
+            '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price, #buybox .a-price .a-offscreen') ||
+      // Il campo nascosto del carrello di Amazon: c'e' anche quando il prezzo non si vede.
+      shown('input[name="items[0.base][customerVisiblePrice][displayString]"]')
     const currency = document.querySelector('[itemprop="priceCurrency"]')
     return {
       images: [...new Set(images)].filter((url) => url.length <= 2000).slice(0, 8),
