@@ -352,3 +352,14 @@ export interface AiQuote {
   pannocchie_left: number
   account_url: string
 }
+
+/** Portafoglio AI dell'utente su cornhub (contatore delle pannocchie). */
+export interface AiWallet {
+  pannocchie_left?: number
+  pannocchie_day?: number
+  own_keys?: string[]
+  house_large?: boolean
+  spent_today_eur?: string
+  daily_limit_eur?: string
+  account_url?: string
+}

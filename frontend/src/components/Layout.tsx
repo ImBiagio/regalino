@@ -4,6 +4,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import { useNotifications } from '../api/hooks'
 import { gettext } from '../lib/i18n'
+import { CornCounter } from './Ai'
 import { Icon } from './ui'
 
 interface Destination {
@@ -42,10 +43,22 @@ export function AppLayout() {
             />
           ))}
         </div>
+        {/* Le pannocchie del giorno, in fondo al rail. */}
+        <div className="mt-auto">
+          <CornCounter compact />
+        </div>
       </nav>
 
       {/* Su mobile lo spazio in fondo supera barra e FAB, che sta a 104px + 56px. */}
       <main className="min-w-0 flex-1 pb-44 md:pb-24">
+        {/* Su mobile le pannocchie stanno nell'angolo in alto: in una riga sua
+            (sticky), cosi' non coprono le azioni in alto a destra delle pagine
+            (Importa, Condividi, Esci) e restano visibili scorrendo. */}
+        <div className="pointer-events-none sticky top-0 z-30 flex justify-end px-4 pt-3 md:hidden">
+          <div className="pointer-events-auto">
+            <CornCounter />
+          </div>
+        </div>
         <Outlet />
       </main>
 

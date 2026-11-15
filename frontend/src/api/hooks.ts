@@ -4,6 +4,7 @@ import { ApiError, api } from '../lib/api'
 import { gettext } from '../lib/i18n'
 import type {
   AiQuote,
+  AiWallet,
   AuthConfig,
   GiftIdea,
   GiftIdeaPayload,
@@ -40,6 +41,7 @@ export const keys = {
   extensionTokens: ['extension-tokens'] as const,
   authConfig: ['auth-config'] as const,
   aiQuote: (features: string[], fast: boolean) => ['ai-quote', fast, ...features] as const,
+  aiWallet: ['ai-wallet'] as const,
 }
 
 /* ------------------------------------------------- account della suite -- */
@@ -61,6 +63,26 @@ export function useAiQuote(features: string[], fast = false, enabled = true) {
     enabled: enabled && features.length > 0,
     staleTime: 60_000,
   })
+}
+
+/** Pannocchie rimaste oggi e chiavi dell'utente (contatore nella barra dell'app). */
+export function useAiWallet() {
+  return useQuery({
+    queryKey: keys.aiWallet,
+    queryFn: () => api.get<AiWallet>('/api/ai/wallet'),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  })
+}
+
+/** Dopo una chiamata AI: contatore e stime si aggiornano subito. */
+export function useRefreshAi() {
+  const client = useQueryClient()
+  return () => {
+    void client.invalidateQueries({ queryKey: keys.aiWallet })
+    void client.invalidateQueries({ queryKey: ['ai-quote'] })
+  }
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -337,9 +359,12 @@ export function useReadLink() {
 
 /** Nome, prezzo e note scritti dall'AI: arrivano dopo, anche decine di secondi. */
 export function useDescribeLink() {
+  const refreshAi = useRefreshAi()
   return useMutation({
     mutationFn: (describeId: string) =>
       api.post<LinkDescription>('/api/links/describe', { describe_id: describeId }),
+    // Una pannocchia in meno (``describe``): il contatore si aggiorna subito.
+    onSettled: refreshAi,
   })
 }
 
@@ -371,16 +396,20 @@ export function useDeleteIdea() {
 
 /** "Ispirami": idee regalo dall'AI di cornhub per una persona. */
 export function useSuggestGifts() {
+  const refreshAi = useRefreshAi()
   return useMutation({
     mutationFn: (body: SuggestPayload) => api.post<GiftSuggestion[]>('/api/ideas/suggest', body),
+    onSettled: refreshAi,
   })
 }
 
 /** Alternative a un regalo gia' preso, dal link condiviso. */
 export function useSharedSuggest(token: string) {
+  const refreshAi = useRefreshAi()
   return useMutation({
     mutationFn: (body: { item_id: UUID; exclude?: string[] }) =>
       api.post<GiftSuggestion[]>(`/api/shared/${token}/suggest`, body),
+    onSettled: refreshAi,
   })
 }
 
@@ -468,7 +497,10 @@ const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve
  * (browser e AI, anche un minuto o due) chiedendo finche' non e' pronta.
  */
 export function useReadImport() {
+  const refreshAi = useRefreshAi()
   return useMutation({
+    // ``import_list`` va sulla chiave dell'utente: la stima accanto al bottone cambia.
+    onSettled: refreshAi,
     mutationFn: async (source: { url: string } | { file: File }): Promise<ImportList[]> => {
       let body: FormData | { url: string }
       if ('file' in source) {

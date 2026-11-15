@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.core.ai_views import AiQuoteView
+from apps.core.ai_views import AiQuoteView, AiWalletView
 from apps.core.i18n import CatalogView, LanguageView
 
 
@@ -21,6 +21,8 @@ urlpatterns = [
     path("api/i18n/language", LanguageView.as_view(), name="i18n-language"),
     # Chi paga e quanto costa una funzione AI, prima di premere il bottone (ADR 0020).
     path("api/ai/quote", AiQuoteView.as_view(), name="ai-quote"),
+    # Le pannocchie rimaste oggi, per il contatore nella barra dell'app.
+    path("api/ai/wallet", AiWalletView.as_view(), name="ai-wallet"),
     path("api/", include("apps.users.urls")),
     path("api/", include("apps.gifts.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),

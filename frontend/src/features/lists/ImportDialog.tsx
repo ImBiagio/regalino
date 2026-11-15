@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { useMemo, useRef, useState } from 'react'
 
 import { useCreateImport, useReadImport } from '../../api/hooks'
+import { AiKeyIcon, useAiGate } from '../../components/Ai'
 import { AiCost } from '../../components/AiCost'
 import { AiThinking } from '../../components/motion'
 import { ErrorBanner, Field, Icon, Modal, Segmented, Switch } from '../../components/ui'
@@ -114,6 +115,12 @@ export function ImportDialog({
     })
 
   const reading = read.isPending
+  // ``import_list`` e' grande (la chiave di chi importa), ma solo le pagine
+  // che non dichiarano i regali passano dall'AI: Amazon, le pagine con JSON-LD
+  // e i file no. Prima di leggere non si sa, quindi il bottone mostra la
+  // chiave ma resta acceso: se l'AI serve e manca la chiave, l'errore di
+  // cornhub (col link) arriva dal server, e ``AiCost`` lo dice gia' accanto.
+  const gate = useAiGate('import_list', { count: Math.max(1, urls.length), fast: true })
 
   return (
     <Modal open onClose={onClose} title={gettext('Importa una lista')} wide>
@@ -200,6 +207,7 @@ export function ImportDialog({
             >
               <Icon name="download" size={20} />
               {gettext('Leggi la lista')}
+              {source === 'link' && gate.large && <AiKeyIcon />}
             </button>
           </div>
         </form>

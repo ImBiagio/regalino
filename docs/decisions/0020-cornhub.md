@@ -78,6 +78,19 @@ delle view (`THROTTLE_LINKS`, `THROTTLE_SUGGEST`, `THROTTLE_IMPORTS`); i
 tetti di spesa li tiene cornhub. Senza `CORNHUB_APP_TOKEN` l'AI e' spenta
 come prima senza `GEMINI_API_KEY`.
 
+**Nell'interfaccia** (`frontend/src/components/Ai.tsx`): `<CornCounter />`
+mostra le pannocchie 🌽 rimaste oggi (`/api/ai/wallet`, proxy di
+`cornhub.wallet`) in fondo al rail su desktop e in una riga sticky in alto a
+destra su mobile, sopra le azioni delle pagine invece che addosso; porta
+alla pagina AI di cornhub, si aggiorna ogni minuto e subito dopo `describe`,
+`suggest`, `shared_suggest` e la lettura dell'import (`useRefreshAi()`). I
+bottoni delle funzioni grandi hanno la chiave (`<AiKeyIcon />`) e si
+spengono con `useAiGate(feature).allowed` falso. Eccezione: "Leggi la
+lista" (`import_list`) mostra la chiave solo per i link ma resta acceso,
+perche' Amazon, le pagine con JSON-LD e i file non passano dall'AI e prima
+di leggere non si sa: se l'AI serve e manca la chiave, decide l'errore di
+cornhub (col link), e `AiCost` accanto lo dice gia'.
+
 **Perche':** un account e una password per tutta la suite invece di copie
 del codice di login in ogni app; chiavi API in un solo posto, che le app
 non vedono mai; spesa con limiti veri. L'import, che legge pagine intere,
