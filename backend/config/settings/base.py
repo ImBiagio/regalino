@@ -142,7 +142,7 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.core.exceptions.exception_handler",
-    # Solo le view con ``throttle_scope`` sono limitate: login, registrazione e
+    # Solo le view con ``throttle_scope`` sono limitate: login, refresh e
     # le pagine pubbliche delle liste condivise (chiunque abbia il link). I
     # contatori stanno nella cache Django, cioe' Redis.
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
@@ -152,11 +152,11 @@ REST_FRAMEWORK = {
         "shared": env("THROTTLE_SHARED", "120/min"),
         # Upload e link scaricati dal server: costano disco e banda.
         "images": env("THROTTLE_IMAGES", "60/hour"),
-        # Richieste a Gemini (ADR 0006): costano quota della chiave.
+        # Richieste all'AI di cornhub (ADR 0006, 0020): costano pannocchie.
         "links": env("THROTTLE_LINKS", "60/hour"),
-        # "Ispirami" e le alternative: ogni chiamata consuma la quota di Gemini.
+        # "Ispirami" e le alternative: ogni chiamata consuma pannocchie di cornhub.
         "suggest": env("THROTTLE_SUGGEST", "30/hour"),
-        # Import di liste (ADR 0015): browser dello scraper e Gemini su pagine intere.
+        # Import di liste (ADR 0015): browser dello scraper e AI su pagine intere.
         "imports": env("THROTTLE_IMPORTS", "20/hour"),
     },
 }
@@ -195,10 +195,6 @@ REFRESH_COOKIE_SECURE = env_bool("REFRESH_COOKIE_SECURE", True)
 REFRESH_COOKIE_SAMESITE = env("REFRESH_COOKIE_SAMESITE", "Lax")
 REFRESH_COOKIE_PATH = "/api/auth"
 
-REQUIRE_EMAIL_VERIFICATION = env_bool("REQUIRE_EMAIL_VERIFICATION", True)
-# Codice d'invito (ADR 0018). Vuoto: registrazione aperta a tutti. Impostato:
-# ci si registra solo scrivendolo nel form.
-SIGNUP_CODE = env("SIGNUP_CODE", "").strip()
 
 # --- Celery ---
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://redis:6379/1")
@@ -268,23 +264,28 @@ IMAGE_FETCH_TIMEOUT = float(env("IMAGE_FETCH_TIMEOUT", "10"))
 # del link non basta. Vuoto = spento (test, sviluppo senza il container).
 SCRAPER_URL = env("SCRAPER_URL", "")
 SCRAPER_TIMEOUT = float(env("SCRAPER_TIMEOUT", "40"))
-# Nome, prezzo e note dal testo della pagina (ADR 0006). Senza chiave si usano
-# solo i dati che la pagina dichiara.
-GEMINI_API_KEY = env("GEMINI_API_KEY", "")
-# flash-lite: provato su Amazon e IKEA risponde in 1-2 s e scrive note migliori;
-# i flash piu' grandi davano spesso 503 (troppa richiesta) o 6-20 s.
-GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.5-flash-lite")
-# Gemini va in una richiesta a parte (il form e' gia' compilato): si puo'
-# aspettare di piu'. Col piano gratuito a tratti ci mette 20 secondi.
-GEMINI_TIMEOUT = float(env("GEMINI_TIMEOUT", "30"))
 # Dopo quanto una foto mai collegata a un regalo si cancella.
 IMAGE_ORPHAN_HOURS = int(env("IMAGE_ORPHAN_HOURS", "24"))
 FILE_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES
 DATA_UPLOAD_MAX_MEMORY_SIZE = IMAGE_MAX_BYTES + 1024 * 1024
 
-# Il link di reset vale 2 ore (il default di Django sono 3 giorni).
-PASSWORD_RESET_TIMEOUT = int(env("PASSWORD_RESET_TIMEOUT", str(2 * 60 * 60)))
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", "http://localhost:5176")
+# Dove il browser raggiunge l'API (il ritorno dal login di cornhub). In
+# produzione e' lo stesso dominio del frontend; in locale la porta dell'API.
+API_PUBLIC_URL = env("API_PUBLIC_URL", FRONTEND_BASE_URL)
+
+# --- cornhub: login unico e intelligenza artificiale (ADR 0020) ---
+# Il browser va su CORNHUB_URL; il backend parla con cornhub sulla rete
+# interna Docker "cornhub" (CORNHUB_INTERNAL_URL). Client e token si creano
+# su cornhub con `manage.py register_app regalino` e vanno nel .env e nel vault.
+CORNHUB_URL = env("CORNHUB_URL", "https://cornhub.it")
+CORNHUB_INTERNAL_URL = env("CORNHUB_INTERNAL_URL", "http://cornhub-backend:8000")
+CORNHUB_APP_SLUG = env("CORNHUB_APP_SLUG", "regalino")
+CORNHUB_CLIENT_ID = env("CORNHUB_CLIENT_ID", "")
+CORNHUB_CLIENT_SECRET = env("CORNHUB_CLIENT_SECRET", "")
+# Token per il gateway AI e lo stato degli utenti. Vuoto: AI spenta (restano
+# i dati che le pagine dichiarano, ADR 0006).
+CORNHUB_APP_TOKEN = env("CORNHUB_APP_TOKEN", "")
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:5176")

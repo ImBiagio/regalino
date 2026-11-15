@@ -5,10 +5,15 @@ DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = True
 # Niente browser nei test: lo scraper si finge nei test che lo riguardano.
 SCRAPER_URL = ""
-GEMINI_API_KEY = ""
-REQUIRE_EMAIL_VERIFICATION = False
-# Qualunque cosa dica il .env di chi lancia i test: registrazione aperta.
-SIGNUP_CODE = ""
+# Niente chiamate vere a cornhub nei test: si fingono con httpx finto.
+CORNHUB_URL = "https://cornhub.test"
+CORNHUB_INTERNAL_URL = "http://cornhub-backend:8000"
+CORNHUB_APP_SLUG = "regalino"
+CORNHUB_CLIENT_ID = "client-test"
+CORNHUB_CLIENT_SECRET = "secret-test"
+CORNHUB_APP_TOKEN = "token-test"
+API_PUBLIC_URL = "https://app.test"
+FRONTEND_BASE_URL = "https://app.test"
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
