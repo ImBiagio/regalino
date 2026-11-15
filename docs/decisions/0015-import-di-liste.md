@@ -1,5 +1,8 @@
 # 0015 — Importare liste da Amazon, Elfster e da un file
 
+> Dal 2026-11 la lettura delle pagine con l'AI passa da cornhub (funzione
+> grande `import_list`, sulla chiave dell'utente, [ADR 0020](0020-cornhub.md)).
+
 Chi arriva a Regalino ha spesso già una lista altrove: la lista desideri di
 Amazon, una wishlist Elfster, un foglio di calcolo. Riscriverla regalo per
 regalo è il motivo per cui non si cambia app. Da "Le mie liste" → **Importa**

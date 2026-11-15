@@ -1,5 +1,8 @@
 # 0006 — Nome, prezzo e note dal link, con Gemini
 
+> Dal 2026-11 nome, prezzo e note li scrive l'AI di cornhub (funzione
+> `describe`, [ADR 0020](0020-cornhub.md)), non piu' Gemini con `GEMINI_API_KEY`.
+
 Quando nel form di un regalo (o di un'idea) si incolla un link, il frontend
 chiama `POST /api/links/read` e compila da solo i campi **ancora liberi**:
 nome, prezzo, note e foto. "Libero" vuol dire vuoto, o con il valore che ci

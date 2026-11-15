@@ -9,8 +9,13 @@ desideri Amazon / una lista o un profilo Elfster interi. Perché è fatta così:
 1. In Chrome apri `chrome://extensions` e accendi **Modalità sviluppatore**.
 2. **Carica estensione non pacchettizzata** → scegli questa cartella
    (`extension/`).
-3. Tocca l'icona di Regalino → **Collega a Regalino**: si apre l'app, entra e
-   tocca **Collega l'estensione**.
+3. Tocca l'icona di Regalino → **Collega a Regalino**: si apre l'app su
+   `/estensione`; se non sei dentro passi dal login di cornhub (l'account
+   della suite, [ADR 0020](../docs/decisions/0020-cornhub.md)), che ti
+   riporta li'. Tocca **Collega l'estensione**.
+
+Se l'account su cornhub viene spento (o perde l'accesso a regalino) la
+chiave smette di valere: l'estensione riceve 401 e chiede di ricollegarsi.
 
 In sviluppo, nel popup "Un altro indirizzo" → `http://localhost:5176` (l'API
 `http://localhost:8020` è già tra gli `host_permissions`). Dopo una modifica ai

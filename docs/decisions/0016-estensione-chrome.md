@@ -1,5 +1,8 @@
 # 0016 — Estensione Chrome: aggiungere un regalo dalla pagina del negozio
 
+> Dal 2026-11 nell'app si entra con cornhub ([ADR 0020](0020-cornhub.md)) e ogni
+> chiamata dell'estensione controlla che l'account sia ancora attivo li'.
+
 Come il bottone "Wish It!" di Elfster: si è sulla pagina di un prodotto, si
 tocca l'icona di Regalino nella barra di Chrome e il regalo è già compilato
 (nome, prezzo, foto, note di Gemini); si sceglie la lista e si aggiunge. Su una

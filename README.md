@@ -28,8 +28,18 @@ Le porte sono diverse da soldino (`5173`/`8000`/`5433`) per far girare i due
 progetti insieme; per lo stesso motivo il cookie di refresh si chiama
 `regalino_refresh`.
 
-Con `.env.example` la verifica email è disattivata (`REQUIRE_EMAIL_VERIFICATION=0`):
-ci si registra ed entra subito. Le mail finiscono nei log del worker:
+Per entrare serve cornhub in locale (repo cornhub: `docker compose up`, su
+http://localhost:8095) con l'app registrata
+([ADR 0020](docs/decisions/0020-cornhub.md)):
+
+```bash
+docker compose -f ../cornhub/compose.yaml exec backend python manage.py register_app regalino --name Regalino --url http://localhost:5176 --extra-redirect http://localhost:8020/api/auth/sso/callback
+```
+
+`CORNHUB_CLIENT_ID`, `CORNHUB_CLIENT_SECRET` e `CORNHUB_APP_TOKEN` stampati
+vanno nel `.env` (senza il token l'AI resta spenta); l'account si crea su
+http://localhost:8095/registrati. Le mail dell'app (avvisi di prezzo)
+finiscono nei log del worker:
 `docker compose logs -f worker`. Il codice è montato come volume (hot reload);
 dopo nuove migrazioni ricostruisci l'immagine: `docker compose build backend`.
 
@@ -65,9 +75,11 @@ mie liste" → Importa si incolla il link di una lista desideri Amazon pubblica,
 di una lista o di un profilo Elfster (o di un'altra pagina di lista; più link,
 uno per riga) oppure si sceglie un file CSV/JSON. Amazon si legge con un parser
 dedicato (pagine "mostra altro" comprese); Elfster e le altre pagine si aprono
-col browser dello scraper e Gemini ne estrae i regali (link e foto solo se
+col browser dello scraper e l'AI di cornhub ne estrae i regali (link e foto solo se
 sono davvero nella pagina). Si vede un'anteprima, si tolgono le liste che non
-servono e si importa. Più liste in una sorgente (il profilo con più wishlist,
+servono e si importa. La lettura con l'AI è una funzione **grande** di
+cornhub (`import_list`): la paga la chiave AI di chi importa, e accanto a
+"Leggi la lista" si vede la stima prima di premere. Più liste in una sorgente (il profilo con più wishlist,
 `lists` annidate nel JSON, `Natale > Libri` nella colonna `lista` del CSV)
 diventano liste incluse, oppure tutte dentro una lista nuova. Le foto le
 scarica il worker dopo. Limiti: 20 liste, 300 regali, file da 2 MB,
@@ -76,7 +88,7 @@ scarica il worker dopo. Limiti: 20 liste, 300 regali, file da 2 MB,
 **Estensione per Chrome** ([ADR 0016](docs/decisions/0016-estensione-chrome.md),
 cartella [`extension/`](extension/README.md)). Sulla pagina di un prodotto si
 tocca l'icona di Regalino: il regalo arriva compilato (nome, prezzo, foto, note
-di Gemini) dalla pagina che si sta guardando, si sceglie la lista e si
+dell'AI) dalla pagina che si sta guardando, si sceglie la lista e si
 aggiunge. Su una lista desideri Amazon o una lista/profilo Elfster propone di
 importarla tutta (scorre la pagina fino in fondo e segue la lettura anche a
 popup chiuso). Si installa a mano ("Carica estensione non pacchettizzata") e
@@ -110,15 +122,16 @@ prodotto (per codice, altrimenti marca e nome) su Google Shopping, Amazon,
 eBay e Trovaprezzi. Solo link di ricerca: nessuna API, nessuna pagina letta.
 
 **Ispirami** ([ADR 0010](docs/decisions/0010-ispirami-con-gemini.md)). In
-"Da regalare", un wizard (per chi, gusti e budget) e Gemini propone otto idee
+"Da regalare", un wizard (per chi, gusti e budget) e l'AI propone otto idee
 con il perché e un prezzo indicativo: un tocco e l'idea è in lista, o si cerca
 nei negozi. Sul link condiviso, un regalo già preso ha "Alternative", idee
-simili partendo dalla lista. Serve `GEMINI_API_KEY`; limite `THROTTLE_SUGGEST`
+simili partendo dalla lista. Passa da cornhub (funzioni piccole `suggest` e, anche senza account,
+`shared_suggest`); limite `THROTTLE_SUGGEST`
 (30/ora).
 
 **Animazioni** ([ADR 0013](docs/decisions/0013-animazioni-e-segno-dell-ai.md)).
 Card e idee entrano in fila, i dialog salgono, col mouse il fiocco del pacco si
-muove. Dove lavora Gemini c'è l'oro del nastro: mentre pensa un pacco salta e
+muove. Dove lavora l'AI c'è l'oro del nastro: mentre pensa un pacco salta e
 un messaggio cambia ("Scarto i soliti calzini…"), e i campi del form che ha
 appena scritto lui hanno una passata di luce. "Lo regalo io" lancia i
 coriandoli. Tutto in CSS (`index.css`, sezione "moto") e `components/motion.tsx`;
@@ -167,10 +180,10 @@ Incollato il link, il form si compila da solo nei campi ancora liberi: nome,
 prezzo, note e foto (sotto i campi compilati: "Dal link del negozio"). Quello
 che si è scritto a mano non si tocca; se il link cambia, cambia anche quello
 che aveva messo il link. Il server legge i dati che i negozi dichiarano
-(`og:*`, JSON-LD, microdata) e, con `GEMINI_API_KEY`, fa leggere a Gemini il
+(`og:*`, JSON-LD, microdata) e, con l'AI di cornhub (funzione piccola `describe`), fa leggere all'AI il
 testo della pagina per un nome corto, il prezzo e una nota con la variante:
 funziona con qualsiasi negozio, non solo con quelli che dichiarano i dati. I
-dati della pagina arrivano subito, quelli di Gemini dopo ("Miglioro nome e
+dati della pagina arrivano subito, quelli dell'AI dopo ("Miglioro nome e
 note…"), senza toccare i campi che intanto si sono scritti.
 
 **Da regalare** (`/da-regalare`). Idee per gli altri: per chi (testo libero,
@@ -179,11 +192,14 @@ stato `idea → comprato → regalato` (un tocco sulla pill passa al successivo)
 Raggruppate per persona, con il totale; filtri Da fare / Idee / Comprati /
 Regalati / Tutte. Private: le vede solo chi le scrive.
 
-**Account e lingue**: come soldino. Registrazione (aperta, oppure solo su
-invito con `SIGNUP_CODE`: il form chiede il codice,
-[ADR 0018](docs/decisions/0018-registrazione-su-invito.md)), conferma email, password
-dimenticata (link 2 ore, una volta sola), cambio password che chiude le altre
-sessioni, nome, italiano/inglese con il gettext di Django anche nel frontend.
+**Account e lingue** ([ADR 0020](docs/decisions/0020-cornhub.md)): si entra
+con l'account unico della suite su **cornhub** (OpenID Connect con PKCE,
+`backend/apps/users/sso.py`): niente registrazione, password o conferma
+email nell'app; chi può entrare in regalino lo decide cornhub. Gli account
+di prima si agganciano al primo login per email verificata e tengono tutto.
+In Account nome ed email si vedono soltanto, con i link all'account della
+suite e a "Chiavi e limiti AI"; restano qui avvisi, estensioni collegate e
+italiano/inglese, con il gettext di Django anche nel frontend.
 
 ---
 
@@ -192,9 +208,9 @@ sessioni, nome, italiano/inglese con il gettext di Django anche nel frontend.
 Presi così come sono ([ADR 0001](docs/decisions/0001-stack-da-soldino.md)):
 
 - **Auth JWT ibrida**: access token (15 min) in memoria, refresh (14 giorni) in
-  cookie `httpOnly` su `/api/auth`, blacklist a logout e cambio password, un
+  cookie `httpOnly` su `/api/auth`, blacklist al logout, un
   solo refresh in volo nel client (`frontend/src/lib/api.ts`). Rate limit su
-  login/registrazione (`THROTTLE_AUTH`), sulle pagine condivise
+  login (`THROTTLE_AUTH`), sulle pagine condivise
   (`THROTTLE_SHARED`, 120/min per IP) e sulle foto (`THROTTLE_IMAGES`, 60/ora).
 - **Mail** dal worker Celery dopo il commit, con retry, testo + HTML su un solo
   layout (`backend/templates/emails/`). In produzione SMTP di **Brevo, lo stesso
@@ -212,7 +228,7 @@ i regali sono card in griglia con la foto o, se manca, un pacco disegnato
 - **i18n**: italiano sorgente, inglese in `backend/locale/en/LC_MESSAGES/`.
 
 Lasciati fuori perché qui non servono: tracker/membri, soldi e ripartizioni,
-scan con Gemini, open banking, ordine personalizzato del menu.
+scan di scontrini, open banking, ordine personalizzato del menu.
 
 ---
 
@@ -223,10 +239,12 @@ backend/
 ├── config/settings/     base · dev · prod · test
 ├── config/sentry.py     errori verso GlitchTip, solo con SENTRY_DSN (ADR 0019)
 └── apps/
-    ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail
-    ├── users/           User custom + auth JWT + mail dell'account
+    ├── core/            BaseModel, methods (token, hash, mail), i18n, task mail,
+    │                    cornhub.py (client di login e AI, uguale in tutte le app)
+    ├── users/           User custom, login con cornhub (sso.py), sessione JWT,
+    │                    export_cornhub_users
     └── gifts/           WishList, Wish, GiftIdea, GiftImage, lista condivisa,
-                         images.py (foto, rete), links.py (pagina del link), ai.py (Gemini),
+                         images.py (foto, rete), links.py (pagina del link), ai.py (AI via cornhub),
                          prices.py (andamento prezzo e avvisi), imports.py (import di liste)
 scraper/                 Chromium headless (Playwright + FastAPI): POST /scrape {url}, guard.py
 frontend/src/
@@ -242,7 +260,10 @@ docs/decisions/          ADR
 
 | | |
 |---|---|
-| `GET /api/auth/signup-config` · `POST /api/auth/register` `{email, password, display_name, invite_code}` | se serve il codice d'invito (`{invite_code_required}`, pubblico) · registrazione (`invite_code` obbligatorio se `SIGNUP_CODE` è impostato) |
+| `GET /api/auth/sso/start?next=` · `sso/callback` | login con cornhub (OIDC + PKCE), poi di nuovo su `next` |
+| `POST /api/auth/refresh` · `logout` | sessione (refresh nel cookie, controllo dell'account su cornhub); il logout risponde con l'uscita da cornhub |
+| `GET /api/auth/config` · `GET/PATCH /api/me` | indirizzi di account e chiavi AI su cornhub · profilo dell'app (`notify_by`, lingua) |
+| `GET /api/ai/quote?features=import_list:2` | chi paga e quanto una funzione AI (per `AiCost`) |
 | `GET/POST /api/lists`, `GET/PATCH/DELETE /api/lists/{id}` | le mie liste (`included_list_ids` in scrittura, `included_lists` / `included_in` in lettura) |
 | `POST /api/lists/{id}/regenerate-link` | link nuovo, il vecchio muore (solo il proprietario) |
 | `POST/DELETE /api/lists/{id}/invite-link` | crea/rinnova o spegne il link d'invito |
@@ -253,10 +274,10 @@ docs/decisions/          ADR
 | `POST/DELETE /api/lists/{id}/items/{id}/watch` · `…/ideas/{id}/watch` · `…/shared/{token}/items/{id}/watch` | campanella (sul link serve il login) |
 | `GET /api/notifications` · `POST /api/notifications` | avvisi (ultimi 50, non letti) · segna tutti letti |
 | `GET/POST /api/ideas`, `…/ideas/{id}` (`?status=`, `?recipient=`) | Da regalare |
-| `POST /api/ideas/suggest` · `POST /api/shared/{token}/suggest` `{item_id}` | idee regalo da Gemini: wizard "Ispirami" e alternative a un regalo preso |
+| `POST /api/ideas/suggest` · `POST /api/shared/{token}/suggest` `{item_id}` | idee regalo dall'AI (`suggest` / `shared_suggest`): wizard "Ispirami" e alternative a un regalo preso |
 | `POST /api/images` (multipart `file`) · `POST /api/images/from-url` `{url}` | foto, poi `image_id` su regalo o idea |
 | `POST /api/links/read` `{url, image}` | nome, prezzo, codice a barre, marca e foto dichiarati dalla pagina, subito, più `describe_id` |
-| `POST /api/links/describe` `{describe_id}` | nome, prezzo e note di Gemini per la pagina appena letta (dopo, anche 30 s) |
+| `POST /api/links/describe` `{describe_id}` | nome, prezzo e note dell'AI (`describe`) per la pagina appena letta (dopo, anche 30 s) |
 | `POST /api/imports/read` `{url}` o multipart `file` · `GET /api/imports/read/{job_id}` | anteprima dell'import: un file subito (`{status: done, lists}`), un link nel worker (202 `{job_id}`, poi `reading` → `done`/`error`) |
 | `POST /api/imports` `{lists, group_title}` | crea le liste dell'anteprima (sotto-liste = liste incluse; con `group_title` tutte dentro una lista nuova) |
 | `GET/POST /api/extension/tokens`, `DELETE …/tokens/{id}` | chiavi dell'estensione (dall'app, col login): `POST` torna `key` una volta sola |
@@ -341,7 +362,22 @@ Primo avvio sul server (già fatto):
 `SENTRY_DSN` nel `.env` le eccezioni non gestite di backend, worker, beat e
 scraper arrivano a GlitchTip (SDK di Sentry), senza dati personali e senza
 tracce; `SENTRY_ENVIRONMENT` è il nome dell'ambiente (default `production`).
-Vuota: niente segnalazioni.
+Vuota: niente segnalazioni. Il frontend (`src/lib/sentry.ts`, `@sentry/react`)
+manda i suoi errori a un progetto GlitchTip a parte: la DSN è la variabile del
+repo `SENTRY_DSN_FRONTEND` su GitHub, passata alla build di `regalino-web`
+(`VITE_SENTRY_DSN`); vuota, niente segnalazioni.
+
+**cornhub** ([ADR 0020](docs/decisions/0020-cornhub.md)). Backend, worker e
+beat stanno anche sulla rete Docker esterna `cornhub` (creata dal compose di
+cornhub): da lì parlano con `http://cornhub-backend:8000` per token, stato
+degli account e AI. Una volta sul server di cornhub: `manage.py register_app
+regalino --name Regalino --url https://regal.inoo.it`, e client, secret e
+token vanno nel `.env` (`CORNHUB_*`, modello `deploy/.env.prod.example`) e nel
+vault. Gli utenti di prima si portano su cornhub con
+`docker compose -f compose.prod.yaml exec -T backend python manage.py
+export_cornhub_users > utenti.json` e `manage.py import_users utenti.json --app
+regalino` su cornhub (il file ha gli hash delle password: si cancella dopo).
+Il compose è cambiato (rete `cornhub`): va ricopiato a mano in `~/regalino`.
 
 Backup notturni, entrambi a ogni avvio e poi ogni notte, sul disco del server:
 
@@ -363,10 +399,11 @@ rclone crypt. Chiavi, ripristino e controllo nel vault, nota "Backup offsite".
 
 ## Test
 
-198 test backend (`pytest` + `factory-boy`): mail dell'account e lingue (da soldino),
-codice d'invito (registrazione aperta senza `SIGNUP_CODE`; con, 400 senza il
-codice giusto e senza dire chi è già registrato, login che non lo chiede),
-isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
+197 test backend (`pytest` + `factory-boy`): login con cornhub finto
+(id_token firmati nel test: firma, state, nonce, redirect solo interni,
+aggancio per email verificata, account spento che perde la sessione e la
+chiave dell'estensione, logout verso cornhub), client AI di cornhub, export
+degli utenti, lingue, isolamento fra utenti su liste, regali e idee, link condiviso (spunta, doppia
 spunta → 409, togliere la spunta solo con la chiave o da loggato, proprietario
 che non spunta e non vede), sorpresa, link rigenerato o lista eliminata che
 spengono il link, regali eliminati che spariscono. Liste scritte insieme:
@@ -379,9 +416,11 @@ non ne spunta i regali dal link della madre, lista inclusa eliminata che
 sparisce. Regali che vanno insieme: stessa lista, niente giri (anche a tre),
 409 finché l'altro non è preso, poi 201, regalo madre eliminato che libera
 l'altro. Quantità: default 1, 0 e 100 rifiutati, visibile sul link. Link lunghi
-salvati puliti (Amazon → `/dp/ASIN`, via `utm_*`), fino a 2000 caratteri. Ispirami: Gemini finto che propone idee (quelle senza titolo si
-scartano), prompt con interessi ed esclusioni, 503 senza chiave o con risposta
-strana, alternative dal link senza account e senza nomi nel prompt. Prezzi:
+salvati puliti (Amazon → `/dp/ASIN`, via `utm_*`), fino a 2000 caratteri. Ispirami: cornhub finto che propone idee (quelle senza titolo si
+scartano), prompt con interessi ed esclusioni, funzione e utente giusti,
+503 senza AI, con risposta strana o con l'errore di cornhub (e il suo link),
+alternative dal link senza account (`shared_suggest`, utente nullo) e senza
+nomi nel prompt. Prezzi:
 primo punto al salvataggio, punto nuovo solo se cambia, campanella sul link
 (401 da ospite), sulla lista e sulle idee, prezzo sceso che avvisa nell'app o
 per mail secondo `notify_by` (e non chi non ha la campanella), cosa si
@@ -394,11 +433,11 @@ pagina è in JavaScript, stop davanti al captcha, foto dello scraper verso la LA
 rifiutate, errore diretto se lo scraper è giù. Dal link al form: dati dichiarati
 (JSON-LD, meta, `#productTitle`), prezzi in tutti i formati (e niente prezzi in
 altre valute), titoli ripuliti, browser quando manca il prezzo o il testo,
-Gemini finto che scrive nome e note, prezzo dichiarato che vince, Gemini in
-errore che non blocca. Import: lista Amazon con le pagine successive (quantità,
+AI finta che scrive nome e note, prezzo dichiarato che vince, AI in
+errore o quota finita che non blocca. Import: lista Amazon con le pagine successive (quantità,
 note, foto, prezzo assente o in dollari), lista privata, pagina Elfster letta
-col browser e Gemini finti (link e foto inventati scartati), profilo con più
-liste solo dello stesso sito, `ItemList` senza Gemini, pagina già costruita
+col browser e AI finti (link e foto inventati scartati), profilo con più
+liste solo dello stesso sito, `ItemList` senza AI, pagina già costruita
 dall'estensione, CSV con `Natale > Libri`, JSON annidato, file rotti, liste
 create con le incluse a un livello, tutto dentro una lista nuova, foto prese
 dal worker. Estensione: chiave vista una volta e salvata come hash, valida solo

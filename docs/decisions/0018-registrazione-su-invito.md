@@ -1,5 +1,8 @@
 # 0018 — Registrazione su invito (`SIGNUP_CODE`)
 
+> **Superata** da [ADR 0020](0020-cornhub.md): la registrazione sta su cornhub,
+> che decide chi entra in regalino. `SIGNUP_CODE` non esiste piu'.
+
 Regalino è per famiglia e amici, ma sta su un indirizzo pubblico: con la
 registrazione aperta chiunque lo trovi crea un account e può usare ciò che
 costa (letture col browser dello scraper, Gemini, mail di conferma). Come in

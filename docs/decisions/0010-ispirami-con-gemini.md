@@ -1,5 +1,8 @@
 # 0010 — "Ispirami": idee regalo da Gemini
 
+> Dal 2026-11 le idee non chiamano piu' Gemini direttamente: passano dal
+> gateway AI di cornhub (funzioni `suggest` e `shared_suggest`, [ADR 0020](0020-cornhub.md)).
+
 In "Da regalare" c'è un wizard in tre passi (per chi · gusti e budget · idee):
 chi è la persona (relazione, fascia d'età), cosa le piace (chip di interessi
 più testo libero), cosa evitare, occasione, budget. Gemini (`ai.suggest_gifts`,
