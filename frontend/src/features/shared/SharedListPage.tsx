@@ -188,7 +188,7 @@ function SharedCards({
   onClaim: (item: SharedWish) => void
   onView: (item: SharedWish) => void
   onRelease: (item: SharedWish) => void
-  /** Un regalo preso da altri: idee simili da Gemini (ADR 0010). */
+  /** Un regalo preso da altri: idee simili dall'AI (ADR 0010). */
   onAlternatives: (item: SharedWish) => void
   /** La campanella (ADR 0011): da sloggati porta al login. */
   onWatch: (item: SharedWish) => void
@@ -326,7 +326,7 @@ function SharedSectionBlock({
 }
 
 /**
- * "Alternative": un regalo e' gia' preso, Gemini propone idee simili partendo
+ * "Alternative": un regalo e' gia' preso, l'AI propone idee simili partendo
  * dai regali della lista (pubblici per chi ha il link) e da quello preso.
  */
 function AlternativesModal({

@@ -20,7 +20,7 @@ function Spark({ x, y, r, delay }: { x: number; y: number; r: number; delay: num
 }
 
 /**
- * Gemini sta lavorando (spesso per decine di secondi): un pacco col coperchio
+ * L'AI sta lavorando (spesso per decine di secondi): un pacco col coperchio
  * che salta, qualche scintilla e un messaggio che cambia, cosi' si capisce che
  * sta succedendo qualcosa e non che la pagina e' ferma. `compact` e' la
  * versione in riga, per "Altre idee" sotto quelle gia' arrivate.

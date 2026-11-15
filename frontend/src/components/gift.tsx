@@ -524,7 +524,7 @@ export function useLinkFill(
   set: { [K in keyof LinkFields]: (value: string) => void },
 ) {
   const auto = useRef<Partial<LinkFields>>({})
-  // Chi ha scritto ogni campo (la pagina o Gemini) e un contatore per campo che
+  // Chi ha scritto ogni campo (la pagina o l'AI) e un contatore per campo che
   // sale a ogni riempimento: il `Field` lo usa per far passare la luce.
   const source = useRef<Partial<Record<keyof LinkFields, 'page' | 'ai'>>>({})
   const glows = useRef<Partial<Record<keyof LinkFields, number>>>({})
@@ -582,7 +582,7 @@ export function useLinkFill(
  * Di default, quando nel form si scrive o incolla un link, legge la pagina e
  * prende da sola la foto (se non c'e') e, con `fill`, nome, prezzo e note per i
  * campi ancora liberi: prima quelli che la pagina dichiara, poi (se c'e')
- * quelli di Gemini, che a volte ci mette decine di secondi. Non lo fa col link gia' salvato (aprire un regalo per
+ * quelli dell'AI, che a volte ci mette decine di secondi. Non lo fa col link gia' salvato (aprire un regalo per
  * correggerlo non deve partire a leggere siti); la foto non la cambia dopo che
  * se n'e' scelta o tolta una a mano. Se il link cambia, cambia anche quello
  * che il link aveva messo.
@@ -671,7 +671,7 @@ export function ImagePicker({
       }
     }
   }
-  // Gemini dopo: i campi che l'utente ha toccato nel frattempo restano suoi.
+  // L'AI dopo: i campi che l'utente ha toccato nel frattempo restano suoi.
   const describeFrom = async (url: string, describeId: string) => {
     const description = await describeLink.mutateAsync(describeId).catch(() => null)
     if (description && url === tried.current) fill?.apply(description, 'ai')

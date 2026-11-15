@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { api } from '../lib/api'
+import { ApiError, api } from '../lib/api'
 import { gettext } from '../lib/i18n'
 import type {
+  AiQuote,
+  AuthConfig,
   GiftIdea,
   GiftIdeaPayload,
   GiftImage,
@@ -36,6 +38,29 @@ export const keys = {
   savedLists: ['saved-lists'] as const,
   watches: ['watches'] as const,
   extensionTokens: ['extension-tokens'] as const,
+  authConfig: ['auth-config'] as const,
+  aiQuote: (features: string[]) => ['ai-quote', ...features] as const,
+}
+
+/* ------------------------------------------------- account della suite -- */
+
+/** Dove sono account, chiavi AI e login su cornhub (ADR 0020). */
+export function useAuthConfig() {
+  return useQuery({
+    queryKey: keys.authConfig,
+    queryFn: () => api.get<AuthConfig>('/api/auth/config'),
+    staleTime: Infinity,
+  })
+}
+
+/** Chi paga e quanto costa una funzione AI, prima di premere il bottone. */
+export function useAiQuote(features: string[], enabled = true) {
+  return useQuery({
+    queryKey: keys.aiQuote(features),
+    queryFn: () => api.get<AiQuote>('/api/ai/quote', { features: features.join(',') }),
+    enabled: enabled && features.length > 0,
+    staleTime: 60_000,
+  })
 }
 
 /* ------------------------------------------------------------ le mie liste -- */
@@ -310,7 +335,7 @@ export function useReadLink() {
   })
 }
 
-/** Nome, prezzo e note scritti da Gemini: arrivano dopo, anche decine di secondi. */
+/** Nome, prezzo e note scritti dall'AI: arrivano dopo, anche decine di secondi. */
 export function useDescribeLink() {
   return useMutation({
     mutationFn: (describeId: string) =>
@@ -344,7 +369,7 @@ export function useDeleteIdea() {
   })
 }
 
-/** "Ispirami": idee regalo da Gemini per una persona. */
+/** "Ispirami": idee regalo dall'AI di cornhub per una persona. */
 export function useSuggestGifts() {
   return useMutation({
     mutationFn: (body: SuggestPayload) => api.post<GiftSuggestion[]>('/api/ideas/suggest', body),
@@ -440,7 +465,7 @@ const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve
 
 /**
  * Legge una lista da importare (ADR 0015): un file subito, un link nel worker
- * (browser e Gemini, anche un minuto o due) chiedendo finche' non e' pronta.
+ * (browser e AI, anche un minuto o due) chiedendo finche' non e' pronta.
  */
 export function useReadImport() {
   return useMutation({
@@ -462,7 +487,12 @@ export function useReadImport() {
         state = await api.get<ImportRead>(`/api/imports/read/${state.job_id}`)
       }
       if (state.status === 'error') {
-        throw new Error(state.error || gettext('Non sono riuscito a leggere la lista.'))
+        // Come un errore dell'API: ErrorBanner mostra anche il link a cornhub
+        // (chiave AI da aggiungere, limite raggiunto).
+        throw new ApiError(503, {
+          detail: state.error || gettext('Non sono riuscito a leggere la lista.'),
+          account_url: state.account_url,
+        })
       }
       return state.lists ?? []
     },

@@ -2,13 +2,14 @@ import clsx from 'clsx'
 import { useMemo, useRef, useState } from 'react'
 
 import { useCreateImport, useReadImport } from '../../api/hooks'
+import { AiCost } from '../../components/AiCost'
 import { AiThinking } from '../../components/motion'
 import { ErrorBanner, Field, Icon, Modal, Segmented, Switch } from '../../components/ui'
 import { formatPrice } from '../../lib/format'
 import { gettext, interpolate, ngettext } from '../../lib/i18n'
 import type { ImportList, WishList } from '../../lib/types'
 
-/** I messaggi mentre il server apre la lista e Gemini la legge (anche un minuto o due). */
+/** I messaggi mentre il server apre la lista e l'AI la legge (anche un minuto o due). */
 const READING_LINES = () => [
   gettext('Apro la lista…'),
   gettext('Scorro fino all’ultimo regalo…'),
@@ -178,6 +179,14 @@ export function ImportDialog({
                   event.target.value = ''
                 }}
               />
+            </div>
+          )}
+          {/* Le pagine che non dichiarano i regali le legge l'AI di cornhub
+              (``import_list``, funzione grande: la chiave di chi importa).
+              Una lettura per link; le sottoliste stanno nella stima di cornhub. */}
+          {source === 'link' && (
+            <div className="flex justify-end">
+              <AiCost feature="import_list" count={Math.max(1, urls.length)} />
             </div>
           )}
           <div className="flex justify-end gap-2">

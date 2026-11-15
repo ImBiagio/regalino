@@ -167,7 +167,7 @@ export interface LinkDetails extends LinkDescription {
   image: GiftImage | null
   /** Perche' la foto non c'e', se il resto si e' letto. */
   image_error: string | null
-  /** Da passare a `links/describe` per nome e note di Gemini; null se non si usa. */
+  /** Da passare a `links/describe` per nome e note dell'AI; null se non si usa. */
   describe_id: string | null
 }
 
@@ -181,7 +181,7 @@ export interface Invite {
   already_member: boolean
 }
 
-/** Un'idea regalo scritta da Gemini (ADR 0010). */
+/** Un'idea regalo scritta dall'AI (ADR 0010). */
 export interface GiftSuggestion {
   title: string
   why: string
@@ -305,6 +305,8 @@ export interface ImportRead {
   job_id?: string
   lists?: ImportList[]
   error?: string
+  /** Pagina di cornhub dove aggiungere la chiave AI o alzare il limite, se e' quello il motivo. */
+  account_url?: string
 }
 
 /* ------------------------------------------------------------- estensione -- */
@@ -315,4 +317,38 @@ export interface ExtensionToken {
   name: string
   created_at: string
   last_used_at: string | null
+}
+
+/* ------------------------------------------------------------- cornhub -- */
+
+/** Dove sono login e account della suite (ADR 0020). */
+export interface AuthConfig {
+  login_url: string
+  account_url: string
+  ai_url: string
+  register_url: string
+}
+
+/** Stima di cornhub per una funzione AI (vedi components/AiCost.tsx). */
+export interface AiQuoteItem {
+  feature: string
+  label?: string
+  tier?: 'small' | 'large'
+  allowed: boolean
+  billed_to?: 'house' | 'user'
+  provider?: string
+  model?: string
+  code?: string
+  message?: string
+  note?: string
+  estimate_eur?: string
+  estimate_label?: string
+  estimate_pannocchie?: number
+}
+
+export interface AiQuote {
+  items: AiQuoteItem[]
+  total_label: string
+  pannocchie_left: number
+  account_url: string
 }

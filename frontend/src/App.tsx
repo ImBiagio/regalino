@@ -5,13 +5,7 @@ import { Skeleton } from './components/ui'
 import { AccountPage } from './features/account/AccountPage'
 import { ExtensionPage } from './features/account/ExtensionPage'
 import { NotificationsPage } from './features/account/NotificationsPage'
-import {
-  ForgotPasswordPage,
-  LoginPage,
-  RegisterPage,
-  ResetPasswordPage,
-  VerifyEmailPage,
-} from './features/auth/AuthPages'
+import { LoginPage } from './features/auth/AuthPages'
 import { IdeasPage } from './features/ideas/IdeasPage'
 import { JoinListPage } from './features/lists/JoinListPage'
 import { ListDetailPage } from './features/lists/ListDetailPage'
@@ -24,9 +18,11 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   const location = useLocation()
   if (!ready) return <Skeleton className="m-6 h-24" />
   if (!user) {
-    // Dopo il login si torna dove si voleva andare: un invito aperto da
-    // sloggato non deve finire sulla home.
-    const next = location.pathname === '/' ? '' : `?next=${encodeURIComponent(location.pathname)}`
+    // Dopo il login (su cornhub) si torna dove si voleva andare: un invito
+    // aperto da sloggato, o /estensione aperta dall'estensione Chrome, non
+    // deve finire sulla home.
+    const path = location.pathname + location.search
+    const next = path === '/' ? '' : `?next=${encodeURIComponent(path)}`
     return <Navigate to={`/accedi${next}`} replace />
   }
   return children
@@ -35,11 +31,8 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 export default function App() {
   return (
     <Routes>
+      {/* Registrazione, password e conferma email stanno su cornhub (ADR 0020). */}
       <Route path="/accedi" element={<LoginPage />} />
-      <Route path="/registrati" element={<RegisterPage />} />
-      <Route path="/verifica-email/:token" element={<VerifyEmailPage />} />
-      <Route path="/password-dimenticata" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
       {/* Il link condiviso: pubblico, senza login. */}
       <Route path="/l/:token" element={<SharedListPage />} />
       <Route

@@ -87,7 +87,7 @@ function rememberAnswers(answers: Answers) {
 }
 
 /**
- * "Ispirami": tre passi (per chi, gusti e budget, idee) e Gemini propone.
+ * "Ispirami": tre passi (per chi, gusti e budget, idee) e l'AI propone.
  * Le risposte restano sul dispositivo, per persona: la volta dopo sono gia' li'.
  */
 export function InspireWizard({
@@ -341,7 +341,7 @@ export function InspireWizard({
 const SUGGESTIONS_PER_ROUND = 8
 
 /**
- * Mentre Gemini pensa: la prima volta il pacco grande che salta (e' l'unica
+ * Mentre l'AI pensa: la prima volta il pacco grande che salta (e' l'unica
  * cosa nel dialog), per "Altre idee" la riga piccola sotto quelle gia' arrivate.
  */
 export function SuggestionsLoading({ lines, more }: { lines: string[]; more: boolean }) {

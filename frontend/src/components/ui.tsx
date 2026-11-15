@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
+import { ApiError } from '../lib/api'
 import { initials } from '../lib/format'
 import { useCloseOnEscape } from '../lib/hooks'
 import { gettext } from '../lib/i18n'
@@ -416,16 +417,34 @@ export function RowsSkeleton({ rows = 5 }: { rows?: number }) {
   )
 }
 
+/** Il link a cornhub di un errore dell'AI (chiave da aggiungere, limite, quota finita). */
+function accountUrlOf(error: unknown): string | null {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== 'object') return null
+  const url = (error.data as { account_url?: unknown }).account_url
+  return typeof url === 'string' && url ? url : null
+}
+
 export function ErrorBanner({ error }: { error: unknown }) {
   if (!error) return null
   const message = error instanceof Error ? error.message : String(error)
+  const accountUrl = accountUrlOf(error)
   return (
     <div
       role="alert"
       className="flex items-start gap-3 rounded-row bg-error-container px-4 py-3 text-body-medium text-on-error-container"
     >
       <Icon name="error" size={20} />
-      <span>{message}</span>
+      <span>
+        {message}
+        {accountUrl && (
+          <>
+            {' '}
+            <a className="font-medium underline" href={accountUrl}>
+              {gettext('Apri cornhub')}
+            </a>
+          </>
+        )}
+      </span>
     </div>
   )
 }

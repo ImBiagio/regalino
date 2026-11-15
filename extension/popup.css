@@ -237,7 +237,7 @@ button.round {
   font-weight: 600;
 }
 
-/* L'oro dell'AI (ADR 0013): mentre Gemini legge, e sui campi che ha scritto lui. */
+/* L'oro dell'AI (ADR 0013): mentre l'AI legge, e sui campi che ha scritto lui. */
 .thinking {
   display: grid;
   justify-items: center;

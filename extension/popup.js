@@ -340,7 +340,7 @@ async function renderProduct(tab, config, { fromList } = {}) {
   add.disabled = !lists.length
   show(form)
 
-  // Gemini scrive nome e note migliori dopo (ADR 0006): solo nei campi non toccati.
+  // L'AI (cornhub) scrive nome e note migliori dopo (ADR 0006): solo nei campi non toccati.
   if (details.describe_id) {
     status.replaceChildren(h('span', { class: 'ai' }, 'Miglioro nome e note…'))
     try {
@@ -359,7 +359,7 @@ async function renderProduct(tab, config, { fromList } = {}) {
       fill('notes', notes, better.notes)
       if (!price.value) fill('price', price, euro(better.price))
     } catch {
-      // Senza Gemini restano i dati della pagina: va bene lo stesso.
+      // Senza AI restano i dati della pagina: va bene lo stesso.
     }
     status.replaceChildren()
   }

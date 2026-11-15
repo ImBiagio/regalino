@@ -481,7 +481,7 @@
   }
 
   /* ============================================================ l'AI ====
-     Quello che fa Gemini ha un suo segno: il nastro oro (tertiary) che
+     Quello che fa l'AI ha un suo segno: il nastro oro (tertiary) che
      scorre sul rosso. Si usa solo dove sta lavorando o ha appena scritto lui. */
   .ai-text {
     background: linear-gradient(
