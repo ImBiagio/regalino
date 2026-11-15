@@ -39,7 +39,7 @@ export const keys = {
   watches: ['watches'] as const,
   extensionTokens: ['extension-tokens'] as const,
   authConfig: ['auth-config'] as const,
-  aiQuote: (features: string[]) => ['ai-quote', ...features] as const,
+  aiQuote: (features: string[], fast: boolean) => ['ai-quote', fast, ...features] as const,
 }
 
 /* ------------------------------------------------- account della suite -- */
@@ -54,10 +54,10 @@ export function useAuthConfig() {
 }
 
 /** Chi paga e quanto costa una funzione AI, prima di premere il bottone. */
-export function useAiQuote(features: string[], enabled = true) {
+export function useAiQuote(features: string[], fast = false, enabled = true) {
   return useQuery({
-    queryKey: keys.aiQuote(features),
-    queryFn: () => api.get<AiQuote>('/api/ai/quote', { features: features.join(',') }),
+    queryKey: keys.aiQuote(features, fast),
+    queryFn: () => api.get<AiQuote>('/api/ai/quote', { features: features.join(','), fast: fast ? 1 : 0 }),
     enabled: enabled && features.length > 0,
     staleTime: 60_000,
   })

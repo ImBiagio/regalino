@@ -186,7 +186,7 @@ export function ImportDialog({
               Una lettura per link; le sottoliste stanno nella stima di cornhub. */}
           {source === 'link' && (
             <div className="flex justify-end">
-              <AiCost feature="import_list" count={Math.max(1, urls.length)} />
+              <AiCost feature="import_list" count={Math.max(1, urls.length)} fast />
             </div>
           )}
           <div className="flex justify-end gap-2">

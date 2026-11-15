@@ -13,9 +13,18 @@ import { Icon } from './ui'
  *
  * ``count``: quante volte l'azione chiama la funzione (es. tre link da importare).
  */
-export function AiCost({ feature, count = 1 }: { feature: string; count?: number }) {
+export function AiCost({
+  feature,
+  count = 1,
+  fast = false,
+}: {
+  feature: string
+  count?: number
+  /** Come la chiamata vera (fast=True): la stima usa lo stesso modello. */
+  fast?: boolean
+}) {
   const features = count > 1 ? [`${feature}:${count}`] : [feature]
-  const { data } = useAiQuote(features)
+  const { data } = useAiQuote(features, fast)
   const item = data?.items[0]
   if (!item || !data) return null
 
