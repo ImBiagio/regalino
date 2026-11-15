@@ -260,7 +260,7 @@ docs/decisions/          ADR
 | `POST /api/imports/read` `{url}` o multipart `file` · `GET /api/imports/read/{job_id}` | anteprima dell'import: un file subito (`{status: done, lists}`), un link nel worker (202 `{job_id}`, poi `reading` → `done`/`error`) |
 | `POST /api/imports` `{lists, group_title}` | crea le liste dell'anteprima (sotto-liste = liste incluse; con `group_title` tutte dentro una lista nuova) |
 | `GET/POST /api/extension/tokens`, `DELETE …/tokens/{id}` | chiavi dell'estensione (dall'app, col login): `POST` torna `key` una volta sola |
-| `/api/extension/me` · `lists` · `read` `{url, html}` · `describe` · `lists/{id}/items` · `imports`, `imports/read[/{job_id}]` | per l'estensione, con `Authorization: Token <chiave>`: chi è collegato, le liste che scrive, la pagina aperta letta, il regalo aggiunto, l'import |
+| `/api/extension/me` · `lists` · `read` `{url, html, images?, price?, currency?}` · `describe` · `lists/{id}/items` · `imports`, `imports/read[/{job_id}]` | per l'estensione, con `Authorization: Token <chiave>`: chi è collegato, le liste che scrive, la pagina aperta letta, il regalo aggiunto, l'import |
 | `GET /api/shared/{token}` | lista condivisa, pubblica (`items` più `sections` delle liste incluse) |
 | `POST/DELETE /api/shared/{token}/items/{id}/gift` | spunta / togli spunta (anche i regali delle liste incluse; 409 se "va con" un regalo non ancora preso) |
 

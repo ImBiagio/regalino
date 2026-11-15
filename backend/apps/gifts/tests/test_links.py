@@ -332,3 +332,18 @@ def test_testo_della_pagina_senza_script():
         "https://n.it/",
     )
     assert page.text == "Taglia M\nRosso"
+
+
+def test_prezzo_solo_in_price_specification():
+    product = {
+        "@type": "Product",
+        "name": "Lampada",
+        "offers": {
+            "@type": "Offer",
+            "priceSpecification": [{"price": "39.00", "priceCurrency": "EUR"}],
+        },
+    }
+    page = links.page_from_html(
+        f'<script type="application/ld+json">{json.dumps(product)}</script>', "https://n.it/"
+    )
+    assert (page.price, page.currency) == ("39.00", "EUR")

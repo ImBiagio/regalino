@@ -15,6 +15,9 @@ parser del link (ADR 0006) e scarica la foto con le sue difese SSRF.
 
 from __future__ import annotations
 
+from dataclasses import replace
+from urllib.parse import urlsplit
+
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -30,6 +33,7 @@ from apps.core.methods import hash_secret, random_token
 from .images import ImageError
 from .links import (
     MAX_URL,
+    Page,
     can_describe,
     declared_details,
     image_of,
@@ -172,13 +176,55 @@ class ExtensionReadSerializer(serializers.Serializer):
     html = serializers.CharField(
         required=False, allow_blank=True, trim_whitespace=False, max_length=MAX_PAGE_HTML
     )
+    # Quello che l'estensione ha visto nella pagina viva e che l'HTML da solo
+    # non dice: la foto grande di Amazon sta in attributi della foto principale,
+    # il prezzo mostrato non e' dichiarato nei meta, le foto grandi si
+    # riconoscono solo dal layout.
+    # Testo e non URLField: un indirizzo strano di un negozio non deve far
+    # fallire la lettura; quelli non http(s) si scartano in ``_with_seen`` e
+    # gli altri passano comunque dalle difese SSRF di ``fetch``.
+    images = serializers.ListField(
+        child=serializers.CharField(max_length=MAX_URL), required=False, default=list, max_length=8
+    )
+    price = serializers.CharField(required=False, allow_blank=True, default="", max_length=60)
+    currency = serializers.CharField(required=False, allow_blank=True, default="", max_length=8)
+
+
+def _with_seen(page: Page, seen: dict) -> Page:
+    """La pagina letta dall'HTML piu' quello visto dall'estensione.
+
+    I dati dichiarati (og:image, JSON-LD) vengono prima: sono quelli del
+    prodotto; il resto riempie solo cio' che manca.
+    """
+    found = [url for url in seen["images"] if urlsplit(url).scheme in ("http", "https")]
+    images = page.images + [url for url in found if url not in page.images]
+    if page.price:
+        return replace(page, images=images)
+    return replace(page, images=images, price=seen["price"], currency=seen["currency"])
+
+
+def _fill_missing(page: Page, server: Page) -> Page:
+    """La pagina del browser completata con quella riletta dal server."""
+    return replace(
+        page,
+        title=page.title or server.title,
+        description=page.description or server.description,
+        price=page.price or server.price,
+        currency=page.currency if page.price else server.currency,
+        text=page.text or server.text,
+        images=page.images + [url for url in server.images if url not in page.images],
+        gtin=page.gtin or server.gtin,
+        brand=page.brand or server.brand,
+    )
 
 
 class ExtensionReadView(ExtensionView):
     """Nome, prezzo e foto dalla pagina aperta nel browser, come ``links/read``.
 
-    Se la pagina mandata non dice niente (o non c'e'), il server la rilegge
-    dal link come fa l'app.
+    Se nella pagina mandata manca la foto (o non dice niente, o non c'e') il
+    server la rilegge dal link come fa l'app e completa cio' che manca. Il
+    prezzo mancante no: la pagina riletta e' la stessa, e lo cerca poi Gemini
+    nel testo (``describe``).
     """
 
     throttle_scope = "images"
@@ -188,13 +234,15 @@ class ExtensionReadView(ExtensionView):
         serializer = ExtensionReadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         url, html = serializer.validated_data["url"], serializer.validated_data.get("html")
-        page = page_from_html(html, url) if html else None
-        if page is None or not (page.title or page.price):
+        page = _with_seen(page_from_html(html, url), serializer.validated_data) if html else None
+        if page is None or not (page.title or page.price) or not page.images:
             try:
-                page = read_page(url, details=True)
+                server = read_page(url, details=True)
             except ImageError as exc:
                 if page is None:
                     raise ValidationError({"url": [str(exc)]}) from None
+            else:
+                page = server if page is None else _fill_missing(page, server)
         details = declared_details(page)
         image = image_error = None
         try:

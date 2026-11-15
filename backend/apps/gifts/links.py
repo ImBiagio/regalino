@@ -232,6 +232,11 @@ def page_from_html(html: str, base_url: str) -> Page:
     offer = (offers[0] if offers else {}) if isinstance(offers, list) else (offers or {})
     if not isinstance(offer, dict):
         offer = {}
+    # Alcuni negozi mettono il prezzo solo in ``priceSpecification`` (anche lista).
+    spec = offer.get("priceSpecification")
+    spec = (spec[0] if spec else {}) if isinstance(spec, list) else (spec or {})
+    if not isinstance(spec, dict):
+        spec = {}
 
     candidates = [meta[key] for key in parser.IMAGE_KEYS if key in meta]
     candidates += [*ld_images, parser.itemprop.get("image", ""), *parser.others]
@@ -264,12 +269,14 @@ def page_from_html(html: str, base_url: str) -> Page:
             or meta.get("og:price:amount")
             or offer.get("price")
             or offer.get("lowPrice")
+            or spec.get("price")
             or parser.itemprop.get("price")
         ),
         currency=_text(
             meta.get("product:price:currency")
             or meta.get("og:price:currency")
             or offer.get("priceCurrency")
+            or spec.get("priceCurrency")
             or parser.itemprop.get("pricecurrency")
         ),
         text=parser.text,

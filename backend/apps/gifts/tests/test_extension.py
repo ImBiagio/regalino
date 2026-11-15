@@ -120,3 +120,62 @@ def test_import_dall_estensione(user, api, key):
     response = client.post("/api/extension/imports", {"lists": tree}, format="json")
     assert response.status_code == 201, response.data
     assert response.data[0]["title"] == "Natale"
+
+
+# Come Amazon: niente og:image ne' prezzo nei meta, solo il nome nel DOM.
+AMAZON_LIKE = """<html><head><title>Cuffie : Amazon.it: Elettronica</title></head>
+<body><span id="productTitle">Cuffie senza fili</span><img id="landingImage"></body></html>"""
+
+
+def test_foto_e_prezzo_visti_dall_estensione(user, api, key, dns, web, scraper):
+    dns["m.media-amazon.com"] = PUBLIC_IP
+    web["https://m.media-amazon.com/images/I/cuffie.png"] = (
+        200, {"content-type": "image/png"}, png_bytes(),
+    )  # fmt: skip
+    response = ext(api, key).post(
+        "/api/extension/read",
+        {
+            "url": "https://www.amazon.it/dp/B000000001",
+            "html": AMAZON_LIKE,
+            "images": ["javascript:alert(1)", "https://m.media-amazon.com/images/I/cuffie.png"],
+            "price": "59,99 €",
+        },
+        format="json",
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["title"] == "Cuffie senza fili"
+    assert response.data["price"] == "59.99"
+    assert response.data["image"]["source_url"] == "https://m.media-amazon.com/images/I/cuffie.png"
+    # Bastava la pagina vista dal browser: niente rilettura dal server.
+    assert scraper.asked == []
+    assert [r.headers["host"] for r in web.seen] == ["m.media-amazon.com"]
+
+
+def test_senza_foto_il_server_rilegge_il_link(user, api, key, dns, web, scraper):
+    dns["www.negozio.it"] = dns["img.negozio.it"] = PUBLIC_IP
+    # Il sito risponde al server come a un robot: legge lo scraper.
+    web["https://www.negozio.it/borraccia"] = (503, {"content-type": "text/html"}, b"robot?")
+    web["https://img.negozio.it/borraccia.png"] = (
+        200, {"content-type": "image/png"}, png_bytes(),
+    )  # fmt: skip
+    scraper.page = {
+        "images": ["https://img.negozio.it/borraccia.png"],
+        "price": "19.90",
+        "currency": "EUR",
+        "status": 200,
+    }
+    response = ext(api, key).post(
+        "/api/extension/read",
+        {
+            "url": "https://www.negozio.it/borraccia",
+            "html": "<html><head><title>Borraccia blu</title></head><body></body></html>",
+            "price": "24,90",
+        },
+        format="json",
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["title"] == "Borraccia blu"
+    # Il prezzo visto nel browser vince su quello riletto; la foto arriva dal server.
+    assert response.data["price"] == "24.90"
+    assert response.data["image"]["source_url"] == "https://img.negozio.it/borraccia.png"
+    assert scraper.asked == ["https://www.negozio.it/borraccia"]

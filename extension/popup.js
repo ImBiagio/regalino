@@ -71,18 +71,79 @@ const euro = (value) =>
 
 /* ------------------------------------------------- pagina del browser -- */
 
-/** Gira nella pagina: l'HTML senza script, stili e svg (da MB a qualche centinaio di KB). */
+/**
+ * Gira nella pagina: l'HTML senza script, stili e svg (da MB a qualche centinaio
+ * di KB), piu' foto e prezzo visti nella pagina viva.
+ *
+ * Foto e prezzo si cercano qui e non solo sul server perche' molti negozi non li
+ * dichiarano nei meta: Amazon tiene la foto grande in attributi della foto
+ * principale e il prezzo solo nel testo mostrato, e le foto "grandi in alto" si
+ * riconoscono solo dal layout. Stessa logica di EXTRACT_JS dello scraper: se si
+ * cambia una, cambiare anche l'altra.
+ */
 function capturePage(scroll) {
+  const seen = () => {
+    const images = []
+    const add = (src) => {
+      if (typeof src !== 'string') return
+      src = src.trim()
+      if (!src || src.startsWith('data:')) return
+      try {
+        const url = new URL(src, document.baseURI)
+        if (/^https?:$/.test(url.protocol)) images.push(url.href)
+      } catch {
+        // indirizzo strano: si salta
+      }
+    }
+    const main = document.querySelector('#landingImage, #imgBlkFront, #ebooksImgBlkFront, #main-image')
+    if (main) {
+      add(main.getAttribute('data-old-hires'))
+      try {
+        const sizes = JSON.parse(main.getAttribute('data-a-dynamic-image') || '{}')
+        const largest = Object.entries(sizes).sort((a, b) => b[1][0] * b[1][1] - a[1][0] * a[1][1])[0]
+        if (largest) add(largest[0])
+      } catch {
+        // attributo rotto: resta la src
+      }
+      add(main.currentSrc || main.src)
+    }
+    // Le foto piu' grandi visibili nella parte alta della pagina (dall'inizio, non da dove si e' scrollato).
+    const top = window.scrollY
+    ;[...document.images]
+      .map((img) => ({ img, box: img.getBoundingClientRect() }))
+      .filter(({ img, box }) =>
+        box.top + top < 1600 && box.width >= 150 && box.height >= 150 &&
+        img.naturalWidth >= 200 && !(img.currentSrc || img.src).endsWith('.svg'))
+      .sort((a, b) => b.box.width * b.box.height - a.box.width * a.box.height)
+      .slice(0, 3)
+      .forEach(({ img }) => add(img.currentSrc || img.src))
+
+    const shown = (selector) => {
+      const el = document.querySelector(selector)
+      const value = el && (el.getAttribute('content') || el.textContent)
+      return value ? value.trim().slice(0, 60) : ''
+    }
+    const price =
+      shown('[itemprop="price"]') ||
+      shown('#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, ' +
+            '.priceToPay .a-offscreen, #price_inside_buybox, #kindle-price')
+    const currency = document.querySelector('[itemprop="priceCurrency"]')
+    return {
+      images: [...new Set(images)].filter((url) => url.length <= 2000).slice(0, 8),
+      price,
+      currency: currency ? (currency.getAttribute('content') || currency.textContent || '').trim().slice(0, 8) : '',
+    }
+  }
   const grab = () => {
     const clone = document.documentElement.cloneNode(true)
     clone
       .querySelectorAll(
-        'script:not([type="application/ld+json"]), style, svg, noscript, iframe, link, template, video, canvas',
+        'script:not([type="application/ld+json"]), style, svg, noscript, iframe, link:not([rel="image_src"]), template, video, canvas',
       )
       .forEach((node) => node.remove())
     let html = '<!doctype html>' + clone.outerHTML
     if (html.length > 2_500_000) html = html.slice(0, 2_500_000)
-    return { url: location.href, title: document.title, html }
+    return { url: location.href, title: document.title, html, seen: seen() }
   }
   if (!scroll) return grab()
   // Le liste lunghe caricano scorrendo: si va in fondo finche' la pagina cresce.
@@ -175,7 +236,7 @@ async function renderProduct(tab, config, { fromList } = {}) {
   let lists
   try {
     ;[details, lists] = await Promise.all([
-      call('/api/extension/read', { method: 'POST', body: { url: page.url, html: page.html } }),
+      call('/api/extension/read', { method: 'POST', body: { url: page.url, html: page.html, ...page.seen } }),
       call('/api/extension/lists'),
     ])
   } catch (error) {
