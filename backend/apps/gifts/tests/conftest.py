@@ -1,4 +1,4 @@
-"""Internet, DNS e scraper finti per i test di foto e link (ADR 0003, 0005)."""
+"""Internet, DNS, scraper e AI finti per i test di foto, link e import (ADR 0003, 0005, 0020)."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import httpx
 import pytest
 from PIL import Image
 
+from apps.core import cornhub
 from apps.gifts import images, links
 
 PUBLIC_IP = "93.184.215.14"
@@ -86,4 +87,49 @@ def scraper(settings, monkeypatch):
 
     Fake.asked = []
     monkeypatch.setattr(links, "scrape", fake_scrape)
+    return Fake
+
+
+@pytest.fixture(autouse=True)
+def ai_off(settings):
+    """L'AI di cornhub spenta (come senza token nel .env), tranne nei test che
+    la fingono con ``fake_ai``: nessun test parla col cornhub vero."""
+    settings.CORNHUB_APP_TOKEN = ""
+
+
+@pytest.fixture
+def fake_ai(settings, monkeypatch):
+    """Il gateway AI di cornhub finto (ADR 0020).
+
+    ``fake_ai.answer`` e' il JSON che "scrive" (``data`` della risposta),
+    ``fake_ai.answers[url]`` quello per la pagina ``Link: <url>`` del prompt;
+    con ``status`` diverso da 200 risponde ``error`` (es. ``needs_key``).
+    ``fake_ai.asked`` sono le richieste arrivate al gateway.
+    """
+    settings.CORNHUB_APP_TOKEN = "token-test"
+
+    class Fake:
+        answer: dict = {}
+        answers: dict = {}
+        status = 200
+        error: dict = {}
+        asked: list[dict] = []
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        assert url == "http://cornhub-backend:8000/internal/ai/generate"
+        assert headers["Authorization"] == "Bearer token-test"
+        assert headers["X-Cornhub-App"] == "regalino"
+        Fake.asked.append(json)
+        request = httpx.Request("POST", url)
+        if Fake.status != 200:
+            return httpx.Response(Fake.status, json=Fake.error, request=request)
+        page = json["parts"][0]["text"].split("\n", 1)[0].removeprefix("Link: ")
+        data = Fake.answers.get(page, Fake.answer)
+        payload = {"data": data, "text": "", "billed_to": "house", "pannocchie": 1}
+        return httpx.Response(200, json=payload, request=request)
+
+    Fake.answer = {}
+    Fake.answers = {}
+    Fake.asked = []
+    monkeypatch.setattr(cornhub.httpx, "post", fake_post)
     return Fake

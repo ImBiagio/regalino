@@ -7,9 +7,9 @@ Tre strade, tutte verso lo stesso albero di ``ImportList``:
   parser dedicato, seguendo le pagine successive ("mostra altro").
 - **Elfster e le altre pagine**: Elfster costruisce la lista con JavaScript e
   non ci sono dati dichiarati da leggere. La pagina si apre col browser dello
-  scraper (o arriva gia' costruita dall'estensione, ADR 0016) e Gemini ne
+  scraper (o arriva gia' costruita dall'estensione, ADR 0016) e l'AI ne
   estrae i regali da una versione compatta della pagina (testo, link, foto).
-  Link e foto devono esistere davvero nella pagina: quello che Gemini inventa
+  Link e foto devono esistere davvero nella pagina: quello che l'AI inventa
   si scarta. Non si usano API private dei siti: solo quello che vede chi apre
   il link.
 - **File CSV o JSON**: un export fatto a mano o da un altro servizio.
@@ -43,6 +43,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext as _
 
+from apps.core import cornhub
+
 from . import ai
 from .images import MAX_HTML_BYTES, ImageError, ReadError, ScraperDown, fetch
 from .links import MAX_URL, _decode, clean_title, clean_url, parse_price
@@ -58,14 +60,22 @@ MAX_PAGES = 15
 # Altre liste da aprire partendo da una pagina (profilo con piu' liste).
 MAX_LINKED_LISTS = 10
 MAX_FILE_BYTES = 2 * 1024 * 1024
-# La pagina compatta da far leggere a Gemini: abbastanza per ~100 regali.
+# La pagina compatta da far leggere all'AI: abbastanza per ~100 regali.
 MAX_OUTLINE = 60_000
 MAX_NOTES = 1000
 MAX_LIST_TITLE = 120
 
 
 class ImportFailed(Exception):
-    """Un import che non si puo' fare: il messaggio va all'utente."""
+    """Un import che non si puo' fare: il messaggio va all'utente.
+
+    ``account_url``: la pagina di cornhub dove aggiungere la chiave AI o
+    alzare il limite, quando e' quello il motivo (ADR 0020).
+    """
+
+    def __init__(self, message: str = "", account_url: str = ""):
+        super().__init__(message)
+        self.account_url = account_url
 
 
 @dataclass
@@ -411,7 +421,7 @@ def read_amazon(url: str, html: str | None = None, depth: int = 0) -> list[Impor
     ]
 
 
-# ------------------------------------------------ pagina qualsiasi e Gemini --
+# ------------------------------------------------- pagina qualsiasi e AI --
 
 _SKIP_TAGS = {"script", "style", "noscript", "svg", "head", "template", "iframe", "button"}
 _BLOCK_TAGS = {
@@ -423,7 +433,7 @@ _BLOCK_TAGS = {
 class _OutlineParser(HTMLParser):
     """La pagina ridotta a testo con ``[testo](link)`` e ``![alt](foto)``.
 
-    E' quello che legge Gemini: poche decine di KB invece dei MB dell'HTML,
+    E' quello che legge l'AI: poche decine di KB invece dei MB dell'HTML,
     e con i link e le foto veri accanto al testo a cui appartengono.
     """
 
@@ -536,14 +546,20 @@ def _json_ld_items(html: str, base: str) -> tuple[str, list[ImportItem]]:
     return title, items
 
 
-def _from_gemini(html: str, base: str) -> tuple[str, list[ImportItem], list[tuple[str, str]]]:
-    """Titolo, regali e altre liste collegate, letti da Gemini nella pagina compatta."""
+def _from_ai(
+    html: str, base: str, user=None
+) -> tuple[str, list[ImportItem], list[tuple[str, str]]]:
+    """Titolo, regali e altre liste collegate, letti dall'AI nella pagina compatta.
+
+    ``import_list`` e' una funzione grande di cornhub: la paga la chiave di
+    ``user``. Se non si puo' (chiave da aggiungere, limite) il messaggio di
+    cornhub arriva all'anteprima, col link per sistemare.
+    """
     outline, links, images = page_outline(html, base)
-    data = ai.extract_gift_list(url=base, outline=outline)
-    if data is None:
-        raise ImportFailed(
-            _("Non riesco a leggere i regali di questa pagina. Riprova tra poco.")
-        )
+    try:
+        data = ai.extract_gift_list(url=base, outline=outline, user=user)
+    except cornhub.AIError as exc:
+        raise ImportFailed(exc.message, account_url=exc.account_url) from None
     items = []
     for raw in data.get("items") or []:
         if not isinstance(raw, dict):
@@ -582,8 +598,10 @@ def _same_site(url: str, base: str) -> bool:
     return a.removeprefix("www.") == b.removeprefix("www.")
 
 
-def read_page_lists(url: str, html: str | None = None, depth: int = 0) -> list[ImportList]:
-    """Una pagina qualsiasi (Elfster compreso): dati dichiarati, poi Gemini.
+def read_page_lists(
+    url: str, html: str | None = None, depth: int = 0, user=None
+) -> list[ImportList]:
+    """Una pagina qualsiasi (Elfster compreso): dati dichiarati, poi l'AI.
 
     Le altre liste che la pagina collega (un profilo con piu' liste) si
     aprono anche loro, una volta sola e solo sullo stesso sito: diventano
@@ -597,11 +615,14 @@ def read_page_lists(url: str, html: str | None = None, depth: int = 0) -> list[I
     if not items:
         if not ai.enabled():
             raise ImportFailed(
-                _("Per leggere le liste di questo sito serve Gemini, che non e' configurato.")
+                _(
+                    "Per leggere le liste di questo sito serve l'intelligenza artificiale, "
+                    "che non e' configurata."
+                )
             )
-        title, items, others = _from_gemini(html, url)
+        title, items, others = _from_ai(html, url, user)
     if elfster:
-        # I link alle wishlist del profilo si riconoscono anche senza Gemini.
+        # I link alle wishlist del profilo si riconoscono anche senza l'AI.
         links = page_outline(html, url)[1]
         known = {link for _title, link in others}
         for link in sorted(links):
@@ -617,7 +638,7 @@ def read_page_lists(url: str, html: str | None = None, depth: int = 0) -> list[I
                 continue
             seen.add(link)
             try:
-                found = read_page_lists(link, depth=1)
+                found = read_page_lists(link, depth=1, user=user)
             except (ImageError, ImportFailed) as exc:
                 logger.info("Lista collegata non letta (%s): %s", link, exc)
                 continue
@@ -633,15 +654,18 @@ def read_page_lists(url: str, html: str | None = None, depth: int = 0) -> list[I
     ]
 
 
-def read_url(url: str, html: str | None = None) -> list[ImportList]:
-    """Dal link (e, dall'estensione, dalla pagina gia' aperta) all'anteprima."""
+def read_url(url: str, html: str | None = None, user=None) -> list[ImportList]:
+    """Dal link (e, dall'estensione, dalla pagina gia' aperta) all'anteprima.
+
+    ``user``: chi importa, a cui cornhub mette in conto l'AI (``import_list``).
+    """
     url = url.strip()
     html = html[:MAX_HTML_BYTES] if html else None
     try:
         if is_amazon_list(url):
             lists = read_amazon(url, html)
         else:
-            lists = read_page_lists(url, html)
+            lists = read_page_lists(url, html, user=user)
     except ImageError as exc:
         raise ImportFailed(str(exc)) from None
     return _limit(lists)

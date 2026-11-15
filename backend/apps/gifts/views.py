@@ -17,6 +17,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core import cornhub
 from apps.core.methods import hash_secret, random_token
 
 from . import ai, imports, tasks
@@ -234,37 +235,55 @@ class InviteView(APIView):
         return Response(data)
 
 
-def _suggest(data: dict, *, known_gifts: list[str] = (), alternative_to: str = "") -> Response:
-    """Le idee di Gemini, o 503 se non si puo' (chiave assente, errore, quota)."""
+def _ai_error(exc: cornhub.AIError) -> Response:
+    """Un errore dell'AI di cornhub per il frontend: il messaggio cosi' com'e',
+    il codice e, se serve (chiave, limite, quota finita), il link a cornhub."""
+    return Response(
+        {"detail": exc.message, "code": exc.code, "account_url": exc.account_url},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
+def _suggest(
+    request,
+    data: dict,
+    *,
+    feature: str = "suggest",
+    known_gifts: list[str] = (),
+    alternative_to: str = "",
+) -> Response:
+    """Le idee dell'AI di cornhub, o 503 col perche' (AI spenta, chiave, quota, errore)."""
     if not ai.enabled():
         return Response(
             {"detail": _("I suggerimenti non sono attivi su questo server.")},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
-    suggestions = ai.suggest_gifts(
-        recipient=data.get("recipient", ""),
-        relation=data.get("relation", ""),
-        age=data.get("age", ""),
-        interests=data.get("interests", []),
-        avoid=data.get("avoid", ""),
-        occasion=data.get("occasion", ""),
-        budget_min=data.get("budget_min", ""),
-        budget_max=data.get("budget_max", ""),
-        known_gifts=list(known_gifts),
-        alternative_to=alternative_to,
-        exclude=data.get("exclude", []),
-        language=(get_language() or "it")[:2],
-    )
-    if suggestions is None:
-        return Response(
-            {"detail": _("Adesso non riesco a trovare idee: riprova tra un momento.")},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    try:
+        suggestions = ai.suggest_gifts(
+            recipient=data.get("recipient", ""),
+            relation=data.get("relation", ""),
+            age=data.get("age", ""),
+            interests=data.get("interests", []),
+            avoid=data.get("avoid", ""),
+            occasion=data.get("occasion", ""),
+            budget_min=data.get("budget_min", ""),
+            budget_max=data.get("budget_max", ""),
+            known_gifts=list(known_gifts),
+            alternative_to=alternative_to,
+            exclude=data.get("exclude", []),
+            language=(get_language() or "it")[:2],
+            # Sul link condiviso chi guarda puo' non avere un account: allora
+            # paga la casa (``shared_suggest`` e' l'unica aperta agli ospiti).
+            user=request.user if request.user.is_authenticated else None,
+            feature=feature,
         )
+    except cornhub.AIError as exc:
+        return _ai_error(exc)
     return Response(SuggestionSerializer(suggestions, many=True).data)
 
 
 class SuggestView(APIView):
-    """"Ispirami": idee regalo per una persona, da Gemini (ADR 0010)."""
+    """"Ispirami": idee regalo per una persona, dall'AI di cornhub (ADR 0010, 0020)."""
 
     throttle_scope = "suggest"
 
@@ -272,7 +291,7 @@ class SuggestView(APIView):
     def post(self, request):
         serializer = SuggestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return _suggest(serializer.validated_data)
+        return _suggest(request, serializer.validated_data)
 
 
 class GiftIdeaViewSet(viewsets.ModelViewSet):
@@ -441,7 +460,7 @@ class LinkReadView(APIView):
     Nome e prezzo che la pagina dichiara (ADR 0006) e, se ``image`` e' vero,
     la foto gia' caricata come quelle di ``images/from-url``. Una foto che non
     si trova non e' un errore se il resto c'e': torna in ``image_error``.
-    Gemini non si aspetta qui: se si puo' usare torna ``describe_id``, da
+    L'AI non si aspetta qui: se si puo' usare torna ``describe_id``, da
     passare a ``links/describe`` per nome e note migliori.
     """
 
@@ -480,10 +499,10 @@ class LinkReadView(APIView):
 
 
 class LinkDescribeView(APIView):
-    """Nome, prezzo e note scritti da Gemini per una pagina letta da ``links/read``.
+    """Nome, prezzo e note scritti dall'AI per una pagina letta da ``links/read``.
 
-    Separata perche' Gemini a volte ci mette decine di secondi: il form intanto
-    e' gia' compilato coi dati della pagina, e questi arrivano dopo. Se Gemini
+    Separata perche' l'AI a volte ci mette decine di secondi: il form intanto
+    e' gia' compilato coi dati della pagina, e questi arrivano dopo. Se l'AI
     non risponde tornano gli stessi dati dichiarati.
     """
 
@@ -496,7 +515,7 @@ class LinkDescribeView(APIView):
         page = recall_page(serializer.validated_data["describe_id"], request.user.pk)
         if page is None:
             raise NotFound()
-        details = details_of(page, (get_language() or "it")[:2])
+        details = details_of(page, (get_language() or "it")[:2], user=request.user)
         data = {
             "title": details.title,
             "price": details.price,
@@ -514,7 +533,7 @@ class ImportReadView(APIView):
     """Legge una lista da importare (ADR 0015): non salva niente, e' l'anteprima.
 
     Un file si legge subito. Un link no: aprire la pagina col browser, farla
-    leggere a Gemini e seguire le liste collegate puo' durare piu' di un
+    leggere all'AI e seguire le liste collegate puo' durare piu' di un
     minuto, quindi lo fa il worker e qui torna ``job_id``, da chiedere a
     ``GET imports/read/<job_id>`` finche' non e' pronto.
     """
@@ -558,7 +577,9 @@ class ImportJobView(APIView):
             raise NotFound()
         if state["status"] == "error":
             message = state.get("error") or _("Non sono riuscito a leggere la lista.")
-            return Response({"status": "error", "error": message})
+            # ``account_url``: il link a cornhub se manca la chiave AI o c'e' un limite.
+            return Response({"status": "error", "error": message,
+                             "account_url": state.get("account_url") or ""})
         return Response({key: value for key, value in state.items() if key != "owner"})
 
 
@@ -625,7 +646,7 @@ class SharedListView(APIView):
 class SharedSuggestView(APIView):
     """Alternative a un regalo gia' preso, per chi ha il link (anche senza account).
 
-    A Gemini vanno i titoli dei regali della lista (pubblici per chi ha il
+    All'AI vanno i titoli dei regali della lista (pubblici per chi ha il
     link) e quello da sostituire: niente nomi, niente dati di chi guarda.
     """
 
@@ -645,7 +666,13 @@ class SharedSuggestView(APIView):
         )
         titles = list(Wish.objects.filter(wish_list__in=lists).values_list("title", flat=True))
         data = {"occasion": wish_list.title, "exclude": serializer.validated_data["exclude"]}
-        return _suggest(data, known_gifts=titles[:40], alternative_to=wish.title)
+        return _suggest(
+            request,
+            data,
+            feature="shared_suggest",
+            known_gifts=titles[:40],
+            alternative_to=wish.title,
+        )
 
 
 class SharedSaveView(APIView):

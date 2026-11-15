@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from apps.conftest import WishListFactory
+from apps.core import cornhub
 from apps.gifts.models import ExtensionToken, Wish, WishListMember
 from apps.gifts.tests.conftest import PUBLIC_IP, png_bytes
 
@@ -16,6 +19,17 @@ PRODUCT = b"""<html><head><title>Borraccia | Negozio</title>
 <meta property="product:price:amount" content="24.90">
 <meta property="product:price:currency" content="EUR">
 </head><body>Borraccia</body></html>"""
+
+
+@pytest.fixture(autouse=True)
+def cornhub_account(db, user, monkeypatch):
+    """L'utente e' legato al suo account cornhub; ``status`` e' cio' che cornhub
+    risponde al controllo dell'account (ADR 0020)."""
+    user.cornhub_sub = uuid.uuid4()
+    user.save()
+    status = {"active": True, "allowed": True}
+    monkeypatch.setattr(cornhub, "user_status", lambda sub: status)
+    return status
 
 
 @pytest.fixture
@@ -66,6 +80,21 @@ def test_chiave_tolta_o_sbagliata(user, api, key):
     assert response.status_code == 401
     assert ext(api, "inventata").get("/api/extension/me").status_code == 401
     assert api().get("/api/extension/me").status_code == 401
+
+
+def test_account_spento_su_cornhub_perde_l_estensione(user, api, key, cornhub_account):
+    client = ext(api, key)
+    assert client.get("/api/extension/me").status_code == 200
+    cornhub_account["allowed"] = False
+    response = client.get("/api/extension/me")
+    # 401 (non 403): l'estensione capisce che va ricollegata.
+    assert response.status_code == 401
+    assert response["WWW-Authenticate"] == "Token"
+    # Un utente mai entrato da cornhub non ha un account da controllare.
+    cornhub_account["allowed"] = True
+    user.cornhub_sub = None
+    user.save()
+    assert client.get("/api/extension/me").status_code == 401
 
 
 def test_non_si_tolgono_le_chiavi_altrui(user, other_user, api, key):

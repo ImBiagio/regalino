@@ -140,7 +140,7 @@ class LinkDescriptionSerializer(serializers.Serializer):
 class LinkDetailsSerializer(LinkDescriptionSerializer):
     image = GiftImageSerializer(allow_null=True)
     image_error = serializers.CharField(allow_null=True)
-    # Per ``links/describe``; null se Gemini non si usa.
+    # Per ``links/describe``; null se l'AI non si usa.
     describe_id = serializers.CharField(allow_null=True)
 
 

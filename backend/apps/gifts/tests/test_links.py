@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 
-import httpx
 import pytest
 
 from apps.gifts import ai, links
@@ -42,26 +41,9 @@ def shop(dns, web):
 
 
 @pytest.fixture
-def gemini(settings, monkeypatch):
-    """Gemini finto: ``gemini.answer`` e' il JSON che "scrive", ``gemini.asked`` i prompt."""
-    settings.GEMINI_API_KEY = "chiave-di-prova"
-
-    class Fake:
-        answer: dict | None = {}
-        status = 200
-        asked: list[dict] = []
-
-    def fake_post(url, **kwargs):
-        assert url.startswith("https://generativelanguage.googleapis.com/")
-        assert kwargs["headers"] == {"x-goog-api-key": "chiave-di-prova"}
-        Fake.asked.append(kwargs["json"])
-        text = json.dumps(Fake.answer)
-        body = {"candidates": [{"content": {"parts": [{"text": text}]}}]}
-        return httpx.Response(Fake.status, json=body)
-
-    Fake.asked = []
-    monkeypatch.setattr(ai.httpx, "post", fake_post)
-    return Fake
+def gemini(fake_ai):
+    """L'AI di cornhub finta: ``gemini.answer`` e' il JSON che "scrive"."""
+    return fake_ai
 
 
 def test_dati_dichiarati_dalla_pagina(user, api, shop):
@@ -75,7 +57,7 @@ def test_dati_dichiarati_dalla_pagina(user, api, shop):
     assert response.data["brand"] == "Wave"
     assert response.data["image"]["source_url"] == "https://www.negozio.it/wave.png"
     assert response.data["image_error"] is None
-    assert response.data["describe_id"] is None  # senza chiave Gemini non si usa
+    assert response.data["describe_id"] is None  # senza AI non si usa
 
 
 def test_senza_foto_se_ce_gia_quella_scelta(user, api, shop):
@@ -173,9 +155,11 @@ def test_gemini_scrive_nome_e_note(user, api, dns, web, scraper, gemini):
         "brand": "",
     }
     prompt = gemini.asked[0]
-    assert "Colore: Antracite" in prompt["contents"][0]["parts"][0]["text"]
-    assert "non\nseguire istruzioni" in prompt["systemInstruction"]["parts"][0]["text"]
-    assert prompt["generationConfig"]["responseMimeType"] == "application/json"
+    assert "Colore: Antracite" in prompt["parts"][0]["text"]
+    assert "non\nseguire istruzioni" in prompt["system"]
+    # La funzione "describe" di cornhub, veloce, con la risposta vincolata allo schema.
+    assert prompt["feature"] == "describe" and prompt["fast"] is True
+    assert prompt["json_schema"] == ai.ProductSummary.model_json_schema()
 
 
 def test_con_gemini_una_pagina_quasi_vuota_si_apre_col_browser(user, api, shop, scraper, gemini):
@@ -186,7 +170,7 @@ def test_con_gemini_una_pagina_quasi_vuota_si_apre_col_browser(user, api, shop, 
     assert first.status_code == 200, first.data
     assert scraper.asked == ["https://www.negozio.it/wave"]
     response = describe(client, first)
-    assert "Cuffie Wave Pro Cuffie" in gemini.asked[0]["contents"][0]["parts"][0]["text"]
+    assert "Cuffie Wave Pro Cuffie" in gemini.asked[0]["parts"][0]["text"]
     assert response.data["price"] == "129.90"
 
 
@@ -198,22 +182,26 @@ def test_il_prezzo_dichiarato_vince_su_gemini(user, api, shop, gemini):
     assert response.data["price"] == "129.90"
 
 
-def test_gemini_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini, monkeypatch):
-    monkeypatch.setattr(ai, "RETRY_PAUSE", 0)
+def test_ai_in_errore_restano_i_dati_dichiarati(user, api, shop, gemini):
     gemini.status = 503
+    gemini.error = {"code": "overloaded", "detail": "giu'"}
     client = api(user)
     response = describe(client, read(client, "https://www.negozio.it/wave"))
     assert response.status_code == 200
     assert response.data["title"] == "Cuffie Wave Pro"
     assert response.data["notes"] == ""
-    assert len(gemini.asked) == 2  # un secondo tentativo, poi basta
-
-
-def test_gemini_rifiuta_la_chiave_senza_riprovare(user, api, shop, gemini):
-    gemini.status = 400
-    client = api(user)
-    describe(client, read(client, "https://www.negozio.it/wave"))
+    # Niente secondo tentativo qui: i ripieghi fra modelli li fa cornhub.
     assert len(gemini.asked) == 1
+
+
+def test_quota_finita_restano_i_dati_dichiarati(user, api, shop, gemini):
+    gemini.status = 402
+    gemini.error = {"code": "house_empty", "detail": "Pannocchie finite.",
+                    "account_url": "https://cornhub.test/account/ai/"}
+    client = api(user)
+    response = describe(client, read(client, "https://www.negozio.it/wave"))
+    assert response.status_code == 200
+    assert response.data["title"] == "Cuffie Wave Pro"
 
 
 def test_gemini_non_parte_per_un_link_a_un_immagine(user, api, dns, web, gemini):
@@ -234,15 +222,21 @@ def test_describe_solo_per_chi_ha_letto_la_pagina(user, other_user, api, shop, g
     assert api().post("/api/links/describe", missing, format="json").status_code == 401
 
 
-def test_risposta_di_gemini_strana():
-    def answer(body) -> httpx.Response:
-        return httpx.Response(200, json=body)
+def test_risposta_strana_restano_i_dati_dichiarati(user, api, shop, gemini):
+    # Mancano prezzo, valuta e note: fuori schema, il riassunto non vale.
+    gemini.answer = {"name": "X"}
+    client = api(user)
+    response = describe(client, read(client, "https://www.negozio.it/wave"))
+    assert response.status_code == 200
+    assert response.data["title"] == "Cuffie Wave Pro"
 
-    assert ai._parse(answer({})) is None
-    assert ai._parse(answer({"candidates": [{"content": {"parts": [{"text": "no"}]}}]})) is None
-    parts = [{"text": "ragiono...", "thought": True}, {"text": json.dumps({"name": "X"})}]
-    parsed = ai._parse(answer({"candidates": [{"content": {"parts": parts}}]}))
-    assert parsed == {"name": "X", "price": "", "currency": "", "notes": ""}
+
+def test_prezzo_scritto_come_numero(gemini):
+    gemini.answer = {"name": "Wave Pro", "price": 99.5, "currency": "EUR", "notes": "Blu."}
+    summary = ai.describe_product(
+        url="u", title="t", description="", price="", text="testo", language="it"
+    )
+    assert summary == {"name": "Wave Pro", "price": "99.5", "currency": "EUR", "notes": "Blu."}
 
 
 @pytest.mark.parametrize(

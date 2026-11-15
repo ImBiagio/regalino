@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
+import uuid
 from decimal import Decimal
 
-import httpx
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from apps.gifts import ai, imports
+from apps.gifts import imports
 from apps.gifts.models import Wish, WishList
 from apps.gifts.tests.conftest import PUBLIC_IP, png_bytes
 
@@ -144,27 +144,10 @@ LIST_HTML = """<html><body><h1>Natale</h1>
 
 
 @pytest.fixture
-def gemini(settings, monkeypatch):
-    """Gemini finto: ``gemini.answers[url]`` e' quello che "legge" in ogni pagina."""
-    settings.GEMINI_API_KEY = "chiave-di-prova"
-
-    class Fake:
-        answers: dict = {}
-        asked: list[str] = []
-
-    def fake_post(url, **kwargs):
-        assert url.startswith("https://generativelanguage.googleapis.com/")
-        text = kwargs["json"]["contents"][0]["parts"][0]["text"]
-        page = text.split("\n", 1)[0].removeprefix("Link: ")
-        Fake.asked.append(text)
-        answer = json.dumps(Fake.answers.get(page, {"items": []}))
-        body = {"candidates": [{"content": {"parts": [{"text": answer}]}}]}
-        return httpx.Response(200, json=body)
-
-    Fake.answers = {}
-    Fake.asked = []
-    monkeypatch.setattr(ai.httpx, "post", fake_post)
-    return Fake
+def gemini(fake_ai):
+    """L'AI di cornhub finta: ``gemini.answers[url]`` e' quello che "legge" in ogni pagina."""
+    fake_ai.answer = {"items": []}
+    return fake_ai
 
 
 @pytest.fixture
@@ -211,6 +194,8 @@ LIST_ANSWER = {
 
 
 def test_lista_elfster_letta_col_browser_e_gemini(user, api, gemini, browser):
+    user.cornhub_sub = uuid.uuid4()
+    user.save()
     browser.pages[ELFSTER_LIST] = LIST_HTML
     gemini.answers[ELFSTER_LIST] = LIST_ANSWER
     response = read(api(user), url=ELFSTER_LIST)
@@ -222,8 +207,11 @@ def test_lista_elfster_letta_col_browser_e_gemini(user, api, gemini, browser):
     assert lego["image_url"] == "https://img.elfster.com/lego.jpg"
     assert lego["price"] == "49.99"
     assert scarf["url"] == "" and scarf["image_url"] == ""
-    # A Gemini va la pagina compatta, coi link veri accanto al testo.
-    assert "[Lego Titanic](https://www.negozio.it/lego)" in gemini.asked[0]
+    # All'AI va la pagina compatta, coi link veri accanto al testo.
+    assert "[Lego Titanic](https://www.negozio.it/lego)" in gemini.asked[0]["parts"][0]["text"]
+    # "import_list": funzione grande di cornhub, a nome di chi importa.
+    assert gemini.asked[0]["feature"] == "import_list"
+    assert gemini.asked[0]["user"] == str(user.cornhub_sub)
     # Elfster e' fatta in JavaScript: subito il browser.
     assert browser.asked == [ELFSTER_LIST]
 
@@ -252,7 +240,20 @@ def test_pagina_senza_gemini(user, api, browser):
     browser.pages[ELFSTER_LIST] = LIST_HTML
     response = read(api(user), url=ELFSTER_LIST)
     assert response.data["status"] == "error"
-    assert "Gemini" in response.data["error"]
+    assert "intelligenza artificiale" in response.data["error"]
+
+
+def test_senza_chiave_ai_l_errore_porta_a_cornhub(user, api, gemini, browser):
+    browser.pages[ELFSTER_LIST] = LIST_HTML
+    gemini.status = 402
+    gemini.error = {"code": "needs_key", "detail": "Serve la tua chiave API.",
+                    "account_url": "https://cornhub.test/account/ai/"}
+    response = read(api(user), url=ELFSTER_LIST)
+    assert response.data == {
+        "status": "error",
+        "error": "Serve la tua chiave API.",
+        "account_url": "https://cornhub.test/account/ai/",
+    }
 
 
 def test_itemlist_dichiarata_senza_gemini(user, api, dns, web):

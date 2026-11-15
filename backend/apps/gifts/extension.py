@@ -4,8 +4,9 @@ L'estensione non usa il login dell'app (cookie di refresh e JWT di 15 minuti,
 pensati per il browser sull'app): ha una chiave sua, ``ExtensionToken``, che
 l'utente crea dalla pagina ``/estensione`` dell'app con un tocco. La chiave
 vale solo per gli endpoint di questo modulo: leggere una pagina, vedere le
-proprie liste, aggiungere un regalo, importare una lista. Non cambia password,
-non elimina liste, non vede le idee.
+proprie liste, aggiungere un regalo, importare una lista. Non elimina liste,
+non vede le idee. Il login vero e' su cornhub (ADR 0020): a ogni chiamata si
+controlla che l'account sia ancora attivo li' (``still_allowed``).
 
 La pagina arriva gia' costruita dal browser di chi la guarda (``html``): e'
 quella vera, anche sui siti che al server rispondono con un captcha
@@ -29,6 +30,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.methods import hash_secret, random_token
+from apps.users.views import still_allowed
 
 from .images import ImageError
 from .links import (
@@ -76,6 +78,12 @@ class ExtensionTokenAuthentication(authentication.BaseAuthentication):
         if token is None or not token.user.is_active:
             raise exceptions.AuthenticationFailed(
                 _("L'estensione e' stata scollegata: collegala di nuovo.")
+            )
+        # Come al refresh della sessione dell'app (ADR 0020): un account spento
+        # su cornhub, o senza piu' accesso a regalino, perde anche l'estensione.
+        if not still_allowed(token.user):
+            raise exceptions.AuthenticationFailed(
+                _("Il tuo account non puo' piu' usare Regalino: entra di nuovo dall'app.")
             )
         now = timezone.now()
         if token.last_used_at is None or (now - token.last_used_at).total_seconds() > TOUCH_EVERY:
@@ -223,7 +231,7 @@ class ExtensionReadView(ExtensionView):
 
     Se nella pagina mandata manca la foto (o non dice niente, o non c'e') il
     server la rilegge dal link come fa l'app e completa cio' che manca. Il
-    prezzo mancante no: la pagina riletta e' la stessa, e lo cerca poi Gemini
+    prezzo mancante no: la pagina riletta e' la stessa, e lo cerca poi l'AI
     nel testo (``describe``).
     """
 
@@ -263,7 +271,7 @@ class ExtensionReadView(ExtensionView):
 
 
 class ExtensionDescribeView(ExtensionView, LinkDescribeView):
-    """Nome e note migliori con Gemini, come ``links/describe``."""
+    """Nome e note migliori con l'AI, come ``links/describe``."""
 
     authentication_classes = [ExtensionTokenAuthentication]
 

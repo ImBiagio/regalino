@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.utils import timezone
 
@@ -72,16 +73,19 @@ def import_key(job_id: str) -> str:
 
 @shared_task
 def read_import(job_id: str, user_id: str, url: str, html: str | None = None) -> str:
-    """Legge la lista dal link (ADR 0015): browser, Gemini, liste collegate.
+    """Legge la lista dal link (ADR 0015): browser, AI, liste collegate.
 
     Puo' durare piu' di un minuto, quindi non nella richiesta: il risultato
     (anteprima o errore) va in cache e il browser lo chiede finche' c'e'.
     """
     state = {"owner": user_id, "status": "done"}
+    # Chi ha chiesto l'import paga l'AI (``import_list`` e' grande: la sua chiave).
+    user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
     try:
-        state["lists"] = imports.as_data(imports.read_url(url, html))
+        state["lists"] = imports.as_data(imports.read_url(url, html, user=user))
     except imports.ImportFailed as exc:
-        state = {"owner": user_id, "status": "error", "error": str(exc)}
+        state = {"owner": user_id, "status": "error", "error": str(exc),
+                 "account_url": exc.account_url}
     except Exception:
         logger.exception("Import non riuscito da %s", url)
         state = {"owner": user_id, "status": "error", "error": ""}

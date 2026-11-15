@@ -6,8 +6,8 @@ pagina e' fatta in JavaScript o mancano foto o prezzo, la pagina si apre col
 browser dello scraper. Le foto le scarica sempre ``fetch``, anche quando i
 link arrivano dallo scraper, quindi con le stesse difese SSRF.
 
-Nome e note si possono far scrivere a Gemini (``ai.py``) partendo dal testo
-della pagina: senza chiave restano i dati dichiarati, e le note vuote. Gemini
+Nome e note si possono far scrivere all'AI (``ai.py``) partendo dal testo
+della pagina: senza AI restano i dati dichiarati, e le note vuote. L'AI
 a volte ci mette decine di secondi, quindi va in una seconda richiesta: la
 pagina letta si tiene in cache con ``remember_page`` e ``links/describe`` la
 riprende (ADR 0006).
@@ -34,12 +34,12 @@ from .images import MAX_HTML_BYTES, ImageError, ReadError, ScraperDown, fetch, p
 
 # Quanto testo della pagina tenere: basta per nome, prezzo e varianti.
 MAX_TEXT = 12_000
-# Sotto questo il testo letto direttamente non basta a Gemini: si apre il browser.
+# Sotto questo il testo letto direttamente non basta all'AI: si apre il browser.
 MIN_TEXT = 500
 # Le stesse lunghezze dei campi di Wish e GiftIdea.
 MAX_TITLE = 160
 MAX_NOTES = 500
-# Quanto resta in cache la pagina letta, in attesa che il form chieda Gemini.
+# Quanto resta in cache la pagina letta, in attesa che il form chieda l'AI.
 PAGE_TTL = 10 * 60
 # Quanto puo' essere lungo un link salvato (``Wish.url``, ``GiftIdea.url``):
 # i link incollati dai negozi arrivano con decine di parametri di tracciamento.
@@ -393,7 +393,7 @@ def read_page(url: str, details: bool = False) -> Page:
     """Legge il link: diretto, e col browser se serve.
 
     Con ``details`` si vuole anche il prezzo, quindi lo scraper parte pure se
-    la lettura diretta ha la foto ma non il prezzo (o, con Gemini, quasi
+    la lettura diretta ha la foto ma non il prezzo (o, con l'AI, quasi
     niente testo da fargli leggere). Gli errori sul link in se'
     (indirizzo non pubblico, porta, credenziali) non arrivano allo scraper.
     """
@@ -407,7 +407,7 @@ def read_page(url: str, details: bool = False) -> Page:
         except ScraperDown:
             raise direct_error from None
 
-    # Con Gemini conta anche il testo: una pagina fatta in JavaScript letta
+    # Con l'AI conta anche il testo: una pagina fatta in JavaScript letta
     # direttamente e' quasi vuota, quella aperta dal browser no.
     needs_text = details and ai.enabled() and len(page.text) < MIN_TEXT
     complete = page.images and (page.price or not details) and not needs_text
@@ -545,7 +545,7 @@ def clean_title(title: str) -> str:
 
 
 def declared_details(page: Page) -> Details:
-    """Nome e prezzo che la pagina dichiara: subito, senza Gemini."""
+    """Nome e prezzo che la pagina dichiara: subito, senza l'AI."""
     return Details(
         title=clean_title(page.title),
         price=parse_price(page.price, page.currency),
@@ -555,15 +555,15 @@ def declared_details(page: Page) -> Details:
 
 
 def can_describe(page: Page) -> bool:
-    """Vale la pena chiedere a Gemini: c'e' la chiave e una pagina da leggere."""
+    """Vale la pena chiedere all'AI: l'AI e' accesa e c'e' una pagina da leggere."""
     return ai.enabled() and page.image is None and bool(page.text or page.title)
 
 
 def remember_page(page: Page, owner_id) -> str:
     """Tiene la pagina letta per ``links/describe``; torna la chiave da usare.
 
-    La chiave e' casuale e legata all'utente: un altro non puo' far leggere a
-    Gemini (a spese della chiave) pagine che non ha letto lui.
+    La chiave e' casuale e legata all'utente: un altro non puo' far leggere
+    all'AI (a spese delle pannocchie) pagine che non ha letto lui.
     """
     key = secrets.token_urlsafe(16)
     data = {k: v for k, v in asdict(page).items() if k != "image"}
@@ -578,10 +578,12 @@ def recall_page(key: str, owner_id) -> Page | None:
     return Page(**stored["page"])
 
 
-def details_of(page: Page, language: str = "it") -> Details:
-    """Nome, prezzo e note: i dati dichiarati, migliorati da Gemini se c'e' la chiave.
+def details_of(page: Page, language: str = "it", user=None) -> Details:
+    """Nome, prezzo e note: i dati dichiarati, migliorati dall'AI di cornhub se c'e'.
 
-    Il prezzo dichiarato (JSON-LD, meta) vince su quello letto da Gemini nel
+    ``user`` e' chi ha chiesto (la funzione ``describe`` di cornhub).
+
+    Il prezzo dichiarato (JSON-LD, meta) vince su quello letto dall'AI nel
     testo: e' quello del prodotto, non di un consigliato accanto.
     """
     details = declared_details(page)
@@ -594,6 +596,7 @@ def details_of(page: Page, language: str = "it") -> Details:
         price=" ".join(filter(None, [page.price, page.currency])),
         text=page.text,
         language=language,
+        user=user,
     )
     if summary:
         details.title = clean_title(summary.get("name") or "") or details.title
