@@ -28,6 +28,10 @@ x-backend: &backend
     - media:/app/media
   labels:
     - com.centurylinklabs.watchtower.enable=true
+  # "cornhub" (ADR 0020): la rete interna da cui backend, worker e beat
+  # parlano con cornhub (token OIDC, stato degli account, gateway AI) senza
+  # passare da internet.
+  networks: [default, cornhub]
   # appuser (uid 10001) non ha bisogno di nessuna capability: porta 8000,
   # file suoi. Postgres, Redis, Caddy e i backup invece partono da root e
   # cambiano utente da soli: li' le capability restano.
@@ -72,8 +76,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       SCRAPER_URL: http://scraper:8000
-    # Solo il backend parla con lo scraper (ADR 0005).
-    networks: [default, scraper]
+    # Solo il backend parla con lo scraper (ADR 0005); con cornhub anche
+    # worker e beat (l'import di liste usa l'AI nel worker).
+    networks: [default, scraper, cornhub]
     depends_on:
       db:
         condition: service_healthy
@@ -234,6 +239,9 @@ networks:
   edge:
     external: true
   scraper:
+  # Creata dal compose di cornhub (repo cornhub, deploy/compose.yaml).
+  cornhub:
+    external: true
 
 volumes:
   pgdata:
