@@ -45,8 +45,19 @@ def user_row(user) -> dict:
         "email_verified": user.email_verified_at is not None,
         "is_active": user.is_active,
         "date_joined": _iso(user.date_joined),
-        "last_login": _iso(user.last_login),
+        "last_login": _last_seen(user),
     }
+
+
+def _last_seen(user):
+    """L'ultimo accesso vero: il login JWT non aggiorna ``last_login``, ma
+    ogni login e ogni rinnovo della sessione emette un refresh token. Su
+    cornhub serve a far vincere la password dell'app usata per ultima."""
+    from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+
+    token = OutstandingToken.objects.filter(user=user).order_by("-created_at").first()
+    seen = [d for d in (user.last_login, token.created_at if token else None) if d]
+    return max(seen).isoformat() if seen else None
 
 
 class Command(BaseCommand):
